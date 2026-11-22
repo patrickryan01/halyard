@@ -34,5 +34,8 @@ up)
     sleep 1
   done
   [ -z "$ids" ] || { echo "could not remove the inbound throttles: $ids"; exit 1; }
+  # the running server keeps the throttles it loaded until its settings are reloaded (its log shows the destroyed
+  # MtaInboundThrottle still firing), and a restart brings the defaults back, so ask it to reload
+  J "{$U,\"methodCalls\":[[\"x:Action/set\",{\"accountId\":\"d333333\",\"create\":{\"a\":{\"@type\":\"ReloadSettings\"}}},\"r\"]]}" https://127.0.0.1:18443/jmap/ | grep -q '"created"' || { echo "could not reload the settings"; exit 1; }
   echo "lab ready" ;;
 esac

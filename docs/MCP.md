@@ -14,7 +14,7 @@ A client config for an MCP client that takes an HTTP server:
 
 The command line (`halyard` or `halyardctl`) is a client of this same server, so anything it can do a script can do through MCP and the other way round.
 
-## Tools (87)
+## Tools (91)
 
 | Area | Tools |
 |---|---|
@@ -31,6 +31,8 @@ The command line (`halyard` or `halyardctl`) is a client of this same server, so
 | Calendar and contacts servers | `set_calendar_server`, `list_calendars`, `list_events`, `save_event`, `delete_event`, `list_address_book`; contacts: `search_contacts`, `create_contact`, `update_contact`, `delete_contact` |
 | Keys | `list_keys`, `make_key`, `import_key`, `remove_key`, `export_key`, `open_secure_message`, `keep_signer` |
 | Import and export | `import_mbox`, `import_thunderbird`, `export_message`, `export_threads` |
+| Groups | `list_contact_groups`, `save_contact_group`, `delete_contact_group` |
+| Updates | `check_update` |
 | Settings | `get_settings`, `update_settings` |
 
 Sends go through the outbox and leave after the undo window unless `immediate` is set or a time is given.

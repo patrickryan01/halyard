@@ -51,8 +51,9 @@ await pg.fill('#ih', '127.0.0.1'); await pg.fill('#ip', '18995'); await pg.selec
 await until(pg, 'the POP3 account to appear', async () => (await api('state')).accounts.some(a => a.email === 'bob@lab.test'), null, 60000); st = await state();
 const bob = st.accounts.find(a => a.email === 'bob@lab.test');
 must(bob && bob.kind === 'pop3', 'POP3 lab account added');
-const q = await (await fetch(base + '/api/threads?q=' + encodeURIComponent('pop3 proof'), { headers: { 'X-Token': tk } })).json();
-must(JSON.stringify(q).includes('pop3 proof'), 'the mail was downloaded over POP3');
+let q = null;
+try { await until(pg, 'the POP3 mail to be downloaded', async (u) => JSON.stringify(await (await fetch(u.url, { headers: { 'X-Token': u.tk } })).json()).includes('pop3 proof'), { url: base + '/api/threads?q=' + encodeURIComponent('pop3 proof'), tk }, 60000); q = 'pop3 proof'; } catch (e) { console.log(String(e)); }
+must(q === 'pop3 proof', 'the mail was downloaded over POP3');
 
 // 4. Microsoft: one click, a real sign-in on login.microsoftonline.com, the page is driven here because no browser is opened
 if (msPw && msUser) {

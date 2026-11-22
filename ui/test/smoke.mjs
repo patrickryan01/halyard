@@ -35,7 +35,7 @@ await pg.click('#compose'); await pg.waitForSelector('.composer');
 await pg.fill('[data-f=to] input', 'dana@millwork.example'); await pg.keyboard.press('Enter');
 await pg.fill('[data-subj]', 'smoke draft');
 await pg.setInputFiles('[data-file]', { name: 'note.txt', mimeType: 'text/plain', buffer: Buffer.from('attached text') });
-await until(pg, 'the draft to be saved by the core', async () => (await api('drafts')).length === 1);
+await until(pg, 'the draft to be saved by the core', async () => { const d = await api('drafts'); if (d.length !== 1) return false; const x = typeof d[0].data === 'string' ? JSON.parse(d[0].data) : d[0].data; return d[0].subject === 'smoke draft' && (x.attachments || []).length === 1; });
 const drafts = await (await fetch(url.replace(/\/\?.*/, '/api/drafts?token=' + new URL(url).searchParams.get('token')))).json();
 must(drafts.length === 1 && drafts[0].subject === 'smoke draft', 'draft was saved by the core');
 const dd = drafts.length ? (typeof drafts[0].data === 'string' ? JSON.parse(drafts[0].data) : drafts[0].data) : {};
