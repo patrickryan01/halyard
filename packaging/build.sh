@@ -27,7 +27,7 @@ rpm)
     rpmbuild -bb --define "hver '"$V"'" /root/rpmbuild/SPECS/halyard.spec
     cp /root/rpmbuild/RPMS/*/halyard-*.rpm /out/pkg/' ;;
 windows)
-  podman run --rm $ENVS -v "$OUT:/out:Z" docker.io/library/golang:1.27 sh -ec '
+  podman run --rm $ENVS -v "$OUT:/out:Z" docker.io/library/golang:1.27-bookworm sh -ec '
     apt-get update -qq >/dev/null && apt-get install -y -qq nsis >/dev/null
     mkdir -p /src && tar -xzf /out/src/halyard-'"$V"'.tar.gz -C /src && cd /src/halyard-'"$V"'
     LDF=$(sh packaging/common/build-flags.sh)
