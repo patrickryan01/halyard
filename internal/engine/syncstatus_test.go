@@ -86,10 +86,11 @@ func TestSyncStatusProgress(t *testing.T) {
 	time.Sleep(1100 * time.Millisecond) // the stored last sync has one second resolution
 	e.SyncAll()
 	e.SyncAll() // pressing it again joins the round, it does not count the accounts twice
-	s := waitFor("both running", func(s SyncStatus) bool { return s.Running && s.Total == 2 && s.Done == 0 })
-	if !s.Accounts[0].Syncing && !s.Accounts[1].Syncing {
-		t.Fatalf("an account must read as syncing: %+v", s)
-	}
+	// both accounts read as syncing once their cycles have started and are held in Sync
+	s := waitFor("both running", func(s SyncStatus) bool {
+		return s.Running && s.Total == 2 && s.Done == 0 && len(s.Accounts) == 2 && s.Accounts[0].Syncing && s.Accounts[1].Syncing
+	})
+	_ = s
 	close(h1)
 	s = waitFor("one done", func(s SyncStatus) bool { return s.Running && s.Total == 2 && s.Done == 1 })
 	if !s.LastSync.Equal(before) {
