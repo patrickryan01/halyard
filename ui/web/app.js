@@ -90,6 +90,7 @@ function applyTheme() {
   document.documentElement.dataset.density = S.data.settings.density;
 }
 async function loadThreads(append) {
+  if (S.folder === 'role:drafts' && !S.q) { try { S.drafts = await api('drafts'); } catch (e) {} }
   if (!append) { S.offset = 0; }
   const p = new URLSearchParams();
   if (S.account) p.set('account', S.account);
@@ -172,8 +173,16 @@ function toolbarHtml() {
     b('archive', 'archive', 'Archive (e)') + b('spam', 'spam', 'Report spam (!)') + b('trash', 'trash', 'Delete (#)') + b('read', 'read', 'Mark as read (Shift+I)') + b('unread', 'mail', 'Mark as unread (Shift+U)') + b('snooze', 'clock', 'Snooze (b)') + b('move', 'folder', 'Move or label') + '</div>';
   return '<input type="checkbox" id="selall" aria-label="Select all" style="margin:0 12px"><span class="title">' + esc(listTitle()) + '</span><span class="pill">' + S.threads.length + (S.more ? '+' : '') + ' conversation' + (S.threads.length === 1 ? '' : 's') + '</span>';
 }
+function draftRows() {
+  if (S.q || S.folder !== 'role:drafts' || !(S.drafts || []).length) return '';
+  return S.drafts.map((d, i) => {
+    let x = {};
+    try { x = typeof d.data === 'string' ? JSON.parse(d.data) : d.data; } catch (e) {}
+    return '<div class="row" data-draft="' + i + '"><span style="width:18px"></span><span class="from" style="color:var(--danger)">Draft</span><span class="mid">' + esc(x.subject || '(no subject)') + ' <span class="snip">- ' + esc((x.bodyText || '').slice(0, 120)) + '</span></span><span class="date">' + esc(fmtDate(d.updated)) + '</span></div>';
+  }).join('');
+}
 function listHtml() {
-  let rows = '';
+  let rows = draftRows();
   const multi = S.data.accounts.length > 1;
   S.threads.forEach((t, i) => {
     const parts = (t.participants || []).slice(0, 3).join(', ') || '(unknown)';
@@ -339,7 +348,18 @@ function moveMenu(ev, ids) {
   const fs = S.data.folders.filter(f => f.accountId === acct && !['starred', 'sent', 'drafts', 'all'].includes(f.role));
   if (!fs.length) { toast('No folders for this account'); return; }
   const isLabel = fs.some(f => f.isLabel);
-  popup(ev, '<div class="pill" style="padding:4px 10px">' + (isLabel ? 'Label as' : 'Move to') + '</div>' + fs.map(f => '<button data-f="' + esc(f.remoteId) + '">' + esc(f.name) + '</button>').join(''), pop => {
+  popup(ev, '<div class="pill" style="padding:4px 10px">' + (isLabel ? 'Label as' : 'Move to') + '</div>' + fs.map(f => '<button data-f="' + esc(f.remoteId) + '">' + esc(f.name) + '</button>').join('') + '<button data-newf>' + (isLabel ? 'Create new label...' : 'Create new folder...') + '</button>', pop => {
+    $('[data-newf]', pop).onclick = async () => {
+      closePop();
+      const n = prompt(isLabel ? 'New label name' : 'New folder name');
+      if (!n) return;
+      try {
+        const r = await api('folders/create', { accountId: acct, name: n });
+        await new Promise(x => setTimeout(x, 1200));
+        await refreshState();
+        await doAct(isLabel ? 'label' : 'move', ids, { folderId: r.id, accountId: acct });
+      } catch (e) { toast(e.message, { err: true }); }
+    };
     $$('[data-f]', pop).forEach(b => b.onclick = () => { closePop(); doAct(isLabel ? 'label' : 'move', ids, { folderId: b.dataset.f, accountId: acct }); });
   });
 }
@@ -385,6 +405,13 @@ function bindMain() {
       if (e.target.closest('[data-chk],[data-star],[data-ra]')) return;
       S.cursor = i; openThread(S.threads[i].id);
     };
+  });
+  $$('[data-draft]').forEach(r => r.onclick = () => {
+    const d = S.drafts[+r.dataset.draft];
+    let x = {};
+    try { x = typeof d.data === 'string' ? JSON.parse(d.data) : d.data; } catch (e) {}
+    api('drafts/discard', { id: d.id });
+    openComposer({ id: d.id, accountId: x.accountId, to: (x.to || []).flatMap(parseAddrs), cc: (x.cc || []).flatMap(parseAddrs), bcc: (x.bcc || []).flatMap(parseAddrs), subject: x.subject || '', html: x.bodyHtml || '', inReplyTo: x.inReplyTo || '', refs: x.references || [], threadHint: x.threadHint || '' });
   });
   $$('[data-chk]').forEach(c => c.onchange = () => { const t = S.threads[+c.dataset.chk]; if (c.checked) S.sel.add(t.id); else S.sel.delete(t.id); render(); });
   $$('[data-star]').forEach(b => b.onclick = e => { e.stopPropagation(); const t = S.threads[+b.dataset.star]; doAct(t.starred ? 'unstar' : 'star', [t.id], { quiet: true }); });
@@ -548,7 +575,15 @@ function settingsDialog() {
     '<h3>Appearance</h3><div class="grid2" style="grid-template-columns:1fr 1fr"><div><label class="l">Theme</label><select id="theme"><option value="auto">Match system</option><option value="light">Light</option><option value="dark">Dark</option></select></div><div><label class="l">Density</label><select id="density"><option value="comfortable">Comfortable</option><option value="compact">Compact</option></select></div></div>' +
     '<h3>Behavior</h3><div class="row2"><div><label class="l">Undo send delay</label><select id="undo"><option value="0">Off</option><option>5</option><option>10</option><option>20</option><option>30</option></select></div>' +
     '<label><input type="checkbox" id="imgs" style="width:auto"> Always load remote images (they can tell the sender you read the message)</label><label><input type="checkbox" id="notif" style="width:auto"> Desktop notifications for new mail</label></div>' +
+    '<h3>MCP server</h3><div class="row2"><div class="pill">The app runs a read and write MCP server on this computer so other programs can use your mail. It signs in as you and reaches every account above.</div><div id="mcpbox" class="pill">Loading...</div></div>' +
     '<div class="btns"><button class="btn" id="keys">Keyboard shortcuts</button><button class="btn primary" id="save">Save</button></div>');
+  api('mcp').then(m => {
+    const b = $('#mcpbox', el); if (!b) return;
+    if (!m.enabled) { b.textContent = 'The MCP server is not running in this session.'; return; }
+    const cfg = JSON.stringify({ mcpServers: { [BRAND.toLowerCase()]: { type: 'http', url: m.url, headers: { Authorization: 'Bearer ' + m.token } } } }, null, 2);
+    b.innerHTML = '<div>Endpoint <span class="kbd">' + esc(m.url) + '</span></div><textarea rows="7" readonly style="width:100%;font-family:var(--font-mono);font-size:12px;margin-top:6px">' + esc(cfg) + '</textarea><button class="btn" id="copycfg" style="margin-top:6px">Copy client config</button>';
+    $('#copycfg', el).onclick = () => { navigator.clipboard.writeText(cfg).then(() => toast('Copied')); };
+  }).catch(() => { const b = $('#mcpbox', el); if (b) b.textContent = 'Not available here.'; });
   $('#theme', el).value = s.theme; $('#density', el).value = s.density; $('#undo', el).value = s.undoSeconds; $('#imgs', el).checked = s.loadImages === 'true'; $('#notif', el).checked = s.notifications === 'true';
   $('#addacct', el).onclick = () => { el.remove(); addAccountDialog(); };
   $('#keys', el).onclick = () => { el.remove(); helpDialog(); };
@@ -666,12 +701,27 @@ function openComposer(init) {
   setTimeout(() => (c.to.length ? ed : $('[data-f=to] input', root)).focus(), 30);
   if (c.mode !== 'new' && c.to.length) { const r = document.createRange(); r.setStart(ed, 0); r.collapse(true); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); }
 
-  function save() { try { localStorage.setItem('draft:' + c.id, JSON.stringify({ id: c.id, accountId: c.accountId, to: c.to, cc: c.cc, bcc: c.bcc, subject: c.subject, html: ed.innerHTML, inReplyTo: c.inReplyTo, refs: c.refs, threadHint: c.threadHint, mode: c.mode, t: Date.now() })); } catch (e) {} }
-  const timer = setInterval(save, 4000);
-  function drop() { clearInterval(timer); try { localStorage.removeItem('draft:' + c.id); } catch (e) {} root.remove(); S.composers = S.composers.filter(x => x !== c); stackComposers(); }
+  let dirty = false, savedOnce = false;
+  function save() { dirty = true; }
+  async function flush() {
+    if (!dirty) return;
+    dirty = false;
+    const empty = !c.to.length && !c.subject && !ed.innerText.trim();
+    if (empty) return;
+    try {
+      await api('drafts', { id: c.id, accountId: c.accountId, to: c.to.map(addrFmt), cc: c.cc.map(addrFmt), bcc: c.bcc.map(addrFmt), subject: c.subject, bodyText: ed.innerText, bodyHtml: ed.innerHTML, inReplyTo: c.inReplyTo, references: c.refs || [], threadHint: c.threadHint });
+      savedOnce = true;
+    } catch (e) { /* the next tick tries again */ }
+  }
+  const timer = setInterval(flush, 3000);
+  function drop() {
+    clearInterval(timer);
+    if (savedOnce || dirty) api('drafts/discard', { id: c.id }).catch(() => {});
+    root.remove(); S.composers = S.composers.filter(x => x !== c); stackComposers();
+  }
   function close(discard) {
     const empty = !c.to.length && !c.subject && !ed.innerText.trim() && !c.files.length;
-    if (!empty && !discard) { save(); toast('Draft saved on this computer.', { action: { label: 'Discard', fn: drop } }); clearInterval(timer); root.remove(); S.composers = S.composers.filter(x => x !== c); stackComposers(); return; }
+    if (!empty && !discard) { dirty = true; flush(); toast('Draft saved.', { action: { label: 'Discard', fn: drop } }); clearInterval(timer); root.remove(); S.composers = S.composers.filter(x => x !== c); stackComposers(); return; }
     drop();
   }
   async function send() {
@@ -762,9 +812,7 @@ document.addEventListener('keydown', onKey);
     await refreshState();
     await loadThreads(false);
     render();
-    for (const k of Object.keys(localStorage)) {
-      if (k.startsWith('draft:')) { try { const d = JSON.parse(localStorage.getItem(k)); localStorage.removeItem(k); openComposer(d); } catch (e) {} }
-    }
+    S.drafts = await api('drafts').catch(() => []);
   } catch (e) { $('#app').innerHTML = '<div class="empty"><div><h2>Could not start</h2><p>' + esc(e.message) + '</p></div></div>'; }
   pollEvents();
   // inside the native window the Wails runtime exists: mailto links and notifications come from the shell

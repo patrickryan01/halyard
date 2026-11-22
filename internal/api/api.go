@@ -107,7 +107,7 @@ func (s *Server) Handler() http.Handler {
 	h("POST /api/folders/create", s.createFolder)
 	h("GET /api/drafts", s.drafts)
 	h("POST /api/drafts", s.saveDraft)
-	h("POST /api/drafts/delete", s.deleteDraft)
+	h("POST /api/drafts/discard", s.deleteDraft)
 	h("POST /api/send", s.send)
 	h("POST /api/undo", s.undo)
 	h("POST /api/outbox/retry", s.retry)
