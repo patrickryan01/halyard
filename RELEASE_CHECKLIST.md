@@ -16,7 +16,7 @@ Rules for every step: builds, the lab and the VMs run on The Beast, one heavy jo
 
 1. `go vet ./... && go test ./...` pass.
 2. The lab: `lab/stalwart.sh up`, then `MAIL_LAB_HOST=127.0.0.1 ./e2e.test -test.run Lab` passes IMAP, JMAP, and the MCP runs for both.
-3. Live providers pass with a real mailbox each: `TestGoogleLive` and `TestMCPGoogleLive` with `HEARTH_LIVE_GOOGLE_TOKEN` (`secrets/access/google-dwd-mint.py`, account@fireballz.ai), and `TestMCPMicrosoftLive` with `HEARTH_LIVE_MS_TOKEN` (`secrets/access/ms-liveproof-token.py delegated`).
+3. Live providers pass with a real mailbox each: `TestGoogleLive` and `TestMCPGoogleLive` with `HEARTH_LIVE_GOOGLE_TOKEN` (`secrets/access/google-dwd-mint.py`, account@fireballz.ai), and `TestMCPMicrosoftLive` with `HEARTH_LIVE_MS_TOKEN` and `HEARTH_LIVE_MS_USER` (a delegated token for account@fireballindustries.onmicrosoft.com: a password grant on the Halyard Entra app, `client_id=5bc58f81-5155-4a3e-aedc-d6692de040c7`, scope `offline_access User.Read Mail.ReadWrite Mail.Send Contacts.ReadWrite`; the Hearth live-proof app that `ms-liveproof-token.py` used was deleted).
 4. The UI smoke test passes: `CHROME=... node ui/test/smoke.mjs <demo build of halyardd>`.
 
 ## 3. Build the three packages (`packaging/build.sh <version> arch|rpm|windows <dir>`, one at a time)
