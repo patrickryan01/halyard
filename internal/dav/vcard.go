@@ -102,3 +102,36 @@ func BuildVCard(c mailtypes.Contact, uid string) string {
 	b.WriteString("END:VCARD\r\n")
 	return b.String()
 }
+
+// BuildGroupVCard writes a group as a vCard 4.0 group card (RFC 6350: KIND:group with a MEMBER for each address).
+func BuildGroupVCard(g mailtypes.ContactGroup, uid string) string {
+	var b strings.Builder
+	b.WriteString("BEGIN:VCARD\r\nVERSION:4.0\r\nKIND:group\r\nUID:" + uid + "\r\nFN:" + vescape(g.Name) + "\r\n")
+	for _, m := range g.Members {
+		b.WriteString("MEMBER:mailto:" + m + "\r\n")
+	}
+	b.WriteString("END:VCARD\r\n")
+	return b.String()
+}
+
+// ParseGroupVCard reads a group card; ok is false for an ordinary contact.
+func ParseGroupVCard(data string) (g mailtypes.ContactGroup, ok bool) {
+	data = strings.ReplaceAll(strings.ReplaceAll(data, "\r\n", "\n"), "\r", "\n")
+	g.Members = []string{}
+	for _, l := range strings.Split(data, "\n") {
+		i := strings.Index(l, ":")
+		if i < 0 {
+			continue
+		}
+		name, val := strings.ToUpper(l[:i]), l[i+1:]
+		switch {
+		case name == "KIND" && strings.EqualFold(val, "group"), name == "X-ADDRESSBOOKSERVER-KIND" && strings.EqualFold(val, "group"):
+			ok = true
+		case name == "FN":
+			g.Name = vunescape(val)
+		case name == "MEMBER" || name == "X-ADDRESSBOOKSERVER-MEMBER":
+			g.Members = append(g.Members, strings.TrimPrefix(strings.TrimPrefix(val, "mailto:"), "MAILTO:"))
+		}
+	}
+	return g, ok
+}

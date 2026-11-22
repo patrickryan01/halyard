@@ -470,6 +470,14 @@ func (e *Engine) SearchContacts(ctx context.Context, q string) []mailtypes.Conta
 	out, _ := e.St.SuggestContacts(q, 25)
 	loc, _ := e.St.LocalContacts(q)
 	out = append(out, loc...)
+	// a group is offered like a person, and stands for all its members
+	if gs, err := e.St.Groups(); err == nil {
+		for _, g := range gs {
+			if q == "" || strings.Contains(strings.ToLower(g.Name), strings.ToLower(q)) {
+				out = append([]mailtypes.Contact{{Name: g.Name + " (group)", Email: "", Members: g.Members}}, out...)
+			}
+		}
+	}
 	seen := map[string]bool{}
 	var dedup []mailtypes.Contact
 	for _, c := range out {

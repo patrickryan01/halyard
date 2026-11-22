@@ -6,11 +6,14 @@ import (
 	"io"
 	"mime"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
 	"github.com/patrickryan01/halyard/internal/engine"
 	"github.com/patrickryan01/halyard/internal/mailtypes"
+	"github.com/patrickryan01/halyard/internal/platform"
+	"github.com/patrickryan01/halyard/internal/update"
 )
 
 // call wraps a handler that takes a JSON body of type T and returns a value to send back.
@@ -304,6 +307,8 @@ func (s *Server) features(h func(string, func(http.ResponseWriter, *http.Request
 	h("POST /api/sieve/delete", call(s, func(ctx context.Context, in struct{ AccountID, Name string }) (any, error) {
 		return nil, e.SieveDelete(ctx, in.AccountID, in.Name)
 	}))
+	s.groups(h)
+	s.updates(h)
 	// the one place the window asks what it can do
 	h("GET /api/capabilities", view(s, func(ctx context.Context, q func(string) string) (any, error) {
 		a, err := e.St.Account(q("account"))
@@ -319,5 +324,42 @@ func (s *Server) features(h func(string, func(http.ResponseWriter, *http.Request
 		case "pop3", "local":
 		}
 		return caps, nil
+	}))
+}
+
+// groups registers the contact group routes.
+func (s *Server) groups(h func(string, func(http.ResponseWriter, *http.Request))) {
+	e := s.Eng
+	h("GET /api/groups", view(s, func(ctx context.Context, q func(string) string) (any, error) { return e.St.Groups() }))
+	h("POST /api/groups", call(s, func(ctx context.Context, in struct {
+		AccountID string `json:"accountId"`
+		mailtypes.ContactGroup
+	}) (any, error) {
+		return e.SaveGroup(ctx, in.AccountID, in.ContactGroup)
+	}))
+	h("POST /api/groups/delete", call(s, func(ctx context.Context, in struct{ AccountID, ID string }) (any, error) {
+		return nil, e.DeleteGroup(ctx, in.AccountID, in.ID)
+	}))
+}
+
+// updates registers the update check.
+func (s *Server) updates(h func(string, func(http.ResponseWriter, *http.Request))) {
+	h("GET /api/update/check", view(s, func(ctx context.Context, q func(string) string) (any, error) { return update.Here(ctx, s.Version) }))
+	h("POST /api/update/install", call(s, func(ctx context.Context, in struct{}) (any, error) {
+		info, err := update.Here(ctx, s.Version)
+		if err != nil {
+			return nil, err
+		}
+		if info.Managed || !info.Newer {
+			return info, nil
+		}
+		p, err := update.Download(ctx, info, os.TempDir())
+		if err != nil {
+			return nil, err
+		}
+		if err := platform.OpenURL(p); err != nil { // hands the verified installer to the system
+			return nil, err
+		}
+		return map[string]string{"started": p}, nil
 	}))
 }

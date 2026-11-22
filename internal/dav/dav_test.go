@@ -151,3 +151,14 @@ func TestCalDAVAndCardDAV(t *testing.T) {
 		t.Fatalf("contacts %+v %v", cards, err)
 	}
 }
+
+func TestGroupVCardRoundTrip(t *testing.T) {
+	g := mailtypes.ContactGroup{Name: "Plant team", Members: []string{"a@x.test", "b@y.test"}}
+	got, ok := ParseGroupVCard(BuildGroupVCard(g, "g1"))
+	if !ok || got.Name != "Plant team" || len(got.Members) != 2 || got.Members[1] != "b@y.test" {
+		t.Fatalf("%+v %v", got, ok)
+	}
+	if _, ok := ParseGroupVCard(BuildVCard(mailtypes.Contact{Name: "Bo", Email: "bo@y.test"}, "u")); ok {
+		t.Fatal("a person is not a group")
+	}
+}

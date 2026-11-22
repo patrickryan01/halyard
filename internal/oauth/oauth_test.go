@@ -51,7 +51,6 @@ func TestPKCEFlowAndRefresh(t *testing.T) {
 	}
 	// the browser comes back to the loopback redirect
 	go func() {
-		time.Sleep(100 * time.Millisecond)
 		bad, _ := http.Get(q.Get("redirect_uri") + "?state=wrong&code=x")
 		if bad != nil {
 			bad.Body.Close()

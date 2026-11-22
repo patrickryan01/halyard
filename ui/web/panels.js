@@ -29,7 +29,19 @@ H.generalDialog = function () {
     '<label><input type="checkbox" id="g_sign" style="width:auto"> Sign every message I send when I have a key</label>' +
     '<label><input type="checkbox" id="g_enc" style="width:auto"> Encrypt when I have a key for every recipient</label>' +
     lbl('Protect messages with', '<select id="g_prot">' + opt('pgp', s.defaultProtect, 'OpenPGP') + opt('smime', s.defaultProtect, 'S/MIME') + '</select>') +
-    '</div><div class="btns"><button class="btn" data-close>Cancel</button><button class="btn primary" id="g_save">Save</button></div>', el => {
+    '<div id="g_upd" class="pill"></div><button class="btn" id="g_chk" style="justify-self:start">Check for updates</button></div><div class="btns"><button class="btn" data-close>Cancel</button><button class="btn primary" id="g_save">Save</button></div>', el => {
+    $('#g_chk', el).onclick = async () => {
+      const out = $('#g_upd', el); out.textContent = t('Checking...');
+      try {
+        const u = await api('update/check');
+        if (u.managed) out.textContent = t(u.statement);
+        else if (!u.newer) out.textContent = t('You have the newest version ({x}).', { x: u.current });
+        else {
+          out.innerHTML = esc(t('Version {x} is out. The installer was checked against the release hash.', { x: u.latest })) + ' <button class="btn" id="g_inst">Install it</button>';
+          $('#g_inst', out).onclick = async () => { try { await api('update/install', {}); out.textContent = t('The installer was started.'); } catch (e) { errTo(e); } };
+        }
+      } catch (e) { out.textContent = e.message; }
+    };
     $('#g_conv', el).checked = s.conversations !== 'false'; $('#g_spell', el).checked = s.spellcheck !== 'false'; $('#g_arch', el).checked = s.archiveAfterReply === 'true';
     $('#g_tray', el).checked = s.tray !== 'false'; $('#g_min', el).checked = s.startMinimized === 'true'; $('#g_sign', el).checked = s.signAll === 'true'; $('#g_enc', el).checked = s.encryptWhenPossible === 'true';
     $('#g_save', el).onclick = async () => {
@@ -315,8 +327,26 @@ H.calendarDialog = async function () {
 // ---------- contacts ----------
 H.contactsDialog = async function () {
   if (needAccount()) return;
-  const el = dialog('<h2>Contacts</h2><input id="ct_q" placeholder="Find a contact" style="width:100%"><div id="ctbody" style="margin-top:8px"></div><div class="btns"><button class="btn" id="ct_new">New contact</button><button class="btn primary" data-close>Done</button></div>');
+  const el = dialog('<h2>Contacts</h2><input id="ct_q" placeholder="Find a contact" style="width:100%"><div id="grbody" style="margin-top:8px"></div><div id="ctbody" style="margin-top:8px"></div><div class="btns"><button class="btn" id="gr_new">New group</button><button class="btn" id="ct_new">New contact</button><button class="btn primary" data-close>Done</button></div>');
+  const drawGroups = async () => {
+    try {
+      const gs = await api('groups');
+      $('#grbody', el).innerHTML = gs.map(g => '<div class="card" style="display:flex;gap:10px;align-items:center"><span class="tag">Group</span><div style="flex:1;min-width:0"><b>' + esc(g.name) + '</b><div class="pill">' + esc(g.members.join(', ')) + '</div></div><button class="btn" data-gmail="' + esc(g.id) + '">Write</button><button class="btn" data-gedit="' + esc(g.id) + '">Edit</button><button class="btn danger" data-gdel="' + esc(g.id) + '">Delete</button></div>').join('');
+      $$('[data-gmail]', el).forEach(b => b.onclick = () => { const g = gs.find(x => x.id === b.dataset.gmail); el.remove(); openComposer({ mode: 'new', to: g.members.map(m => ({ email: m })) }); });
+      $$('[data-gdel]', el).forEach(b => b.onclick = async () => { try { await api('groups/delete', { accountId: S.data.accounts[0].id, id: b.dataset.gdel }); drawGroups(); } catch (e) { errTo(e); } });
+      $$('[data-gedit]', el).forEach(b => b.onclick = () => editGroup(gs.find(x => x.id === b.dataset.gedit)));
+    } catch (e) { errTo(e); }
+  };
+  const editGroup = g => {
+    g = g || {};
+    const d2 = dialog('<h2>' + (g.id ? 'Edit the group' : 'New group') + '</h2><div class="row2">' + lbl('Account (keeps the group on its server when it has one)', acctSelect('gr_acct', S.account)) + lbl('Name', '<input id="gr_n" value="' + esc(g.name || '') + '">') + lbl('Addresses, one on each line', '<textarea id="gr_m" rows="6">' + esc((g.members || []).join('\n')) + '</textarea>') +
+      '</div><div class="btns"><button class="btn" data-close>Cancel</button><button class="btn primary" id="gr_go">Save</button></div>', e2 => {
+      $('#gr_go', e2).onclick = async () => { try { await api('groups', { accountId: $('#gr_acct', e2).value, id: g.id || '', name: $('#gr_n', e2).value, members: $('#gr_m', e2).value.split(/[\s,;]+/).filter(Boolean) }); e2.remove(); drawGroups(); } catch (e) { errTo(e); } };
+    });
+    d2.style.zIndex = 70;
+  };
   const draw = async () => {
+    drawGroups();
     try {
       const cs = await api('contacts/all?q=' + encodeURIComponent($('#ct_q', el).value));
       $('#ctbody', el).innerHTML = cs.length ? cs.map(c => '<div class="card" style="display:flex;gap:10px;align-items:center"><div class="avatar" style="background:' + colorFor(c.email) + ';width:32px;height:32px">' + esc(initials(c.name || c.email)) + '</div><div style="flex:1;min-width:0"><b>' + esc(c.name || c.email) + '</b><div class="pill">' + esc(c.email) + (c.phone ? ' &middot; ' + esc(c.phone) : '') + (c.org ? ' &middot; ' + esc(c.org) : '') + '</div></div>' +
@@ -334,7 +364,7 @@ H.contactsDialog = async function () {
     });
     d2.style.zIndex = 70;
   };
-  $('#ct_q', el).oninput = draw; $('#ct_new', el).onclick = () => edit(); draw();
+  $('#ct_q', el).oninput = draw; $('#ct_new', el).onclick = () => edit(); $('#gr_new', el).onclick = () => editGroup(); draw();
 };
 
 // ---------- import and export ----------

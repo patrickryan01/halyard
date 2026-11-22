@@ -41,6 +41,7 @@ func mailtoArg(args []string) string {
 }
 
 func main() {
+	platform.FixGDKBackend(os.Getenv, func(k, v string) { _ = os.Setenv(k, v) })
 	// "halyard send ..." and the other commands run in the terminal; with no command the window opens
 	if len(os.Args) > 1 && cli.IsCommand(os.Args[1]) {
 		os.Exit(cli.Main(os.Args[1:], os.Stdout, os.Stderr))
@@ -72,7 +73,7 @@ func main() {
 		}
 	})
 
-	trayOn := a.Store.Setting("tray", "true") == "true" && os.Getenv("HALYARD_NO_TRAY") == ""
+	trayOn := a.Store.Setting("tray", "true") == "true" && os.Getenv("HALYARD_NO_TRAY") == "" && tray.Available()
 	var tr *tray.Tray
 	updateTray := func() {
 		if tr == nil {

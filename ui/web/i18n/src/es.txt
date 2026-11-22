@@ -513,3 +513,15 @@
 515|{n} seleccionados
 516|{n} mensajes sin leer
 517|Cuenta de {x}
+518|(grupo)
+519|Cuenta (guarda el grupo en su servidor si lo tiene)
+520|Direcciones, una en cada línea
+521|Buscar actualizaciones
+522|Editar el grupo
+523|Grupo
+524|Instalarla
+525|Grupo nuevo
+526|Se inició el instalador.
+527|Las actualizaciones de esta versión llegan por su gestor de paquetes (pacman -Syu en EmberArch, zypper dup en EmberRTOS Desktop). Halyard no se reemplaza a sí mismo.
+528|Ya está la versión {x}. El instalador se comprobó con el hash de la versión.
+529|Tiene la versión más reciente ({x}).

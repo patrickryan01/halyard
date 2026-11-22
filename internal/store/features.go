@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"strings"
 
 	"github.com/patrickryan01/halyard/internal/mailtypes"
 )
@@ -294,4 +295,55 @@ func (s *Store) Raw(accountID, remoteID string) ([]byte, error) {
 	var b []byte
 	err := s.db.QueryRow(`SELECT data FROM raw_messages WHERE account_id=? AND remote_id=?`, accountID, remoteID).Scan(&b)
 	return b, err
+}
+
+// ---- contact groups ----
+
+func (s *Store) Groups() ([]mailtypes.ContactGroup, error) {
+	rows, err := s.db.Query(`SELECT id,name,members FROM contact_groups ORDER BY LOWER(name)`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := []mailtypes.ContactGroup{}
+	for rows.Next() {
+		var g mailtypes.ContactGroup
+		var m string
+		if err := rows.Scan(&g.ID, &g.Name, &m); err != nil {
+			return nil, err
+		}
+		_ = json.Unmarshal([]byte(m), &g.Members)
+		if g.Members == nil {
+			g.Members = []string{}
+		}
+		out = append(out, g)
+	}
+	return out, rows.Err()
+}
+
+func (s *Store) PutGroup(g mailtypes.ContactGroup) (mailtypes.ContactGroup, error) {
+	g.Name = strings.TrimSpace(g.Name)
+	if g.Name == "" {
+		return g, errors.New("a group needs a name")
+	}
+	seen := map[string]bool{}
+	var ms []string
+	for _, m := range g.Members {
+		m = strings.TrimSpace(m)
+		if m != "" && !seen[strings.ToLower(m)] {
+			seen[strings.ToLower(m)] = true
+			ms = append(ms, m)
+		}
+	}
+	g.Members = ms
+	if g.ID == "" {
+		g.ID = newRandID()
+	}
+	_, err := s.db.Exec(`INSERT INTO contact_groups(id,name,members) VALUES(?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name, members=excluded.members`, g.ID, g.Name, js(ms))
+	return g, err
+}
+
+func (s *Store) DeleteGroup(id string) error {
+	_, err := s.db.Exec(`DELETE FROM contact_groups WHERE id=?`, id)
+	return err
 }

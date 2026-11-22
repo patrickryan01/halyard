@@ -513,3 +513,15 @@
 515|Đã chọn {n}
 516|{n} thư chưa đọc
 517|Tài khoản {x}
+518|(nhóm)
+519|Tài khoản (giữ nhóm trên máy chủ của nó nếu có)
+520|Địa chỉ, mỗi dòng một địa chỉ
+521|Kiểm tra bản cập nhật
+522|Sửa nhóm
+523|Nhóm
+524|Cài đặt
+525|Nhóm mới
+526|Đã khởi chạy trình cài đặt.
+527|Bản cập nhật cho bản dựng này đến từ trình quản lý gói của bạn (pacman -Syu trên EmberArch, zypper dup trên EmberRTOS Desktop). Halyard không tự thay thế chính nó.
+528|Đã có phiên bản {x}. Trình cài đặt đã được kiểm tra với mã băm của bản phát hành.
+529|Bạn đang dùng phiên bản mới nhất ({x}).
