@@ -39,7 +39,6 @@ go test ./internal/store ./internal/mime ./internal/discover ./internal/ical ./i
 %install
 install -Dm755 halyard %{buildroot}%{_bindir}/halyard
 install -Dm755 halyardd %{buildroot}%{_bindir}/halyardd
-%{_bindir}/halyardctl
 install -Dm755 halyardctl %{buildroot}%{_bindir}/halyardctl
 install -Dm644 packaging/common/halyard.desktop %{buildroot}%{_datadir}/applications/halyard.desktop
 install -Dm644 packaging/common/halyard.svg %{buildroot}%{_datadir}/icons/hicolor/scalable/apps/halyard.svg
@@ -50,6 +49,7 @@ install -Dm644 packaging/common/halyard-256.png %{buildroot}%{_datadir}/icons/hi
 %license LICENSE
 %{_bindir}/halyard
 %{_bindir}/halyardd
+%{_bindir}/halyardctl
 %{_datadir}/applications/halyard.desktop
 %{_datadir}/icons/hicolor/*/apps/halyard.*
 
