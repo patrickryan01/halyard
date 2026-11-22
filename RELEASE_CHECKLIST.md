@@ -37,4 +37,4 @@ Install the package in a fresh VM for each platform and prove, with a screenshot
 
 ## 5. Release notes say what was not proven
 
-Anything above that did not run is listed under `## Not proven` in `release-notes/<version>.md`: the Windows code signature if unsigned, a real Microsoft Entra application registration if the build used a test one, and any provider behavior only a mailbox of that kind can show.
+Anything above that did not run is listed under `## Not proven` in `release-notes/<version>.md`, such as a sign-in that waits on a client registration, or a screenshot nobody reviewed.
