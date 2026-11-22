@@ -23,7 +23,9 @@ import (
 	_ "github.com/patrickryan01/halyard/internal/providers/google"
 	_ "github.com/patrickryan01/halyard/internal/providers/imap"
 	_ "github.com/patrickryan01/halyard/internal/providers/jmap"
+	_ "github.com/patrickryan01/halyard/internal/providers/local"
 	_ "github.com/patrickryan01/halyard/internal/providers/microsoft"
+	_ "github.com/patrickryan01/halyard/internal/providers/pop3"
 )
 
 type App struct {

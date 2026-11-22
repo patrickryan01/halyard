@@ -109,9 +109,17 @@ func (p *Provider) dial(h *imapclient.UnilateralDataHandler) (*imapclient.Client
 		c.Close()
 		return nil, err
 	}
+	if p.acct.Settings["auth"] == "xoauth2" {
+		// the secret is an OAuth access token (Gmail and Outlook accept it in place of a password)
+		if err := c.Authenticate(xoauth2{user: p.user(), token: pw}); err != nil {
+			c.Close()
+			return nil, fmt.Errorf("imap login: %w", err)
+		}
+		return c, nil
+	}
 	if err := c.Login(p.user(), pw).Wait(); err != nil {
 		c.Close()
-		return nil, fmt.Errorf("imap login: %w", err)
+		return nil, fmt.Errorf("imap login: %w", friendlyLogin(err, p.acct.Settings[SHost]))
 	}
 	return c, nil
 }
@@ -610,11 +618,36 @@ func (p *Provider) smtpClient() (*smtp.Client, error) {
 		c.Close()
 		return nil, err
 	}
-	if err := c.Auth(sasl.NewPlainClient("", p.user(), pw)); err != nil {
+	var a sasl.Client = sasl.NewPlainClient("", p.user(), pw)
+	if p.acct.Settings["auth"] == "xoauth2" {
+		a = xoauth2{user: p.user(), token: pw}
+	}
+	if err := c.Auth(a); err != nil {
 		c.Close()
-		return nil, fmt.Errorf("smtp auth: %w", err)
+		return nil, fmt.Errorf("smtp auth: %w", friendlyLogin(err, host))
 	}
 	return c, nil
+}
+
+// SendSMTP sends through the account's SMTP server and does nothing else. Accounts without an IMAP mailbox use it.
+func (p *Provider) SendSMTP(ctx context.Context, o mailtypes.Outgoing) error {
+	domain := "localhost"
+	if i := strings.LastIndex(o.From.Email, "@"); i >= 0 {
+		domain = o.From.Email[i+1:]
+	}
+	raw, err := mime.Build(o, mime.MessageID(domain, "m"))
+	if err != nil {
+		return err
+	}
+	c, err := p.smtpClient()
+	if err != nil {
+		return err
+	}
+	defer c.Close()
+	if err := c.SendMail(o.From.Email, mime.Envelope(o), strings.NewReader(string(raw))); err != nil {
+		return fmt.Errorf("smtp send: %w", err)
+	}
+	return c.Quit()
 }
 
 func (p *Provider) Send(ctx context.Context, o mailtypes.Outgoing) error {
@@ -806,4 +839,24 @@ func (p *Provider) DeleteDraft(ctx context.Context, id string) error {
 
 func (p *Provider) DraftID(ctx context.Context, messageID string) (string, error) {
 	return messageID, nil
+}
+
+// xoauth2 is the SASL XOAUTH2 mechanism: the user and an access token.
+type xoauth2 struct{ user, token string }
+
+func (x xoauth2) Start() (string, []byte, error) {
+	return "XOAUTH2", []byte("user=" + x.user + "\x01auth=Bearer " + x.token + "\x01\x01"), nil
+}
+
+// Next answers the error challenge a server sends on a bad token with an empty line, so it can say why.
+func (x xoauth2) Next(challenge []byte) ([]byte, error) { return []byte{}, nil }
+
+// friendlyLogin turns the servers' terse refusals into what a person can act on.
+func friendlyLogin(err error, host string) error {
+	m := strings.ToLower(err.Error())
+	switch {
+	case strings.Contains(m, "application-specific password") || strings.Contains(m, "app password") || strings.Contains(m, "apppasswords") || (strings.Contains(host, "gmail") && strings.Contains(m, "invalid credentials")):
+		return fmt.Errorf("%v (this server needs an app password, not your normal password; create one in your account's security settings)", err)
+	}
+	return err
 }

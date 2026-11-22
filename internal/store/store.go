@@ -48,6 +48,11 @@ CREATE TABLE IF NOT EXISTS contacts(account_id TEXT NOT NULL, email TEXT NOT NUL
   uses INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(account_id, email));
 CREATE TABLE IF NOT EXISTS drafts(id TEXT PRIMARY KEY, account_id TEXT NOT NULL, data TEXT NOT NULL, subject TEXT NOT NULL DEFAULT '', updated INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS local_contacts(id TEXT PRIMARY KEY, account_id TEXT NOT NULL, name TEXT NOT NULL DEFAULT '', email TEXT NOT NULL DEFAULT '', phone TEXT NOT NULL DEFAULT '', org TEXT NOT NULL DEFAULT '');
+CREATE TABLE IF NOT EXISTS rules(id TEXT PRIMARY KEY, account_id TEXT NOT NULL DEFAULT '', pos INTEGER NOT NULL, data TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS templates(id TEXT PRIMARY KEY, name TEXT NOT NULL, subject TEXT NOT NULL DEFAULT '', body TEXT NOT NULL DEFAULT '');
+CREATE TABLE IF NOT EXISTS identities(id TEXT PRIMARY KEY, account_id TEXT NOT NULL, name TEXT NOT NULL DEFAULT '', email TEXT NOT NULL, reply_to TEXT NOT NULL DEFAULT '',
+  signature TEXT NOT NULL DEFAULT '', is_default INTEGER NOT NULL DEFAULT 0, alias INTEGER NOT NULL DEFAULT 0);
+CREATE TABLE IF NOT EXISTS saved_searches(id TEXT PRIMARY KEY, name TEXT NOT NULL, query TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS settings(k TEXT PRIMARY KEY, v TEXT NOT NULL);
 `
 
@@ -60,10 +65,46 @@ func Open(path string) (*Store, error) {
 	if _, err := db.Exec(schema); err != nil {
 		return nil, fmt.Errorf("store schema: %w", err)
 	}
+	if err := migrate(db); err != nil {
+		return nil, fmt.Errorf("store migrate: %w", err)
+	}
 	return &Store{db: db}, nil
 }
 
 func (s *Store) Close() error { return s.db.Close() }
+
+// migrate adds the columns a database made by an earlier version lacks. A column is added only when it is missing, so
+// it is safe on every start.
+func migrate(db *sql.DB) error {
+	have := map[string]bool{}
+	rows, err := db.Query(`PRAGMA table_info(messages)`)
+	if err != nil {
+		return err
+	}
+	for rows.Next() {
+		var cid int
+		var name, typ string
+		var notnull, pk int
+		var dflt any
+		if err := rows.Scan(&cid, &name, &typ, &notnull, &dflt, &pk); err != nil {
+			rows.Close()
+			return err
+		}
+		have[name] = true
+	}
+	rows.Close()
+	for _, c := range []struct{ name, ddl string }{
+		{"size", "ALTER TABLE messages ADD COLUMN size INTEGER NOT NULL DEFAULT 0"},
+		{"extra", "ALTER TABLE messages ADD COLUMN extra TEXT NOT NULL DEFAULT ''"},
+	} {
+		if !have[c.name] {
+			if _, err := db.Exec(c.ddl); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
 
 func js(v any) string { b, _ := json.Marshal(v); return string(b) }
 
@@ -250,11 +291,11 @@ func (s *Store) UpsertMessages(ms []mailtypes.Message) error {
 			}
 		}
 		res, err := tx.Exec(`INSERT OR REPLACE INTO messages(id,account_id,remote_id,thread_id,subject,from_name,from_email,to_json,cc_json,bcc_json,reply_to_json,
-		  date,snippet,body_text,body_html,message_id,in_reply_to,refs_json,is_read,is_starred,is_draft,attach_json,has_attach,snoozed)
-		  VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+		  date,snippet,body_text,body_html,message_id,in_reply_to,refs_json,is_read,is_starred,is_draft,attach_json,has_attach,snoozed,size,extra)
+		  VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
 			m.ID, m.AccountID, m.RemoteID, m.ThreadID, m.Subject, m.From.Name, m.From.Email, js(m.To), js(m.Cc), js(m.Bcc), js(m.ReplyTo),
 			m.Date.Unix(), m.Snippet, m.BodyText, m.BodyHTML, m.MessageID, m.InReplyTo, js(m.References),
-			b2i(m.Read), b2i(m.Starred), b2i(m.Draft), js(m.Attach), b2i(hasRealAttach(m.Attach)), snoozed)
+			b2i(m.Read), b2i(m.Starred), b2i(m.Draft), js(m.Attach), b2i(hasRealAttach(m.Attach)), snoozed, messageSize(m), packExtra(m))
 		if err != nil {
 			return err
 		}
@@ -332,17 +373,20 @@ func (s *Store) ClearMessages(accountID string) error {
 }
 
 const msgCols = `id,account_id,remote_id,thread_id,subject,from_name,from_email,to_json,cc_json,bcc_json,reply_to_json,date,snippet,body_text,body_html,
- message_id,in_reply_to,refs_json,is_read,is_starred,is_draft,attach_json,snoozed`
+ message_id,in_reply_to,refs_json,is_read,is_starred,is_draft,attach_json,snoozed,size,extra`
 
 func scanMsg(sc interface{ Scan(...any) error }) (mailtypes.Message, error) {
 	var m mailtypes.Message
 	var to, cc, bcc, rt, refs, att string
-	var date, snz int64
+	var date, snz, size int64
 	var rd, st, dr int
+	var extra string
 	if err := sc.Scan(&m.ID, &m.AccountID, &m.RemoteID, &m.ThreadID, &m.Subject, &m.From.Name, &m.From.Email, &to, &cc, &bcc, &rt, &date,
-		&m.Snippet, &m.BodyText, &m.BodyHTML, &m.MessageID, &m.InReplyTo, &refs, &rd, &st, &dr, &att, &snz); err != nil {
+		&m.Snippet, &m.BodyText, &m.BodyHTML, &m.MessageID, &m.InReplyTo, &refs, &rd, &st, &dr, &att, &snz, &size, &extra); err != nil {
 		return m, err
 	}
+	m.Size = size
+	unpackExtra(extra, &m)
 	_ = json.Unmarshal([]byte(to), &m.To)
 	_ = json.Unmarshal([]byte(cc), &m.Cc)
 	_ = json.Unmarshal([]byte(bcc), &m.Bcc)
@@ -1081,4 +1125,40 @@ func (s *Store) KnownMessages(accountID string, remoteIDs []string) map[string]b
 		}
 	}
 	return known
+}
+
+// messageSize is the size a message is searched by (larger: and smaller:): the text, the HTML and what is attached.
+func messageSize(m mailtypes.Message) int64 {
+	if m.Size > 0 {
+		return m.Size
+	}
+	n := int64(len(m.BodyText) + len(m.BodyHTML) + len(m.Subject))
+	for _, a := range m.Attach {
+		n += a.Size
+	}
+	return n
+}
+
+type extra struct {
+	ICS       string `json:"i,omitempty"`
+	Unsub     string `json:"u,omitempty"`
+	UnsubPost bool   `json:"p,omitempty"`
+	Receipt   string `json:"r,omitempty"`
+}
+
+func packExtra(m mailtypes.Message) string {
+	if m.ICS == "" && m.ListUnsubscribe == "" && m.ReceiptTo == "" {
+		return ""
+	}
+	return js(extra{m.ICS, m.ListUnsubscribe, m.ListUnsubscribePost, m.ReceiptTo})
+}
+
+func unpackExtra(s string, m *mailtypes.Message) {
+	if s == "" {
+		return
+	}
+	var e extra
+	if json.Unmarshal([]byte(s), &e) == nil {
+		m.ICS, m.ListUnsubscribe, m.ListUnsubscribePost, m.ReceiptTo = e.ICS, e.Unsub, e.UnsubPost, e.Receipt
+	}
 }
