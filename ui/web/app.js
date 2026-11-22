@@ -11,10 +11,16 @@ async function api(path, body, opt) {
   if (TOKEN) o.headers['X-Token'] = TOKEN;
   if (body !== undefined && !(body instanceof FormData)) { o.headers['Content-Type'] = 'application/json'; o.body = JSON.stringify(body); }
   else if (body instanceof FormData) o.body = body;
-  const r = await fetch('/api/' + path, o);
-  const j = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error(j.error || ('request failed (' + r.status + ')'));
-  return j;
+  // window.__busy counts work the page has started and not finished (requests, the debounced refresh, the suggestion
+  // lookup), so a test can wait for the page to be at rest instead of for a fixed time. The long poll for events is not work.
+  const counted = !path.startsWith('events');
+  if (counted) window.__busy = (window.__busy || 0) + 1;
+  try {
+    const r = await fetch('/api/' + path, o);
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.error || ('request failed (' + r.status + ')'));
+    return j;
+  } finally { if (counted) window.__busy--; }
 }
 const tokQ = () => TOKEN ? '&token=' + encodeURIComponent(TOKEN) : '';
 
@@ -111,13 +117,14 @@ async function loadThreads(append) {
 }
 let refreshTimer = null;
 function refreshSoon() {
-  clearTimeout(refreshTimer);
+  if (refreshTimer) clearTimeout(refreshTimer); else window.__busy = (window.__busy || 0) + 1;
   refreshTimer = setTimeout(async () => {
     try {
       await refreshState();
       if (!S.open) await loadThreads(false); else await reloadOpen();
       render();
     } catch (e) { /* the next event retries */ }
+    refreshTimer = null; window.__busy--;
   }, 250);
 }
 
@@ -844,11 +851,12 @@ function chipField(root, c, key, save) {
   };
   const pick = i => { const x = acItems[i]; if (x) { if (x.members && x.members.length) x.members.forEach(m => c[key].push({ name: '', email: m })); else c[key].push({ name: x.name || '', email: x.email }); input.value = ''; draw(); save(); } hideAc(); input.focus(); };
   input.oninput = () => {
-    clearTimeout(acTimer);
+    if (acTimer) { clearTimeout(acTimer); acTimer = null; window.__busy--; }
     const v = input.value.trim().replace(/,$/, '');
     if (input.value.endsWith(',') || input.value.endsWith(';')) { commit(); return; }
     if (v.length < 1) { hideAc(); return; }
-    acTimer = setTimeout(async () => { try { showAc(await api('contacts?q=' + encodeURIComponent(v))); } catch (e) {} }, 120);
+    window.__busy = (window.__busy || 0) + 1;
+    acTimer = setTimeout(async () => { acTimer = null; window.__busy--; try { showAc(await api('contacts?q=' + encodeURIComponent(v))); } catch (e) {} }, 120);
   };
   input.onkeydown = e => {
     if (ac && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) { e.preventDefault(); acIdx = (acIdx + (e.key === 'ArrowDown' ? 1 : -1) + acItems.length) % acItems.length; $$('.ac div', ac).forEach((d, i) => d.classList.toggle('on', i === acIdx)); return; }

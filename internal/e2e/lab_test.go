@@ -85,14 +85,19 @@ func addUser(t *testing.T, kind, host, user string) box {
 
 func waitFor(t *testing.T, d time.Duration, what string, f func() bool) {
 	t.Helper()
-	end := time.Now().Add(d)
-	for time.Now().Before(end) {
+	tick := time.NewTicker(250 * time.Millisecond)
+	defer tick.Stop()
+	end := time.After(d)
+	for {
 		if f() {
 			return
 		}
-		time.Sleep(250 * time.Millisecond)
+		select {
+		case <-tick.C:
+		case <-end:
+			t.Fatalf("timed out waiting for %s", what)
+		}
 	}
-	t.Fatalf("timed out waiting for %s", what)
 }
 
 func threadBySubject(b box, folder, subj string) (mailtypes.Thread, bool) {
@@ -252,7 +257,6 @@ func waitOps(t *testing.T, b box) {
 		ops, _ := b.st.PendingOps(b.acct.ID)
 		return len(ops) == 0
 	})
-	time.Sleep(500 * time.Millisecond)
 }
 
 func findMsg(b box, subj, messageID string) *mailtypes.Message {

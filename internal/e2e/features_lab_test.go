@@ -31,19 +31,15 @@ func deliver(t *testing.T, from, rcv box, o mailtypes.Outgoing) mailtypes.Messag
 		t.Fatal(err)
 	}
 	// a send that fails says why, instead of the delivery timing out
-	end := time.Now().Add(25 * time.Second)
-	for time.Now().Before(end) {
+	waitFor(t, 25*time.Second, "the outbox to empty", func() bool {
 		items, _ := from.st.Outbox()
-		if len(items) == 0 {
-			break
-		}
 		for _, it := range items {
 			if it.State == "failed" {
 				t.Fatalf("sending %q failed: %s", o.Subject, it.Error)
 			}
 		}
-		time.Sleep(300 * time.Millisecond)
-	}
+		return len(items) == 0
+	})
 	return arrive(t, rcv, o.Subject)
 }
 
@@ -131,7 +127,6 @@ func TestFeatRulesLab(t *testing.T) {
 			Actions: []mailtypes.RuleAction{{Kind: "move", FolderID: folder}, {Kind: "read"}}}); err != nil {
 			t.Fatal(err)
 		}
-		time.Sleep(time.Second)
 		if _, err := alice.eng.SendAfter(mailtypes.Outgoing{AccountID: alice.acct.ID, To: to("bob@lab.test"), Subject: "your invoice" + g, BodyText: "pay"}, 0); err != nil {
 			t.Fatal(err)
 		}
@@ -180,9 +175,10 @@ func TestFeatScheduledSendAndUndoLab(t *testing.T) {
 		if len(items) != 1 || items[0].SendAt.Before(time.Now().Add(5*time.Second)) {
 			t.Fatalf("outbox: %+v", items)
 		}
-		time.Sleep(4 * time.Second)
-		bob.eng.SyncNow(bob.acct.ID)
-		time.Sleep(1500 * time.Millisecond)
+		syncAndWait(t, bob) // a whole sync pass has run, and the scheduled message has not been sent
+		if left, _ := alice.st.Outbox(); len(left) != 1 || left[0].State != "queued" {
+			t.Fatalf("the scheduled message left early: %+v", left)
+		}
 		if ts, _ := bob.st.ListThreads(store.ListQuery{AccountID: bob.acct.ID, Text: "later " + g}); len(ts) != 0 {
 			t.Fatal("a scheduled message arrived early")
 		}
@@ -653,8 +649,7 @@ func TestFeatPOP3Lab(t *testing.T) {
 		ts, _ := st.ListThreads(store.ListQuery{AccountID: a.ID, Text: "pop " + g})
 		return len(ts) == 1
 	})
-	e.SyncNow(a.ID)
-	time.Sleep(2 * time.Second)
+	syncAndWaitOn(t, e, a.ID) // a whole second pass has run
 	if ts, _ := st.ListThreads(store.ListQuery{AccountID: a.ID, Text: "pop " + g}); len(ts) != 1 {
 		t.Fatal("a second sync made a duplicate")
 	}
@@ -667,4 +662,25 @@ func TestFeatPOP3Lab(t *testing.T) {
 
 func icalEvent(summary string, start time.Time, d time.Duration) ical.Event {
 	return ical.Event{Summary: summary, Start: start, End: start.Add(d)}
+}
+
+// syncAndWait asks for a sync and waits for the engine to say the pass is done.
+func syncAndWait(t *testing.T, b box) { t.Helper(); syncAndWaitOn(t, b.eng, b.acct.ID) }
+
+func syncAndWaitOn(t *testing.T, e *engine.Engine, account string) {
+	t.Helper()
+	ch, unsub := e.Subscribe()
+	defer unsub()
+	e.SyncNow(account)
+	timeout := time.After(60 * time.Second)
+	for {
+		select {
+		case ev := <-ch:
+			if ev.Type == "synced" && ev.AccountID == account {
+				return
+			}
+		case <-timeout:
+			t.Fatal("timed out waiting for a sync pass to finish")
+		}
+	}
 }
