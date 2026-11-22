@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Halyard
+GenericName=Mail Client
+Comment=Mail for Google, Microsoft 365 and your own server
+Exec=halyard %u
+Icon=halyard
+Terminal=false
+Categories=Network;Email;Office;
+MimeType=x-scheme-handler/mailto;
+StartupWMClass=halyard
+Keywords=email;mail;gmail;outlook;imap;jmap;
