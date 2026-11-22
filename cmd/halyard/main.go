@@ -1,11 +1,11 @@
-// Command mailclient is the desktop app: the Go core and the web UI in a
+// Command halyard is the desktop app: the Go core and the web UI in a
 // native window.
 //
 // Why Wails v2 rather than a local web server in a separate webview: the
 // window, the menu and the single instance lock come from one library on
 // Linux (WebKitGTK) and Windows (WebView2), the UI reaches the core through
 // the asset handler in the same process with no network port to protect, and
-// the same UI runs unchanged in a plain browser against cmd/mailcored for
+// the same UI runs unchanged in a plain browser against cmd/halyardd for
 // testing.
 package main
 

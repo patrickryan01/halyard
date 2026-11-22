@@ -249,7 +249,12 @@ func (p *Provider) toMessage(ctx context.Context, g *gmsg) mailtypes.Message {
 	return m
 }
 
-type deltaState map[string]string // folder id -> delta link
+// syncState keeps each folder's delta link and the recent messages to look at
+// again: Graph can report a new message a moment before its attachments are final.
+type syncState struct {
+	Delta   map[string]string `json:"d"`
+	Recheck []string          `json:"r,omitempty"`
+}
 
 func (p *Provider) Sync(ctx context.Context, state string) (plugin.SyncResult, error) {
 	var res plugin.SyncResult
@@ -258,16 +263,19 @@ func (p *Provider) Sync(ctx context.Context, state string) (plugin.SyncResult, e
 		return res, err
 	}
 	res.Change.Folders = fs
-	st := deltaState{}
+	st := syncState{Delta: map[string]string{}}
 	if state != "" {
 		_ = json.Unmarshal([]byte(state), &st)
+		if st.Delta == nil {
+			st.Delta = map[string]string{}
+		}
 	}
 	res.Full = state == ""
-	next := deltaState{}
+	next := syncState{Delta: map[string]string{}}
 	upserted := map[string]bool{}
 	var removedIDs []string
 	for _, f := range fs {
-		link := st[f.RemoteID]
+		link := st.Delta[f.RemoteID]
 		first := link == ""
 		if first {
 			// newest first would be nicer, but delta has no ordering; the
@@ -286,10 +294,9 @@ func (p *Provider) Sync(ctx context.Context, state string) (plugin.SyncResult, e
 			if err != nil {
 				if httpx.IsStatus(err, 410) || (httpx.IsStatus(err, 400) && !first) {
 					// delta token expired: restart this folder
-					delete(st, f.RemoteID)
+					delete(st.Delta, f.RemoteID)
 					link = ""
 					res.Full = true
-					st[f.RemoteID] = ""
 					since := time.Now().AddDate(0, 0, -365).UTC().Format("2006-01-02T15:04:05Z")
 					link = strings.ReplaceAll(fmt.Sprintf("%s/me/mailFolders/%s/messages/delta?$select=%s&$filter=receivedDateTime ge %s", p.base, f.RemoteID, selectFields, since), " ", "%20")
 					first = true
@@ -305,12 +312,15 @@ func (p *Provider) Sync(ctx context.Context, state string) (plugin.SyncResult, e
 				}
 				res.Change.Upsert = append(res.Change.Upsert, p.toMessage(ctx, g))
 				upserted[g.ID] = true
+				if !g.HasAttachments && state != "" {
+					next.Recheck = append(next.Recheck, g.ID+"|3")
+				}
 			}
 			if r.NextLink != "" {
 				link = r.NextLink
 				continue
 			}
-			next[f.RemoteID] = r.DeltaLink
+			next.Delta[f.RemoteID] = r.DeltaLink
 			link = ""
 		}
 	}
@@ -331,6 +341,26 @@ func (p *Provider) Sync(ctx context.Context, state string) (plugin.SyncResult, e
 			return res, err
 		}
 	}
+	// look again, for a few passes, at messages that had no attachments when first seen
+	var still []string
+	for _, e := range st.Recheck {
+		id, left, _ := strings.Cut(e, "|")
+		n := 0
+		fmt.Sscan(left, &n)
+		if upserted[id] || n <= 0 {
+			continue
+		}
+		var g gmsg
+		if err := p.api.Do(ctx, "GET", p.base+"/me/messages/"+id+"?$select="+selectFields, nil, hdr(), &g); err != nil {
+			continue
+		}
+		if g.HasAttachments {
+			res.Change.Upsert = append(res.Change.Upsert, p.toMessage(ctx, &g))
+		} else {
+			still = append(still, fmt.Sprintf("%s|%d", id, n-1))
+		}
+	}
+	next.Recheck = append(next.Recheck, still...)
 	b, _ := json.Marshal(next)
 	res.State = string(b)
 	return res, nil

@@ -68,7 +68,7 @@ func TestGoogleLive(t *testing.T) {
 
 	// send to self with an attachment
 	tag := fmt.Sprintf("%d", time.Now().UnixNano()%1e9)
-	subj := "mailclient live test " + tag
+	subj := "halyard live test " + tag
 	if _, err := e.Send(mailtypes.Outgoing{AccountID: acct.ID, To: []mailtypes.Address{{Email: "account@fireballz.ai"}}, Subject: subj,
 		BodyText: "live proof invoice 4200 " + tag, BodyHTML: "<p>live proof <b>invoice</b> 4200 " + tag + "</p>",
 		Attachments: []mailtypes.OutAttachment{{Filename: "proof.txt", ContentType: "text/plain", Data: []byte("payload " + tag)}}}); err != nil {

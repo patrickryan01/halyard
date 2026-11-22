@@ -1,0 +1,35 @@
+/* Design tokens: the one file that drives both themes. Colors, type, spacing, radius, elevation.
+   app.css only consumes these; nothing else in the UI defines a color. */
+:root{
+  /* type */
+  --font-ui:-apple-system,"Segoe UI",Roboto,Inter,"Helvetica Neue",Arial,sans-serif;
+  --font-mono:ui-monospace,"SF Mono","Cascadia Mono",Consolas,monospace;
+  --text-xs:11px; --text-sm:12px; --text-md:14px; --text-lg:18px; --text-xl:22px; --text-2xl:30px;
+  --weight-regular:400; --weight-medium:500; --weight-bold:600;
+  /* spacing (4px base) */
+  --space-1:4px; --space-2:8px; --space-3:12px; --space-4:16px; --space-5:24px; --space-6:32px;
+  /* radius */
+  --radius-sm:6px; --radius-md:10px; --radius-lg:16px; --radius-pill:999px; --radius:10px;
+  /* sizes */
+  --row-h:40px; --side-w:248px;
+  /* brand accent: Halyard teal */
+  /* light theme */
+  --bg:#f4f6fa; --panel:#ffffff; --panel2:#eceff5; --line:#e1e5ee; --text:#1c2230; --muted:#5b6578;
+  --accent:#0f766e; --accent-fg:#ffffff; --accent-soft:#d1ede9; --unread-bg:#ffffff; --read-bg:#f1f4f9;
+  --danger:#d3382f; --star:#f2b01e; --shadow:0 2px 12px rgba(20,30,50,.16);
+  --toast-bg:#2b2f38; --toast-fg:#ffffff; --toast-link:#9bbcff; --toast-err:#8c1d18; --page-white:#ffffff; --on-avatar:#ffffff;
+  font-family:var(--font-ui);
+}
+:root[data-theme=dark]{
+  --bg:#12151b; --panel:#1b1f27; --panel2:#262b35; --line:#2d3340; --text:#e8ebf2; --muted:#98a2b5;
+  --accent:#5fd0c3; --accent-fg:#06211e; --accent-soft:#1f4640; --unread-bg:#1b1f27; --read-bg:#171a21;
+  --danger:#f2877f; --star:#f2b01e; --shadow:0 2px 14px rgba(0,0,0,.55);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme=light]){
+    --bg:#12151b; --panel:#1b1f27; --panel2:#262b35; --line:#2d3340; --text:#e8ebf2; --muted:#98a2b5;
+    --accent:#5fd0c3; --accent-fg:#06211e; --accent-soft:#1f4640; --unread-bg:#1b1f27; --read-bg:#171a21;
+    --danger:#f2877f; --star:#f2b01e; --shadow:0 2px 14px rgba(0,0,0,.55);
+  }
+}
+:root[data-density=compact]{--row-h:32px}

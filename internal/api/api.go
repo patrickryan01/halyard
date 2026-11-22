@@ -37,6 +37,8 @@ type Server struct {
 	Version  string
 	UI       http.Handler
 	Discover *discover.Discoverer
+	// MCPURL and MCPToken describe the built in MCP server, shown in Settings.
+	MCPURL, MCPToken string
 
 	mu      sync.Mutex
 	pending map[string]*pendingAuth
@@ -102,6 +104,10 @@ func (s *Server) Handler() http.Handler {
 	h("GET /api/thread", s.thread)
 	h("POST /api/act", s.act)
 	h("POST /api/snooze", s.snooze)
+	h("POST /api/folders/create", s.createFolder)
+	h("GET /api/drafts", s.drafts)
+	h("POST /api/drafts", s.saveDraft)
+	h("POST /api/drafts/delete", s.deleteDraft)
 	h("POST /api/send", s.send)
 	h("POST /api/undo", s.undo)
 	h("POST /api/outbox/retry", s.retry)
@@ -115,6 +121,9 @@ func (s *Server) Handler() http.Handler {
 		writeJSON(w, map[string]bool{"ok": true})
 	})
 	h("POST /api/open", s.open)
+	h("GET /api/mcp", func(w http.ResponseWriter, r *http.Request) {
+		writeJSON(w, map[string]any{"enabled": s.MCPURL != "", "url": s.MCPURL, "token": s.MCPToken})
+	})
 	if s.UI != nil {
 		mux.Handle("/", s.UI)
 	}
@@ -215,31 +224,43 @@ func (s *Server) discoverAcct(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, res)
 }
 
-type passwordIn struct {
+// PasswordIn is the form for a password account.
+type PasswordIn struct {
 	Kind         string `json:"kind"` // imap or jmap
 	Email        string `json:"email"`
-	Name         string `json:"name"`
-	Username     string `json:"username"`
+	Name         string `json:"name,omitempty"`
+	Username     string `json:"username,omitempty"`
 	Password     string `json:"password"`
-	IMAPHost     string `json:"imapHost"`
-	IMAPPort     int    `json:"imapPort"`
-	IMAPSecurity string `json:"imapSecurity"`
-	SMTPHost     string `json:"smtpHost"`
-	SMTPPort     int    `json:"smtpPort"`
-	SMTPSecurity string `json:"smtpSecurity"`
-	JMAPURL      string `json:"jmapUrl"`
-	SkipVerify   bool   `json:"skipVerify"`
+	IMAPHost     string `json:"imapHost,omitempty"`
+	IMAPPort     int    `json:"imapPort,omitempty"`
+	IMAPSecurity string `json:"imapSecurity,omitempty"`
+	SMTPHost     string `json:"smtpHost,omitempty"`
+	SMTPPort     int    `json:"smtpPort,omitempty"`
+	SMTPSecurity string `json:"smtpSecurity,omitempty"`
+	JMAPURL      string `json:"jmapUrl,omitempty"`
+	SkipVerify   bool   `json:"skipVerify,omitempty"`
 }
 
 func (s *Server) addPassword(w http.ResponseWriter, r *http.Request) {
-	var in passwordIn
+	var in PasswordIn
 	if err := decodeBody(r, &in); err != nil {
 		fail(w, 400, err)
 		return
 	}
-	if in.Email == "" || in.Password == "" {
-		fail(w, 400, fmt.Errorf("email and password are required"))
+	ctx, cancel := context.WithTimeout(r.Context(), 45*time.Second)
+	defer cancel()
+	acct, err := s.AddPassword(ctx, in)
+	if err != nil {
+		fail(w, 400, err)
 		return
+	}
+	writeJSON(w, acct)
+}
+
+// AddPassword adds an IMAP or JMAP account that signs in with a password.
+func (s *Server) AddPassword(ctx context.Context, in PasswordIn) (mailtypes.Account, error) {
+	if in.Email == "" || in.Password == "" {
+		return mailtypes.Account{}, fmt.Errorf("email and password are required")
 	}
 	set := map[string]string{}
 	if in.Username != "" {
@@ -252,15 +273,13 @@ func (s *Server) addPassword(w http.ResponseWriter, r *http.Request) {
 	switch in.Kind {
 	case mailtypes.KindJMAP:
 		if in.JMAPURL == "" {
-			fail(w, 400, fmt.Errorf("server address is required"))
-			return
+			return a, fmt.Errorf("server address is required")
 		}
 		set["jmap_url"] = in.JMAPURL
 	default:
 		a.Kind = mailtypes.KindIMAP
 		if in.IMAPHost == "" {
-			fail(w, 400, fmt.Errorf("server address is required"))
-			return
+			return a, fmt.Errorf("server address is required")
 		}
 		set[imap.SHost], set[imap.SSecurity] = in.IMAPHost, orDef(in.IMAPSecurity, "ssl")
 		if in.IMAPPort > 0 {
@@ -272,14 +291,7 @@ func (s *Server) addPassword(w http.ResponseWriter, r *http.Request) {
 			set[imap.SSMTPPort] = strconv.Itoa(in.SMTPPort)
 		}
 	}
-	ctx, cancel := context.WithTimeout(r.Context(), 45*time.Second)
-	defer cancel()
-	acct, err := s.Eng.AddAccount(ctx, a, []byte(in.Password))
-	if err != nil {
-		fail(w, 400, err)
-		return
-	}
-	writeJSON(w, acct)
+	return s.Eng.AddAccount(ctx, a, []byte(in.Password))
 }
 
 func orDef(v, d string) string {
@@ -300,34 +312,42 @@ func (s *Server) oauthStart(w http.ResponseWriter, r *http.Request) {
 		fail(w, 400, err)
 		return
 	}
-	set := map[string]string{}
-	if in.ClientID != "" {
-		set["client_id"], set["client_secret"] = in.ClientID, in.ClientSecret
+	id, u, err := s.StartOAuth(in.Kind, in.ClientID, in.ClientSecret, in.Tenant, true)
+	if err != nil {
+		fail(w, 400, err)
+		return
 	}
-	if in.Tenant != "" {
-		set["tenant"] = in.Tenant
+	writeJSON(w, map[string]string{"id": id, "url": u})
+}
+
+// StartOAuth begins a browser sign-in for a Google or Microsoft account. It
+// returns an ID to wait on and the sign-in URL; openBrowser opens it for the person.
+func (s *Server) StartOAuth(kind, clientID, clientSecret, tenant string, openBrowser bool) (string, string, error) {
+	set := map[string]string{}
+	if clientID != "" {
+		set["client_id"], set["client_secret"] = clientID, clientSecret
+	}
+	if tenant != "" {
+		set["tenant"] = tenant
 	}
 	var cfg oauth.Config
-	switch in.Kind {
+	switch kind {
 	case mailtypes.KindGoogle:
 		cfg = google.OAuthConfig(set)
 	case mailtypes.KindMicrosoft:
 		cfg = microsoft.OAuthConfig(set)
 	default:
-		fail(w, 400, fmt.Errorf("unknown provider"))
-		return
+		return "", "", fmt.Errorf("unknown provider")
 	}
 	if cfg.ClientID == "" {
-		fail(w, 400, fmt.Errorf("this build has no %s sign-in registered; enter a client ID under Advanced", in.Kind))
-		return
+		return "", "", fmt.Errorf("this build has no %s sign-in registered; enter a client ID under Advanced", kind)
 	}
 	p, err := oauth.Start(cfg)
 	if err != nil {
-		fail(w, 500, err)
-		return
+		return "", "", err
 	}
 	id := fmt.Sprint(time.Now().UnixNano())
-	pa := &pendingAuth{p: p, cfg: cfg, kind: in.Kind, done: make(chan authDone, 1)}
+	pa := &pendingAuth{p: p, cfg: cfg, kind: kind, done: make(chan authDone, 1)}
 	s.mu.Lock()
 	s.pending[id] = pa
 	s.mu.Unlock()
@@ -340,37 +360,47 @@ func (s *Server) oauthStart(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		b, _ := json.Marshal(tok)
-		a := mailtypes.Account{Kind: in.Kind, Settings: set}
-		acct, err := s.Eng.AddAccount(ctx, a, b)
+		acct, err := s.Eng.AddAccount(ctx, mailtypes.Account{Kind: kind, Settings: set}, b)
 		pa.done <- authDone{acct: acct, err: err}
 	}()
-	_ = platform.OpenURL(p.URL)
-	writeJSON(w, map[string]string{"id": id, "url": p.URL})
+	if openBrowser {
+		_ = platform.OpenURL(p.URL)
+	}
+	return id, p.URL, nil
 }
 
-func (s *Server) oauthWait(w http.ResponseWriter, r *http.Request) {
-	id := r.URL.Query().Get("id")
+// WaitOAuth waits up to d for a sign-in to finish. pending is true when it has not.
+func (s *Server) WaitOAuth(ctx context.Context, id string, d time.Duration) (acct mailtypes.Account, pending bool, err error) {
 	s.mu.Lock()
 	pa := s.pending[id]
 	s.mu.Unlock()
 	if pa == nil {
-		fail(w, 404, fmt.Errorf("no sign-in in progress"))
-		return
+		return acct, false, fmt.Errorf("no sign-in in progress")
 	}
 	select {
-	case d := <-pa.done:
+	case r := <-pa.done:
 		s.mu.Lock()
 		delete(s.pending, id)
 		s.mu.Unlock()
-		if d.err != nil {
-			fail(w, 400, d.err)
-			return
-		}
-		writeJSON(w, d.acct)
-	case <-time.After(25 * time.Second):
-		writeJSON(w, map[string]bool{"pending": true})
-	case <-r.Context().Done():
+		return r.acct, false, r.err
+	case <-time.After(d):
+		return acct, true, nil
+	case <-ctx.Done():
+		return acct, true, ctx.Err()
 	}
+}
+
+func (s *Server) oauthWait(w http.ResponseWriter, r *http.Request) {
+	acct, pending, err := s.WaitOAuth(r.Context(), r.URL.Query().Get("id"), 25*time.Second)
+	if err != nil {
+		fail(w, 400, err)
+		return
+	}
+	if pending {
+		writeJSON(w, map[string]bool{"pending": true})
+		return
+	}
+	writeJSON(w, acct)
 }
 
 func (s *Server) oauthCancel(w http.ResponseWriter, r *http.Request) {
@@ -485,36 +515,9 @@ func (s *Server) act(w http.ResponseWriter, r *http.Request) {
 		fail(w, 400, err)
 		return
 	}
-	byAcct := map[string][]string{}
-	for _, tid := range in.ThreadIDs {
-		ms, err := s.Eng.St.Thread(tid)
-		if err != nil {
-			fail(w, 500, err)
-			return
-		}
-		for _, m := range ms {
-			// do not re-apply what is already so
-			switch in.Kind {
-			case mailtypes.ActRead:
-				if m.Read {
-					continue
-				}
-			case mailtypes.ActUnread:
-				if !m.Read {
-					continue
-				}
-			}
-			byAcct[m.AccountID] = append(byAcct[m.AccountID], m.RemoteID)
-		}
-	}
-	for acct, ids := range byAcct {
-		if in.FolderID != "" && in.AccountID != "" && in.AccountID != acct {
-			continue
-		}
-		if err := s.Eng.Act(acct, mailtypes.Action{Kind: in.Kind, IDs: ids, FolderID: in.FolderID}); err != nil {
-			fail(w, 500, err)
-			return
-		}
+	if err := s.Eng.ActThreads(in.Kind, in.ThreadIDs, in.FolderID, in.AccountID); err != nil {
+		fail(w, 500, err)
+		return
 	}
 	writeJSON(w, map[string]bool{"ok": true})
 }
@@ -721,6 +724,56 @@ func (s *Server) open(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := platform.OpenURL(in.URL); err != nil {
+		fail(w, 500, err)
+		return
+	}
+	writeJSON(w, map[string]bool{"ok": true})
+}
+
+func (s *Server) createFolder(w http.ResponseWriter, r *http.Request) {
+	var in struct{ AccountID, Name string }
+	if err := decodeBody(r, &in); err != nil {
+		fail(w, 400, err)
+		return
+	}
+	id, err := s.Eng.CreateFolder(r.Context(), in.AccountID, in.Name)
+	if err != nil {
+		fail(w, 400, err)
+		return
+	}
+	writeJSON(w, map[string]string{"id": id})
+}
+
+func (s *Server) drafts(w http.ResponseWriter, r *http.Request) {
+	ds, err := s.Eng.St.Drafts()
+	if err != nil {
+		fail(w, 500, err)
+		return
+	}
+	writeJSON(w, ds)
+}
+
+func (s *Server) saveDraft(w http.ResponseWriter, r *http.Request) {
+	var d engine.DraftData
+	if err := json.NewDecoder(io.LimitReader(r.Body, 64<<20)).Decode(&d); err != nil {
+		fail(w, 400, err)
+		return
+	}
+	id, err := s.Eng.SaveDraft(d)
+	if err != nil {
+		fail(w, 500, err)
+		return
+	}
+	writeJSON(w, map[string]string{"id": id})
+}
+
+func (s *Server) deleteDraft(w http.ResponseWriter, r *http.Request) {
+	var in struct{ ID string }
+	if err := decodeBody(r, &in); err != nil {
+		fail(w, 400, err)
+		return
+	}
+	if err := s.Eng.St.DeleteDraft(in.ID); err != nil {
 		fail(w, 500, err)
 		return
 	}

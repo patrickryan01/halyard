@@ -210,7 +210,10 @@ func (e *Engine) Act(accountID string, a mailtypes.Action) error {
 
 // Send queues a message in the outbox. It goes out after UndoDelay unless
 // Undo is called first.
-func (e *Engine) Send(o mailtypes.Outgoing) (string, error) {
+func (e *Engine) Send(o mailtypes.Outgoing) (string, error) { return e.SendAfter(o, e.UndoDelay) }
+
+// SendAfter is Send with an explicit undo window; zero sends at once.
+func (e *Engine) SendAfter(o mailtypes.Outgoing, delay time.Duration) (string, error) {
 	if len(o.To)+len(o.Cc)+len(o.Bcc) == 0 {
 		return "", errors.New("add at least one recipient")
 	}
@@ -232,7 +235,7 @@ func (e *Engine) Send(o mailtypes.Outgoing) (string, error) {
 		return "", err
 	}
 	id := newID()
-	if err := e.St.QueueOutbox(store.OutboxItem{ID: id, AccountID: o.AccountID, Payload: payload, SendAt: time.Now().Add(e.UndoDelay), Subject: o.Subject}); err != nil {
+	if err := e.St.QueueOutbox(store.OutboxItem{ID: id, AccountID: o.AccountID, Payload: payload, SendAt: time.Now().Add(delay), Subject: o.Subject}); err != nil {
 		return "", err
 	}
 	e.emit(Event{Type: "outbox", ID: id, Subject: o.Subject})
@@ -328,7 +331,10 @@ func (e *Engine) Attachment(ctx context.Context, accountID, remoteMsgID, attID s
 
 // Contacts asks the provider for address book matches, for the composer.
 func (e *Engine) Contacts(ctx context.Context, q string) []mailtypes.Contact {
-	out, _ := e.St.SuggestContacts(q, 8)
+	out := e.SearchContacts(ctx, q)
+	if len(out) > 8 {
+		out = out[:8]
+	}
 	return out
 }
 

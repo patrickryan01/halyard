@@ -90,23 +90,23 @@ type Message struct {
 	Starred    bool         `json:"starred"`
 	Draft      bool         `json:"draft"`
 	Attach     []Attachment `json:"attachments"`
-	Snoozed    time.Time    `json:"snoozedUntil,omitempty"`
+	Snoozed    *time.Time   `json:"snoozedUntil,omitempty"`
 }
 
 // Thread is the list row: the newest message plus what the conversation holds.
 type Thread struct {
-	ID           string    `json:"id"`
-	AccountID    string    `json:"accountId"`
-	Subject      string    `json:"subject"`
-	Snippet      string    `json:"snippet"`
-	Participants []string  `json:"participants"`
-	Date         time.Time `json:"date"`
-	Count        int       `json:"count"`
-	Unread       int       `json:"unread"`
-	Starred      bool      `json:"starred"`
-	HasAttach    bool      `json:"hasAttachments"`
-	Folders      []string  `json:"folders"`
-	Snoozed      time.Time `json:"snoozedUntil,omitempty"`
+	ID           string     `json:"id"`
+	AccountID    string     `json:"accountId"`
+	Subject      string     `json:"subject"`
+	Snippet      string     `json:"snippet"`
+	Participants []string   `json:"participants"`
+	Date         time.Time  `json:"date"`
+	Count        int        `json:"count"`
+	Unread       int        `json:"unread"`
+	Starred      bool       `json:"starred"`
+	HasAttach    bool       `json:"hasAttachments"`
+	Folders      []string   `json:"folders"`
+	Snoozed      *time.Time `json:"snoozedUntil,omitempty"`
 }
 
 type Contact struct {

@@ -46,6 +46,8 @@ CREATE TABLE IF NOT EXISTS outbox(id TEXT PRIMARY KEY, account_id TEXT NOT NULL,
   state TEXT NOT NULL, error TEXT NOT NULL DEFAULT '', subject TEXT NOT NULL DEFAULT '');
 CREATE TABLE IF NOT EXISTS contacts(account_id TEXT NOT NULL, email TEXT NOT NULL, name TEXT NOT NULL DEFAULT '',
   uses INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(account_id, email));
+CREATE TABLE IF NOT EXISTS drafts(id TEXT PRIMARY KEY, account_id TEXT NOT NULL, data TEXT NOT NULL, subject TEXT NOT NULL DEFAULT '', updated INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS local_contacts(id TEXT PRIMARY KEY, account_id TEXT NOT NULL, name TEXT NOT NULL DEFAULT '', email TEXT NOT NULL DEFAULT '', phone TEXT NOT NULL DEFAULT '', org TEXT NOT NULL DEFAULT '');
 CREATE TABLE IF NOT EXISTS settings(k TEXT PRIMARY KEY, v TEXT NOT NULL);
 `
 
@@ -238,7 +240,7 @@ func (s *Store) UpsertMessages(ms []mailtypes.Message) error {
 				return err
 			}
 		}
-		if !m.Snoozed.IsZero() {
+		if m.Snoozed != nil && !m.Snoozed.IsZero() {
 			snoozed = m.Snoozed.Unix()
 		}
 		if m.ThreadID == "" {
@@ -347,10 +349,25 @@ func scanMsg(sc interface{ Scan(...any) error }) (mailtypes.Message, error) {
 	_ = json.Unmarshal([]byte(rt), &m.ReplyTo)
 	_ = json.Unmarshal([]byte(refs), &m.References)
 	_ = json.Unmarshal([]byte(att), &m.Attach)
+	for _, p := range []*[]mailtypes.Address{&m.To, &m.Cc, &m.Bcc, &m.ReplyTo} {
+		if *p == nil {
+			*p = []mailtypes.Address{}
+		}
+	}
+	if m.References == nil {
+		m.References = []string{}
+	}
+	if m.Attach == nil {
+		m.Attach = []mailtypes.Attachment{}
+	}
+	if m.Folders == nil {
+		m.Folders = []string{}
+	}
 	m.Date = time.Unix(date, 0)
 	m.Read, m.Starred, m.Draft = rd == 1, st == 1, dr == 1
 	if snz > 0 {
-		m.Snoozed = time.Unix(snz, 0)
+		t0 := time.Unix(snz, 0)
+		m.Snoozed = &t0
 	}
 	return m, nil
 }
@@ -389,6 +406,9 @@ func (s *Store) Thread(threadID string) ([]mailtypes.Message, error) {
 	var out []mailtypes.Message
 	for _, m := range all {
 		m.Folders = byMsg[m.ID]
+		if m.Folders == nil {
+			m.Folders = []string{}
+		}
 		// the same message filed in two IMAP folders is one message in a thread
 		if m.MessageID != "" {
 			dup := -1
@@ -507,7 +527,8 @@ func (s *Store) ListThreads(q ListQuery) ([]mailtypes.Thread, error) {
 		t.Date = time.Unix(d, 0)
 		t.Starred, t.HasAttach = st == 1, at == 1
 		if snz > now {
-			t.Snoozed = time.Unix(snz, 0)
+			t0 := time.Unix(snz, 0)
+			t.Snoozed = &t0
 		}
 		if parts.Valid {
 			t.Participants = strings.Split(parts.String, ",")
@@ -960,4 +981,92 @@ func (s *Store) ClaimOutbox(id string) (bool, error) {
 func (s *Store) RecoverOutbox() error {
 	_, err := s.db.Exec(`UPDATE outbox SET state='failed', error='the app closed while this was sending; check Sent before retrying' WHERE state='sending'`)
 	return err
+}
+
+// ---- drafts ----
+
+type Draft struct {
+	ID        string          `json:"id"`
+	AccountID string          `json:"accountId"`
+	Data      json.RawMessage `json:"data"`
+	Subject   string          `json:"subject"`
+	Updated   time.Time       `json:"updated"`
+}
+
+func (s *Store) PutDraft(d Draft) error {
+	_, err := s.db.Exec(`INSERT INTO drafts(id,account_id,data,subject,updated) VALUES(?,?,?,?,?)
+	  ON CONFLICT(id) DO UPDATE SET account_id=excluded.account_id,data=excluded.data,subject=excluded.subject,updated=excluded.updated`,
+		d.ID, d.AccountID, string(d.Data), d.Subject, time.Now().UnixMilli())
+	return err
+}
+
+func (s *Store) Drafts() ([]Draft, error) {
+	rows, err := s.db.Query(`SELECT id,account_id,data,subject,updated FROM drafts ORDER BY updated DESC`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := []Draft{}
+	for rows.Next() {
+		var d Draft
+		var data string
+		var u int64
+		if err := rows.Scan(&d.ID, &d.AccountID, &data, &d.Subject, &u); err != nil {
+			return nil, err
+		}
+		d.Data = json.RawMessage(data)
+		d.Updated = time.UnixMilli(u)
+		out = append(out, d)
+	}
+	return out, rows.Err()
+}
+
+func (s *Store) Draft(id string) (Draft, error) {
+	var d Draft
+	var data string
+	var u int64
+	err := s.db.QueryRow(`SELECT id,account_id,data,subject,updated FROM drafts WHERE id=?`, id).Scan(&d.ID, &d.AccountID, &data, &d.Subject, &u)
+	d.Data = json.RawMessage(data)
+	d.Updated = time.UnixMilli(u)
+	return d, err
+}
+
+func (s *Store) DeleteDraft(id string) error {
+	_, err := s.db.Exec(`DELETE FROM drafts WHERE id=?`, id)
+	return err
+}
+
+// ---- local address book: contacts for accounts whose server has none ----
+
+func (s *Store) PutLocalContact(accountID string, c mailtypes.Contact) (mailtypes.Contact, error) {
+	if c.ID == "" {
+		c.ID = "local:" + fmt.Sprint(time.Now().UnixNano())
+	}
+	_, err := s.db.Exec(`INSERT INTO local_contacts(id,account_id,name,email,phone,org) VALUES(?,?,?,?,?,?)
+	  ON CONFLICT(id) DO UPDATE SET name=excluded.name,email=excluded.email,phone=excluded.phone,org=excluded.org`,
+		c.ID, accountID, c.Name, c.Email, c.Phone, c.Org)
+	return c, err
+}
+
+func (s *Store) DeleteLocalContact(id string) error {
+	_, err := s.db.Exec(`DELETE FROM local_contacts WHERE id=?`, id)
+	return err
+}
+
+func (s *Store) LocalContacts(q string) ([]mailtypes.Contact, error) {
+	like := "%" + strings.ToLower(q) + "%"
+	rows, err := s.db.Query(`SELECT id,name,email,phone,org FROM local_contacts WHERE lower(name) LIKE ? OR lower(email) LIKE ? ORDER BY name`, like, like)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := []mailtypes.Contact{}
+	for rows.Next() {
+		var c mailtypes.Contact
+		if err := rows.Scan(&c.ID, &c.Name, &c.Email, &c.Phone, &c.Org); err != nil {
+			return nil, err
+		}
+		out = append(out, c)
+	}
+	return out, rows.Err()
 }

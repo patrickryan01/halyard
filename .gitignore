@@ -1,7 +1,7 @@
 dist/
 *.test
-/mailcored
-/mailclient
+/halyardd
+/halyard
 .data/
 build/
 *.exe

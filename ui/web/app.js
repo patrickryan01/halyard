@@ -4,7 +4,7 @@
 
 const TOKEN = new URLSearchParams(location.search).get('token') || (() => { try { return sessionStorage.getItem('tok') || ''; } catch (e) { return ''; } })();
 try { if (TOKEN) sessionStorage.setItem('tok', TOKEN); } catch (e) {}
-const BRAND = 'Mail';
+const BRAND = 'Halyard';
 
 async function api(path, body, opt) {
   const o = Object.assign({ method: body === undefined ? 'GET' : 'POST', headers: {} }, opt || {});
@@ -51,7 +51,7 @@ const ROLES = [
 
 const S = {
   data: null, folder: 'role:inbox', account: '', q: '', threads: [], sel: new Set(), cursor: 0, open: null, expanded: new Set(),
-  seq: 0, online: navigator.onLine, side: true, loading: false, banner: '', lastAct: null, gmode: false, offset: 0, more: false, composers: [],
+  seq: 0, online: navigator.onLine, side: window.innerWidth > 820, loading: false, banner: '', lastAct: null, gmode: false, offset: 0, more: false, composers: [],
 };
 
 // ---------- helpers ----------
@@ -154,7 +154,7 @@ function render() {
     '<div class="search">' + IC.search + '<input id="q" placeholder="Search mail   (from:  to:  subject:  is:unread  has:attachment)" value="' + esc(S.q) + '" aria-label="Search mail"></div>' +
     '<div class="spacer"></div><button class="icon" id="syncbtn" title="Sync now" aria-label="Sync now"><svg viewBox="0 0 24 24"><path d="M17.650 6.350A8 8 0 1 0 19.730 14h-2.080A6 6 0 1 1 12 6c1.660 0 3.140.69 4.220 1.780L13 11h7V4l-2.350 2.350z"/></svg></button>' +
     '<button class="icon" id="settings" aria-label="Settings">' + IC.gear + '</button></div>' +
-    '<div class="main"><nav class="side ' + (S.side ? '' : 'closed') + '" aria-label="Folders">' + side + '</nav><section class="content">' + banner + (S.open ? convoHtml() : listHtml()) + '</section></div>';
+    '<div class="main"><nav class="side ' + (S.side ? '' : 'closed') + '" aria-label="Folders">' + side + '</nav><section class="content">' + banner + (S.open ? convoHtml() : listHtml()) + '</section></div><button class="fab" id="fab" aria-label="Compose">' + IC.plus + '</button>';
   bindMain();
   if (S.open) mountBodies();
 }
@@ -362,6 +362,7 @@ function bindMain() {
   $$('[data-retry]').forEach(b => b.onclick = async () => { await api('outbox/retry', { id: b.dataset.retry }); refreshSoon(); });
   const q = $('#q'); q.onkeydown = e => { if (e.key === 'Enter') search(q.value); if (e.key === 'Escape') { q.blur(); } };
   $('#compose').onclick = () => openComposer({ mode: 'new' });
+  $('#fab').onclick = () => openComposer({ mode: 'new' });
   $$('[data-nav]').forEach(b => b.onclick = () => go(b.dataset.nav, b.dataset.acct));
   const more = $('#more'); if (more) more.onclick = async () => { S.offset += 100; await loadThreads(true); render(); };
   if (S.open) {

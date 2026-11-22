@@ -13,7 +13,7 @@ import (
 	"github.com/zalando/go-keyring"
 )
 
-const service = "mailclient"
+const service = "halyard"
 
 type Store struct {
 	Dir string // fallback directory

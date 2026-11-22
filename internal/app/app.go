@@ -13,9 +13,11 @@ import (
 	"github.com/patrickryan01/halyard/internal/api"
 	"github.com/patrickryan01/halyard/internal/brand"
 	"github.com/patrickryan01/halyard/internal/engine"
+	"github.com/patrickryan01/halyard/internal/mcpserver"
 	"github.com/patrickryan01/halyard/internal/secret"
 	"github.com/patrickryan01/halyard/internal/store"
 	"github.com/patrickryan01/halyard/ui"
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	// the provider plugins register themselves
 	_ "github.com/patrickryan01/halyard/internal/providers/google"
@@ -25,11 +27,14 @@ import (
 )
 
 type App struct {
-	Dir    string
-	Store  *store.Store
-	Engine *engine.Engine
-	API    *api.Server
-	cancel context.CancelFunc
+	Dir       string
+	Store     *store.Store
+	Engine    *engine.Engine
+	API       *api.Server
+	cancel    context.CancelFunc
+	MCP       mcpserver.Info
+	MCPServer *mcp.Server
+	stopMCP   func()
 }
 
 // DataDir is where mail, settings and fallback secrets live.
@@ -61,10 +66,29 @@ func Start(dir, token string) (*App, error) {
 	}
 	srv := api.New(eng, brand.Version, ui.Handler())
 	srv.Token = token
-	return &App{Dir: dir, Store: st, Engine: eng, API: srv, cancel: cancel}, nil
+	a := &App{Dir: dir, Store: st, Engine: eng, API: srv, cancel: cancel}
+	a.MCPServer = mcpserver.New(eng, srv, brand.Slug, brand.Version)
+	// the MCP server is on by default; MAILCLIENT_MCP_ADDR moves it
+	if st.Setting("mcp", "true") == "true" && os.Getenv("MAILCLIENT_NO_MCP_HTTP") == "" {
+		addr := os.Getenv("MAILCLIENT_MCP_ADDR")
+		if addr == "" {
+			addr = "127.0.0.1:8765"
+		}
+		info, stop, err := mcpserver.Serve(dir, addr, a.MCPServer)
+		if err != nil {
+			cancel()
+			return nil, fmt.Errorf("mcp: %w", err)
+		}
+		a.MCP, a.stopMCP = info, stop
+		srv.MCPURL, srv.MCPToken = info.URL, info.Token
+	}
+	return a, nil
 }
 
 func (a *App) Close() {
+	if a.stopMCP != nil {
+		a.stopMCP()
+	}
 	a.cancel()
 	a.Engine.Stop()
 	a.Store.Close()
