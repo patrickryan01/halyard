@@ -72,7 +72,7 @@ func main() {
 		}
 	})
 
-	trayOn := a.Store.Setting("tray", "true") == "true" && os.Getenv("HALYARD_NO_TRAY") == ""
+	trayOn := a.Store.Setting("tray", "true") == "true" && os.Getenv("HALYARD_NO_TRAY") == "" && tray.Available()
 	var tr *tray.Tray
 	updateTray := func() {
 		if tr == nil {

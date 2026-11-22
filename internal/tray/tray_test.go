@@ -26,3 +26,8 @@ func TestMenuAndTooltip(t *testing.T) {
 		t.Fatal("no icon is embedded")
 	}
 }
+
+func TestAvailableDoesNotPanicWithoutADesktop(t *testing.T) {
+	t.Setenv("DBUS_SESSION_BUS_ADDRESS", "unix:path=/nonexistent")
+	_ = Available() // false on a machine with no session bus: the window then stays an ordinary window
+}

@@ -563,9 +563,6 @@ func (r *runner) run(cmd string) error {
 			}
 		})
 	case "mcp":
-		b, err := os.ReadFile(filepath.Join(filepath.Dir(os.Getenv("HOME")), ""))
-		_ = b
-		_ = err
 		dir, _ := app.DataDir()
 		if raw, err := os.ReadFile(filepath.Join(dir, "mcp.json")); err == nil {
 			fmt.Fprintf(r.out, "The MCP server runs while the app is open. Connect a client to:\n%s\n", raw)
