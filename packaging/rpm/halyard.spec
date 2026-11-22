@@ -1,4 +1,5 @@
 # Halyard for EmberRTOS Desktop (openSUSE Tumbleweed). Source0 is written by packaging/make-source.sh.
+%global debug_package %{nil}
 Name:           halyard
 Version:        %{?hver}%{!?hver:1.0.0}
 Release:        0
