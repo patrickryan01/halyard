@@ -1,0 +1,11 @@
+function Rpc($cfg, $body, $sid) {
+  $h = @{ 'Authorization' = "Bearer $($cfg.token)"; 'Accept' = 'application/json, text/event-stream' }
+  if ($sid) { $h['Mcp-Session-Id'] = $sid }
+  Invoke-WebRequest -UseBasicParsing -Uri $cfg.url -Method Post -Headers $h -ContentType 'application/json' -Body ($body | ConvertTo-Json -Depth 10 -Compress) -TimeoutSec 90
+}
+$cfg = Get-Content (Join-Path $env:APPDATA 'halyard\mcp.json') | ConvertFrom-Json
+$r = Rpc $cfg @{ jsonrpc = '2.0'; id = 1; method = 'initialize'; params = @{ protocolVersion = '2025-06-18'; capabilities = @{}; clientInfo = @{ name = 'win-proof'; version = '1' } } } $null
+$sid = $r.Headers['Mcp-Session-Id']
+Rpc $cfg @{ jsonrpc = '2.0'; method = 'notifications/initialized' } $sid | Out-Null
+function Tool($name, $arguments) { (Rpc $cfg @{ jsonrpc = '2.0'; id = 2; method = 'tools/call'; params = @{ name = $name; arguments = $arguments } } $sid).Content }
+Tool 'update_settings' @{ theme = '@THEME@'; notifications = 'true' }
