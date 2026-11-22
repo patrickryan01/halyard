@@ -505,6 +505,14 @@ func (r *runner) apply(res plugin.SyncResult, firstSync bool) error {
 			return err
 		}
 	}
+	var known map[string]bool
+	if !firstSync && !res.Full && len(res.Change.Upsert) > 0 {
+		ids := make([]string, 0, len(res.Change.Upsert))
+		for _, m := range res.Change.Upsert {
+			ids = append(ids, m.RemoteID)
+		}
+		known = st.KnownMessages(r.acct.ID, ids)
+	}
 	if len(res.Change.Upsert) > 0 {
 		if err := st.UpsertMessages(res.Change.Upsert); err != nil {
 			return err
@@ -519,25 +527,31 @@ func (r *runner) apply(res plugin.SyncResult, firstSync bool) error {
 		return err
 	}
 	if !firstSync && !res.Full {
+		// announce mail that is new to this computer, unread, in the inbox, and not from the person themself. The test is
+		// "never seen before", not "recent": a server's clock and this one's can disagree by hours.
 		inbox, _ := st.FolderByRole(r.acct.ID, mailtypes.RoleInbox)
-		cutoff := time.Now().Add(-15 * time.Minute)
+		var fresh []mailtypes.Message
 		for _, m := range res.Change.Upsert {
-			if m.Read || m.Draft || m.Date.Before(cutoff) || strings.EqualFold(m.From.Email, r.acct.Email) {
+			if known[m.RemoteID] || m.Read || m.Draft || strings.EqualFold(m.From.Email, r.acct.Email) {
 				continue
 			}
-			in := false
 			for _, f := range m.Folders {
 				if f == inbox {
-					in = true
+					fresh = append(fresh, m)
+					break
 				}
 			}
-			if in {
-				name := m.From.Name
-				if name == "" {
-					name = m.From.Email
-				}
-				r.e.emit(Event{Type: "new", AccountID: r.acct.ID, From: name, Subject: m.Subject, ID: m.ThreadID})
+		}
+		for i, m := range fresh {
+			if i == 5 && len(fresh) > 5 {
+				r.e.emit(Event{Type: "new", AccountID: r.acct.ID, From: fmt.Sprintf("%d more new messages", len(fresh)-5), Subject: r.acct.Email})
+				break
 			}
+			name := m.From.Name
+			if name == "" {
+				name = m.From.Email
+			}
+			r.e.emit(Event{Type: "new", AccountID: r.acct.ID, From: name, Subject: m.Subject, ID: m.ThreadID})
 		}
 	}
 	r.e.emit(Event{Type: "synced", AccountID: r.acct.ID})

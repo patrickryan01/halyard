@@ -1070,3 +1070,15 @@ func (s *Store) LocalContacts(q string) ([]mailtypes.Contact, error) {
 	}
 	return out, rows.Err()
 }
+
+// KnownMessages reports which of the remote IDs the cache already holds, so a sync can tell mail that has just arrived from mail it is only refreshing.
+func (s *Store) KnownMessages(accountID string, remoteIDs []string) map[string]bool {
+	known := map[string]bool{}
+	for _, r := range remoteIDs {
+		var n int
+		if err := s.db.QueryRow(`SELECT COUNT(*) FROM messages WHERE id=?`, accountID+"/"+r).Scan(&n); err == nil && n > 0 {
+			known[r] = true
+		}
+	}
+	return known
+}
