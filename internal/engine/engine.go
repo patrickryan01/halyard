@@ -61,6 +61,9 @@ func (e *Engine) Subscribe() (chan Event, func()) {
 	}
 }
 
+// Emit sends an event to every listener, for changes made outside the sync loop.
+func (e *Engine) Emit(ev Event) { e.emit(ev) }
+
 func (e *Engine) emit(ev Event) {
 	e.mu.Lock()
 	defer e.mu.Unlock()

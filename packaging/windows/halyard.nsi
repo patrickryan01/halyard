@@ -59,6 +59,8 @@ Function EnsureWebView2
 FunctionEnd
 
 Section "Halyard"
+  SetRegView 64
+  SetShellVarContext all
   SetOutPath "$INSTDIR"
   Call EnsureWebView2
   File "${BINDIR}\halyard.exe"
@@ -89,6 +91,8 @@ Section "Halyard"
 SectionEnd
 
 Section "Uninstall"
+  SetRegView 64
+  SetShellVarContext all
   Delete "$INSTDIR\halyard.exe"
   Delete "$INSTDIR\halyardd.exe"
   Delete "$INSTDIR\halyard.ico"

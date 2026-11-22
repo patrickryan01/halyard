@@ -542,6 +542,7 @@ func (s *Server) settings(srv *mcp.Server) {
 					}
 				}
 			}
+			s.Eng.Emit(engine.Event{Type: "settings"}) // an open window picks up the new theme at once
 			return nil, obj{"ok": true}, nil
 		})
 }

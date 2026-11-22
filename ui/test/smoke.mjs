@@ -52,6 +52,10 @@ await pg.click('.composer [data-x]'); await sleep(300);
 await pg.click('#settings'); await pg.waitForSelector('.dialog'); await sleep(500);
 must((await pg.locator('#mcpbox').innerText()).includes('/mcp'), 'settings shows the MCP endpoint');
 await pg.keyboard.press('Escape');
+// a theme change made elsewhere (the MCP server does this) reaches the open window without a reload
+const tk = new URL(url).searchParams.get('token');
+await fetch(url.replace(/\/\?.*/, '/api/settings'), { method: 'POST', headers: { 'X-Token': tk, 'Content-Type': 'application/json' }, body: JSON.stringify({ theme: 'dark' }) });
+await pg.waitForFunction(() => document.documentElement.dataset.theme === 'dark', null, { timeout: 8000 }).catch(() => errors.push('FAILED: the window did not follow a theme change'));
 // shortcuts help
 await pg.keyboard.press('?'); await pg.waitForSelector('.dialog .help');
 await b.close(); p.kill();

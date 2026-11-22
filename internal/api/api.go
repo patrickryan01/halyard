@@ -681,6 +681,7 @@ func (s *Server) settings(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+	s.Eng.Emit(engine.Event{Type: "settings"})
 	writeJSON(w, map[string]bool{"ok": true})
 }
 

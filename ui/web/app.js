@@ -816,7 +816,7 @@ async function pollEvents() {
 }
 function handleEvent(ev) {
   switch (ev.type) {
-    case 'synced': case 'accounts': case 'snooze': refreshSoon(); if (ev.type === 'snooze') toast(ev.text); break;
+    case 'synced': case 'accounts': case 'settings': case 'snooze': refreshSoon(); if (ev.type === 'snooze') toast(ev.text); break;
     case 'error': if (ev.subject) toast(ev.text, { err: true }); refreshSoon(); break;
     case 'sent': toast('Message sent.'); refreshSoon(); break;
     case 'new':
