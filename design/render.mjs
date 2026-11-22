@@ -11,7 +11,7 @@ mkdirSync(out, { recursive: true });
 
 function start(demo) {
   const dir = mkdtempSync(path.join(tmpdir(), 'mailrender-'));
-  const p = spawn(bin, ['--data', dir, '--demo', String(demo)], { env: { ...process.env, MAILCLIENT_NO_KEYRING: '1' } });
+  const p = spawn(bin, ['--data', dir, '--demo', String(demo)], { env: { ...process.env, HALYARD_NO_KEYRING: '1' } });
   return new Promise((res, rej) => {
     let buf = '';
     p.stdout.on('data', d => { buf += d; const m = buf.match(/open (http:\/\/[^\s]+)/); if (m) res({ url: m[1], p }); });

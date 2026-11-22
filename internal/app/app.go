@@ -39,7 +39,7 @@ type App struct {
 
 // DataDir is where mail, settings and fallback secrets live.
 func DataDir() (string, error) {
-	if d := os.Getenv("MAILCLIENT_DATA"); d != "" {
+	if d := os.Getenv("HALYARD_DATA"); d != "" {
 		return d, os.MkdirAll(d, 0o700)
 	}
 	base, err := os.UserConfigDir()
@@ -57,7 +57,7 @@ func Start(dir, token string) (*App, error) {
 	if err != nil {
 		return nil, err
 	}
-	sec := &secret.Store{Dir: filepath.Join(dir, "secrets"), NoKeyring: os.Getenv("MAILCLIENT_NO_KEYRING") != ""}
+	sec := &secret.Store{Dir: filepath.Join(dir, "secrets"), NoKeyring: os.Getenv("HALYARD_NO_KEYRING") != ""}
 	eng := engine.New(st, sec)
 	ctx, cancel := context.WithCancel(context.Background())
 	if err := eng.Start(ctx); err != nil {
@@ -68,9 +68,9 @@ func Start(dir, token string) (*App, error) {
 	srv.Token = token
 	a := &App{Dir: dir, Store: st, Engine: eng, API: srv, cancel: cancel}
 	a.MCPServer = mcpserver.New(eng, srv, brand.Slug, brand.Version)
-	// the MCP server is on by default; MAILCLIENT_MCP_ADDR moves it
-	if st.Setting("mcp", "true") == "true" && os.Getenv("MAILCLIENT_NO_MCP_HTTP") == "" {
-		addr := os.Getenv("MAILCLIENT_MCP_ADDR")
+	// the MCP server is on by default; HALYARD_MCP_ADDR moves it
+	if st.Setting("mcp", "true") == "true" && os.Getenv("HALYARD_NO_MCP_HTTP") == "" {
+		addr := os.Getenv("HALYARD_MCP_ADDR")
 		if addr == "" {
 			addr = "127.0.0.1:8765"
 		}

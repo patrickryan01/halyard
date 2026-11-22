@@ -44,7 +44,7 @@ func main() {
 		}
 	}
 	if *stdio {
-		os.Setenv("MAILCLIENT_NO_MCP_HTTP", "1") // stdio is its own endpoint; do not take over mcp.json
+		os.Setenv("HALYARD_NO_MCP_HTTP", "1") // stdio is its own endpoint; do not take over mcp.json
 		a, err := app.Start(dir, app.NewToken())
 		if err != nil {
 			log.Fatal(err)

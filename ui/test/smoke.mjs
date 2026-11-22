@@ -7,7 +7,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 
 const dir = mkdtempSync(path.join(tmpdir(), 'ui-smoke-'));
-const p = spawn(process.argv[2], ['--data', dir, '--demo', '3'], { env: { ...process.env, MAILCLIENT_NO_KEYRING: '1', MAILCLIENT_MCP_ADDR: '127.0.0.1:0' } });
+const p = spawn(process.argv[2], ['--data', dir, '--demo', '3'], { env: { ...process.env, HALYARD_NO_KEYRING: '1', HALYARD_MCP_ADDR: '127.0.0.1:0' } });
 let buf = '';
 const url = await new Promise(r => p.stdout.on('data', d => { buf += d; const m = buf.match(/open (http:\/\/\S+)/); if (m) r(m[1]); }));
 const b = await chromium.launch({ executablePath: process.env.CHROME });
