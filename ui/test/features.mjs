@@ -119,7 +119,7 @@ await pg.click('.composer [data-cmd=bold]'); await idle(pg);
 must((await pg.locator('.composer .editor b, .composer .editor strong').count()) >= 1, 'the bold button formats the text');
 await pg.fill('.composer [data-f=to] input', 'dan'); await idle(pg);
 must((await pg.locator('.ac').count()) === 1 && (await pg.locator('.ac').innerText()).includes('Dana Lee'), 'typing a name suggests the contact');
-await pg.keyboard.press('Escape'); await pg.fill('.composer [data-f=to] input', 'big@y.test'); await pg.keyboard.press('Enter');
+await pg.keyboard.press('Escape'); await pg.evaluate(() => document.querySelectorAll('.composer [data-f=to] .chip.bad').forEach(c => { const x = c.querySelector('*:last-child'); x && x.click(); })); await pg.fill('.composer [data-f=to] input', 'big@y.test'); await pg.keyboard.press('Enter');
 await pg.fill('.composer [data-subj]', 'big file');
 await pg.setInputFiles('.composer [data-file]', { name: 'big.bin', mimeType: 'application/octet-stream', buffer: Buffer.alloc(26 * 1048576) });
 dismissNext = true; await pg.click('.composer [data-send]'); await idle(pg);
