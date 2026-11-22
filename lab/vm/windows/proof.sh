@@ -5,11 +5,11 @@ set -euo pipefail
 W=${PHONEDESK:-$HOME/work/MAIL/win}; export PHONEDESK=$W
 INST=${1:?installer}; OUT=${2:?outdir}; HERE=$(cd "$(dirname "$0")" && pwd); mkdir -p "$OUT"
 V="python3 $W/winvm.py"
-ss -ltn | grep -q ':8800 ' && { echo "port 8800 is busy: the phone crew's server is running; wait for it"; exit 1; }
+export WINVM_PORT=${WINVM_PORT:-8811}; ss -ltn | grep -q ":$WINVM_PORT " && { echo "port $WINVM_PORT is busy"; exit 1; }
 $V put "$INST"; $V put "${CER:?CER=path to fireball-codesign.cer}"
 ($V serve >/dev/null 2>&1 &) ; sleep 1
 $V start
-for i in $(seq 1 90); do [ "$(curl -s http://127.0.0.1:8800/admin/seen | cut -d. -f1)" -gt $(( $(date +%s) - 30 )) ] 2>/dev/null && break; sleep 5; done
+for i in $(seq 1 90); do [ "$(curl -s http://127.0.0.1:$WINVM_PORT/admin/seen | cut -d. -f1)" -gt $(( $(date +%s) - 30 )) ] 2>/dev/null && break; sleep 5; done
 echo "== install"; $V run "$HERE/install.ps1" 600 | tee "$OUT/windows-install.txt"
 echo "== launch"; $V run "$HERE/launch.ps1" 120 | tee -a "$OUT/windows-install.txt"; sleep 5; $V shot "$OUT/win-1-first-run.png"
 echo "== account"; $V run "$HERE/account.ps1" 120 | tee -a "$OUT/windows-install.txt"; sleep 40; $V shot "$OUT/win-2-inbox.png"
