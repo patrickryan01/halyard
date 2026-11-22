@@ -37,6 +37,7 @@ users:
     sudo: ALL=(ALL) NOPASSWD:ALL
     lock_passwd: false
     plain_text_passwd: tester
+    groups: [wheel]
     ssh_authorized_keys: ["$PUB"]
 ssh_pwauth: true
 write_files:
@@ -44,17 +45,23 @@ write_files:
     content: |
       [Unit]
       Description=Halyard in a kiosk compositor
-      After=systemd-user-sessions.service
+      After=systemd-user-sessions.service seatd.service getty@tty1.service
+      Wants=seatd.service
+      Conflicts=getty@tty1.service
       [Service]
       User=tester
-      PAMName=login
+      SupplementaryGroups=seat
       TTYPath=/dev/tty1
       StandardInput=tty
-      TTYReset=yes
-      TTYVHangup=yes
-      Environment=WLR_RENDERER=pixman WLR_NO_HARDWARE_CURSORS=1 LIBSEAT_BACKEND=logind WEBKIT_DISABLE_COMPOSITING_MODE=1 WEBKIT_DISABLE_DMABUF_RENDERER=1 XDG_SESSION_TYPE=wayland
+      StandardOutput=journal
+      StandardError=journal
+      Environment=HOME=/home/tester XDG_RUNTIME_DIR=/run/user/1000 WLR_RENDERER=pixman WLR_NO_HARDWARE_CURSORS=1 LIBSEAT_BACKEND=seatd WEBKIT_DISABLE_COMPOSITING_MODE=1 WEBKIT_DISABLE_DMABUF_RENDERER=1
+      ExecStartPre=+/usr/bin/mkdir -p /run/user/1000
+      ExecStartPre=+/usr/bin/chown tester /run/user/1000
       ExecStart=/usr/bin/cage -s -- /usr/bin/halyard
       Restart=on-failure
+      [Install]
+      WantedBy=multi-user.target
   - path: /usr/local/bin/add-lab-account
     permissions: '0755'
     content: |
@@ -75,7 +82,7 @@ write_files:
 runcmd:
   - [sh, -c, "curl -fsS -o /tmp/$PKGNAME http://10.0.2.2:8099/$PKGNAME"]
   - [sh, -c, "$INSTALL > /var/log/halyard-install.log 2>&1; echo INSTALL-EXIT=\$? >> /var/log/halyard-install.log"]
-  - [sh, -c, "systemctl daemon-reload && systemctl enable --now halyard-kiosk.service"]
+  - [sh, -c, "usermod -aG seat tester; systemctl daemon-reload; systemctl enable --now seatd; systemctl mask getty@tty1.service; systemctl enable --now halyard-kiosk.service"]
   - [sh, -c, "touch /var/lib/halyard-ready"]
 U
 xorriso -as mkisofs -quiet -V cidata -J -r -o "$W/seed-$KIND.iso" "$SEED" >/dev/null 2>&1

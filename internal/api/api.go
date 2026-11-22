@@ -174,6 +174,12 @@ func decodeBody(r *http.Request, v any) error {
 func (s *Server) state(w http.ResponseWriter, r *http.Request) {
 	accts, _ := s.Eng.St.Accounts()
 	folders, _ := s.Eng.St.Folders("")
+	if folders == nil {
+		folders = []mailtypes.Folder{}
+	}
+	if accts == nil {
+		accts = []mailtypes.Account{}
+	}
 	st := s.Eng.St
 	writeJSON(w, map[string]any{
 		"version":  s.Version,

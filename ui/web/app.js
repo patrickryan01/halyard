@@ -83,7 +83,11 @@ function addrFmt(a) { return a.name ? '"' + a.name.replace(/"/g, '') + '" <' + a
 function typing(e) { const t = e.target; return t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable); }
 
 // ---------- data ----------
-async function refreshState() { S.data = await api('state'); applyTheme(); }
+async function refreshState() {
+  S.data = await api('state');
+  S.data.accounts = S.data.accounts || []; S.data.folders = S.data.folders || []; S.data.outbox = S.data.outbox || [];
+  applyTheme();
+}
 function applyTheme() {
   const t = S.data.settings.theme;
   if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; else delete document.documentElement.dataset.theme;
