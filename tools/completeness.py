@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Reads docs/COMPLETENESS.md and the logs of the test runs, and fails when a row that is not dropped lacks a passing
+"""Reads the feature list and the logs of the test runs, and fails when a row that is not dropped lacks a passing
 check. Usage: completeness.py --go go.log --lab lab.log --ui ui.log --live live.log --smoke smoke.log --i18n i18n.log
 [--pkgdir DIR]"""
 import argparse, os, re, subprocess, sys
@@ -7,7 +7,7 @@ import argparse, os, re, subprocess, sys
 ap = argparse.ArgumentParser()
 for k in ('go', 'lab', 'ui', 'live', 'smoke', 'i18n', 'pkgdir'):
     ap.add_argument('--' + k)
-ap.add_argument('--doc', default='docs/COMPLETENESS.md')
+ap.add_argument("--doc", required=True, help="the completeness list (kept with the release records, not in this repository)")
 a = ap.parse_args()
 
 def read(p): return open(p, encoding='utf-8', errors='replace').read() if p and os.path.exists(p) else ''

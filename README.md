@@ -13,8 +13,6 @@ Halyard is a fast, private mail client for Linux and Windows. It is as easy to u
 * **Everywhere:** a command palette and keyboard shortcuts you can change, light and dark themes, an icon in the notification area, desktop notifications, an offline cache that replays your changes, English and thirteen other languages.
 * **Automation:** the `halyard` command line (send, search, list, read and the rest) and a built in MCP server that reads and writes every account. See `docs/MCP.md`.
 
-`docs/COMPLETENESS.md` lists every feature a full mail client has, with the automated check behind each one.
-
 ## Build and test
 
     go build ./... && go test ./...
@@ -22,7 +20,7 @@ Halyard is a fast, private mail client for Linux and Windows. It is as easy to u
     MAIL_LAB_HOST=127.0.0.1 go test ./internal/e2e -run 'Lab|TestFeat'
     node ui/test/smoke.mjs <demo build of halyardd>    # go build -tags demo ./cmd/halyardd
 
-`tools/completeness.sh` runs all of it and checks the list in `docs/COMPLETENESS.md`.
+`tools/completeness.sh` runs all of it and checks it against the maintainer's feature list.
 
 ## Layout
 

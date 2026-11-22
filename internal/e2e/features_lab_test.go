@@ -1,6 +1,6 @@
 package e2e
 
-// Feature checks against the real lab server, one per completeness row (docs/COMPLETENESS.md).
+// Feature checks against the real lab server, one per completeness row (the maintainer feature list).
 
 import (
 	"context"

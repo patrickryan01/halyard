@@ -1,5 +1,5 @@
 #!/bin/sh
-# Runs every check behind docs/COMPLETENESS.md on a box with Go, Node, Playwright's Chromium and Podman (the Beast), then
+# Runs every check behind the maintainer feature list on a box with Go, Node, Playwright's Chromium and Podman (the Beast), then
 # has tools/completeness.py read the results. The Microsoft sign in needs the test user's password on standard input.
 # Usage: PLAYWRIGHT=... CHROME=... tools/completeness.sh OUTDIR [PKGDIR] < password
 set -u
@@ -15,4 +15,4 @@ node ui/test/features.mjs "$OUT/halyardd" > "$OUT/ui.log" 2>&1
 printf %s "$PW" | HALYARD_NO_BROWSER=1 node ui/test/live_add.mjs "$OUT/halyardd" > "$OUT/live.log" 2>&1
 node tools/i18n-check.mjs "$OUT/halyardd-demo" > "$OUT/i18n.log" 2>&1
 lab/stalwart.sh down >/dev/null 2>&1
-python3 tools/completeness.py --go "$OUT/go.log" --lab "$OUT/lab.log" --ui "$OUT/ui.log" --live "$OUT/live.log" --smoke "$OUT/smoke.log" --i18n "$OUT/i18n.log" ${PKG:+--pkgdir "$PKG"} | tee "$OUT/completeness.txt"
+python3 tools/completeness.py --doc "${COMPLETENESS_DOC:?path of the completeness list}" --go "$OUT/go.log" --lab "$OUT/lab.log" --ui "$OUT/ui.log" --live "$OUT/live.log" --smoke "$OUT/smoke.log" --i18n "$OUT/i18n.log" ${PKG:+--pkgdir "$PKG"} | tee "$OUT/completeness.txt"

@@ -9,7 +9,7 @@ Halyard is one desktop application, built three ways (Arch, EmberRTOS Desktop wh
 3. The release notes are written for customers. What the proof below did not cover is recorded with the release evidence in the maintainer's own records, never in the public notes.
 4. Finished features ship on: read `internal/app/app.go` and the settings defaults in `internal/api/api.go` for any switch that is off.
 5. The sign-in client registrations (`HALYARD_GOOGLE_CLIENT_ID`, `HALYARD_GOOGLE_CLIENT_SECRET`, `HALYARD_MS_CLIENT_ID`) are set for the build when they exist. Without a Google client the add account screen walks through an app password, which works with nothing registered.
-6. `docs/COMPLETENESS.md` is complete: every row that is not dropped has a passing check.
+6. The maintainer's feature list is complete: every row has a passing check.
 
 ## 2. Gates on the code
 
@@ -17,7 +17,7 @@ Halyard is one desktop application, built three ways (Arch, EmberRTOS Desktop wh
 2. The lab: `lab/stalwart.sh up`, then `MAIL_LAB_HOST=127.0.0.1 go test ./internal/e2e -run 'TestFeat|TestIMAPLab|TestJMAPLab|TestMCPIMAPLab|TestMCPJMAPLab' -p 1` pass.
 3. Live providers pass with a real mailbox each, when the credentials are at hand: `TestGoogleLive`, `TestMCPGoogleLive` and `TestGmailOverIMAPLive` with `HALYARD_LIVE_GOOGLE_TOKEN` and `HALYARD_LIVE_GOOGLE_USER`, and `TestMCPMicrosoftLive` with `HALYARD_LIVE_MS_TOKEN` and `HALYARD_LIVE_MS_USER`. A run that cannot do this says so under `## Not proven`.
 4. The browser tests pass: `node ui/test/smoke.mjs <demo build of halyardd>` (`go build -tags demo ./cmd/halyardd`), `node ui/test/features.mjs <halyardd>`, `node ui/test/live_add.mjs <halyardd>` and `node tools/i18n-check.mjs <demo build>`.
-5. `tools/completeness.sh <outdir>` runs all of the above and the list check, and prints COMPLETE.
+5. `COMPLETENESS_DOC=<list> tools/completeness.sh <outdir>` runs all of the above and the list check, and prints COMPLETE.
 
 ## 3. Build the three packages (`packaging/build.sh <version> arch|rpm|windows <dir>`, one at a time)
 
