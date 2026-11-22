@@ -25,6 +25,7 @@ Icon "halyard.ico"
 UninstallIcon "halyard.ico"
 
 !include "MUI2.nsh"
+!include "LogicLib.nsh"
 !define MUI_ICON "halyard.ico"
 !define MUI_UNICON "halyard.ico"
 !define MUI_FINISHPAGE_RUN "$INSTDIR\halyard.exe"
@@ -55,8 +56,6 @@ Function EnsureWebView2
     Delete "$TEMP\MicrosoftEdgeWebview2Setup.exe"
   ${EndIf}
 FunctionEnd
-
-!include "LogicLib.nsh"
 
 Section "Halyard"
   SetOutPath "$INSTDIR"

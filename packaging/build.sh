@@ -6,7 +6,7 @@
 set -eu
 V=${1:?version}; T=${2:?target}; OUT=${3:?outdir}
 mkdir -p "$OUT/src" "$OUT/pkg"
-packaging/make-source.sh "$V" "$OUT/src" >/dev/null
+[ -f "$OUT/src/halyard-$V.tar.gz" ] || packaging/make-source.sh "$V" "$OUT/src" >/dev/null
 ENVS="-e HALYARD_VERSION=$V -e HALYARD_GOOGLE_CLIENT_ID=${HALYARD_GOOGLE_CLIENT_ID:-} -e HALYARD_GOOGLE_CLIENT_SECRET=${HALYARD_GOOGLE_CLIENT_SECRET:-} -e HALYARD_MS_CLIENT_ID=${HALYARD_MS_CLIENT_ID:-}"
 case "$T" in
 arch)
