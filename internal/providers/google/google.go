@@ -691,3 +691,82 @@ func (p *Provider) UpdateContact(ctx context.Context, c mailtypes.Contact) (mail
 func (p *Provider) DeleteContact(ctx context.Context, id string) error {
 	return p.api.Do(ctx, "DELETE", p.people+"/"+id+":deleteContact", nil, nil, nil)
 }
+
+// ---- drafts ----
+
+func (p *Provider) draftBody(o mailtypes.Outgoing) (map[string]any, error) {
+	domain := "gmail.com"
+	if i := strings.LastIndex(o.From.Email, "@"); i >= 0 {
+		domain = o.From.Email[i+1:]
+	}
+	raw, err := mime.BuildDraft(o, mime.MessageID(domain, "d"))
+	if err != nil {
+		return nil, err
+	}
+	msg := map[string]any{"raw": base64.RawURLEncoding.EncodeToString(raw)}
+	if o.ThreadHint != "" {
+		msg["threadId"] = o.ThreadHint
+	}
+	return map[string]any{"message": msg}, nil
+}
+
+func (p *Provider) SaveDraft(ctx context.Context, o mailtypes.Outgoing, replaceID string) (string, error) {
+	body, err := p.draftBody(o)
+	if err != nil {
+		return "", err
+	}
+	var r struct {
+		ID string `json:"id"`
+	}
+	if replaceID != "" {
+		err = p.api.Do(ctx, "PUT", p.base+"/drafts/"+replaceID, body, nil, &r)
+		if err == nil {
+			return r.ID, nil
+		}
+		if !httpx.IsStatus(err, 404) {
+			return "", err
+		}
+	}
+	err = p.api.Do(ctx, "POST", p.base+"/drafts", body, nil, &r)
+	return r.ID, err
+}
+
+func (p *Provider) DeleteDraft(ctx context.Context, id string) error {
+	err := p.api.Do(ctx, "DELETE", p.base+"/drafts/"+id, nil, nil, nil)
+	if httpx.IsStatus(err, 404) {
+		return nil
+	}
+	return err
+}
+
+// DraftID finds the draft resource that holds a message.
+func (p *Provider) DraftID(ctx context.Context, messageID string) (string, error) {
+	page := ""
+	for {
+		u := p.base + "/drafts?maxResults=100"
+		if page != "" {
+			u += "&pageToken=" + url.QueryEscape(page)
+		}
+		var r struct {
+			Drafts []struct {
+				ID      string `json:"id"`
+				Message struct {
+					ID string `json:"id"`
+				} `json:"message"`
+			} `json:"drafts"`
+			Next string `json:"nextPageToken"`
+		}
+		if err := p.api.Do(ctx, "GET", u, nil, nil, &r); err != nil {
+			return "", err
+		}
+		for _, d := range r.Drafts {
+			if d.Message.ID == messageID {
+				return d.ID, nil
+			}
+		}
+		if r.Next == "" {
+			return "", errors.New("draft not found")
+		}
+		page = r.Next
+	}
+}

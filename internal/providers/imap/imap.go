@@ -751,3 +751,59 @@ func (p *Provider) CreateFolder(ctx context.Context, name, role string) (string,
 	err := p.withConn(func(c *imapclient.Client) error { return c.Create(name, nil).Wait() })
 	return name, err
 }
+
+// ---- drafts ----
+
+// SaveDraft appends the draft to the Drafts mailbox with the Draft flag. An
+// update appends the new version and expunges the old one.
+func (p *Provider) SaveDraft(ctx context.Context, o mailtypes.Outgoing, replaceID string) (string, error) {
+	domain := "localhost"
+	if i := strings.LastIndex(o.From.Email, "@"); i >= 0 {
+		domain = o.From.Email[i+1:]
+	}
+	raw, err := mime.BuildDraft(o, mime.MessageID(domain, "d"))
+	if err != nil {
+		return "", err
+	}
+	var id string
+	err = p.withConn(func(c *imapclient.Client) error {
+		box, err := p.folderRole(c, mailtypes.RoleDrafts)
+		if err != nil {
+			return err
+		}
+		if box == "" {
+			box = "Drafts"
+			if err := c.Create(box, nil).Wait(); err != nil {
+				return err
+			}
+		}
+		ap := c.Append(box, int64(len(raw)), &imap.AppendOptions{Flags: []imap.Flag{imap.FlagDraft, imap.FlagSeen}, Time: time.Now()})
+		if _, err := ap.Write(raw); err != nil {
+			return err
+		}
+		if err := ap.Close(); err != nil {
+			return err
+		}
+		data, err := ap.Wait()
+		if err != nil {
+			return err
+		}
+		id = rid(box, data.UIDValidity, data.UID)
+		return nil
+	})
+	if err != nil {
+		return "", err
+	}
+	if replaceID != "" {
+		_ = p.DeleteDraft(ctx, replaceID)
+	}
+	return id, nil
+}
+
+func (p *Provider) DeleteDraft(ctx context.Context, id string) error {
+	return p.Apply(ctx, mailtypes.Action{Kind: mailtypes.ActDelete, IDs: []string{id}})
+}
+
+func (p *Provider) DraftID(ctx context.Context, messageID string) (string, error) {
+	return messageID, nil
+}

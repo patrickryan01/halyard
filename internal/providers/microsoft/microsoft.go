@@ -592,3 +592,48 @@ func (p *Provider) attachments(ctx context.Context, id string) []mailtypes.Attac
 	}
 	return out
 }
+
+// ---- drafts ----
+
+// SaveDraft creates the draft from MIME in the Drafts folder. Graph has no way
+// to replace a draft's attachments in place, so an update deletes the old
+// draft and creates a new one.
+func (p *Provider) SaveDraft(ctx context.Context, o mailtypes.Outgoing, replaceID string) (string, error) {
+	domain := "outlook.com"
+	if i := strings.LastIndex(o.From.Email, "@"); i >= 0 {
+		domain = o.From.Email[i+1:]
+	}
+	raw, err := mime.BuildDraft(o, mime.MessageID(domain, "d"))
+	if err != nil {
+		return "", err
+	}
+	var d gmsg
+	if err := p.api.Do(ctx, "POST", p.base+"/me/messages", []byte(base64.StdEncoding.EncodeToString(raw)), map[string]string{"Content-Type": "text/plain", "Prefer": `IdType="ImmutableId"`}, &d); err != nil {
+		return "", fmt.Errorf("graph save draft: %w", err)
+	}
+	if len(o.Bcc) > 0 {
+		var bcc []map[string]any
+		for _, b := range o.Bcc {
+			bcc = append(bcc, map[string]any{"emailAddress": map[string]string{"address": b.Email, "name": b.Name}})
+		}
+		if err := p.api.Do(ctx, "PATCH", p.base+"/me/messages/"+d.ID, map[string]any{"bccRecipients": bcc}, hdr(), nil); err != nil {
+			return "", err
+		}
+	}
+	if replaceID != "" {
+		_ = p.DeleteDraft(ctx, replaceID)
+	}
+	return d.ID, nil
+}
+
+func (p *Provider) DeleteDraft(ctx context.Context, id string) error {
+	err := p.api.Do(ctx, "DELETE", p.base+"/me/messages/"+id, nil, hdr(), nil)
+	if httpx.IsStatus(err, 404) {
+		return nil
+	}
+	return err
+}
+
+func (p *Provider) DraftID(ctx context.Context, messageID string) (string, error) {
+	return messageID, nil
+}

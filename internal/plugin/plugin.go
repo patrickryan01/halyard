@@ -100,3 +100,15 @@ type ContactWriter interface {
 	UpdateContact(ctx context.Context, c mailtypes.Contact) (mailtypes.Contact, error)
 	DeleteContact(ctx context.Context, id string) error
 }
+
+// DraftSaver is implemented by providers that keep drafts on the server, so a
+// draft written here shows up in the provider's own Drafts folder everywhere.
+type DraftSaver interface {
+	// SaveDraft writes the draft, replacing replaceID when it is not empty, and
+	// returns the ID to pass back next time.
+	SaveDraft(ctx context.Context, o mailtypes.Outgoing, replaceID string) (string, error)
+	DeleteDraft(ctx context.Context, id string) error
+	// DraftID turns the remote ID of a message in the Drafts folder into the
+	// ID SaveDraft and DeleteDraft use for it.
+	DraftID(ctx context.Context, messageRemoteID string) (string, error)
+}

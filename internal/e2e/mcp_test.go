@@ -240,16 +240,57 @@ func (r *rig) fullFlow(acct, self, kind string) {
 		t.Fatalf("forward lost its attachment: %v", fwd)
 	}
 
-	// drafts: create, list, update, send, and undo of a queued send
-	d := r.call("create_draft", map[string]any{"accountId": acct, "to": []string{self}, "subject": "mcp draft " + tag, "bodyText": "draft body"})
+	// drafts: saved with an attachment, they appear in the provider's own Drafts folder; an update
+	// replaces the server copy; a discard removes it; sending removes it
+	inDrafts := func(q string) map[string]any {
+		var found map[string]any
+		waitFor(t, 90*time.Second, "draft in the provider's Drafts folder: "+q, func() bool {
+			r.call("sync_now", nil)
+			th := list(r.call("list_threads", map[string]any{"folder": "role:drafts", "query": q}), "threads")
+			if len(th) > 0 {
+				found = th[0]
+				return true
+			}
+			return false
+		})
+		return found
+	}
+	gone := func(q string) {
+		waitFor(t, 90*time.Second, "draft gone from the Drafts folder: "+q, func() bool {
+			r.call("sync_now", nil)
+			return len(list(r.call("list_threads", map[string]any{"folder": "role:drafts", "query": q}), "threads")) == 0
+		})
+	}
+	d := r.call("create_draft", map[string]any{"accountId": acct, "to": []string{self}, "subject": "mcp draft " + tag, "bodyText": "draft body",
+		"attachments": []map[string]any{{"filename": "draft.txt", "contentType": "text/plain", "base64": payload}}})
 	did := d["draftId"].(string)
 	if len(list(r.call("list_drafts", nil), "drafts")) == 0 {
 		t.Fatal("draft not listed")
 	}
-	r.call("update_draft", map[string]any{"draftId": did, "accountId": acct, "to": []string{self}, "subject": "mcp draft sent " + tag, "bodyText": "draft body 2"})
+	dt := inDrafts("mcp draft " + tag)
+	if dt["hasAttachments"] != true {
+		t.Fatalf("the server copy of the draft lost its attachment: %v", dt)
+	}
+	r.call("update_draft", map[string]any{"draftId": did, "accountId": acct, "to": []string{self}, "subject": "mcp draft sent " + tag, "bodyText": "draft body 2",
+		"attachments": []map[string]any{{"filename": "draft.txt", "contentType": "text/plain", "base64": payload}}})
+	inDrafts("subject:sent " + tag)
+	waitFor(t, 90*time.Second, "old version of the draft replaced", func() bool {
+		r.call("sync_now", nil)
+		for _, th := range list(r.call("list_threads", map[string]any{"folder": "role:drafts", "query": tag}), "threads") {
+			if th["subject"] == "mcp draft "+tag {
+				return false
+			}
+		}
+		return true
+	})
 	q := r.call("send_draft", map[string]any{"draftId": did})
 	r.waitThread("", "subject:\"mcp draft sent\" "+tag, 0)
 	_ = q
+	gone("subject:sent " + tag)
+	d2 := r.call("create_draft", map[string]any{"accountId": acct, "to": []string{self}, "subject": "mcp discard " + tag, "bodyText": "x"})
+	inDrafts("subject:discard " + tag)
+	r.call("delete_draft", map[string]any{"draftId": d2["draftId"]})
+	gone("subject:discard " + tag)
 	r.eng.UndoDelay = 20 * time.Second
 	queued := r.call("send_message", map[string]any{"accountId": acct, "to": []string{self}, "subject": "mcp undone " + tag, "bodyText": "never sent"})
 	if u := r.call("cancel_send", map[string]any{"outboxId": queued["outboxId"]}); u["undone"] != true {

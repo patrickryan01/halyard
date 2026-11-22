@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"html"
+	"log"
 	"os"
 	"strings"
 	"time"
@@ -92,6 +93,8 @@ type DraftData struct {
 	References  []string      `json:"references"`
 	ThreadHint  string        `json:"threadHint"`
 	Attachments []DraftAttach `json:"attachments"`
+	// RemoteID is the draft\'s ID in the provider\'s Drafts folder, when the provider keeps drafts.
+	RemoteID string `json:"remoteId,omitempty"`
 }
 
 type DraftAttach struct {
@@ -105,11 +108,118 @@ func (e *Engine) SaveDraft(d DraftData) (string, error) {
 	if d.ID == "" {
 		d.ID = newID()
 	}
+	// a draft saved before keeps its server copy: carry the remote ID over
+	if old, err := e.GetDraft(d.ID); err == nil && d.RemoteID == "" {
+		d.RemoteID = old.RemoteID
+	}
+	// the copy in the provider's Drafts folder, so the draft shows up on every device
+	if acct, err := e.St.Account(d.AccountID); err == nil {
+		if p, err := e.Factory(acct, e.Sec.For(acct.ID)); err == nil {
+			if ds, ok := p.(plugin.DraftSaver); ok {
+				if o, err := d.Outgoing(); err == nil {
+					o.From = mailtypes.Address{Name: acct.Name, Email: acct.Email}
+					ctx, cancel := context.WithTimeout(e.ctx, 60*time.Second)
+					id, err := ds.SaveDraft(ctx, o, d.RemoteID)
+					cancel()
+					if err == nil {
+						d.RemoteID = id
+					} else {
+						log.Printf("draft %s: server copy: %v", d.ID, err)
+					}
+				}
+			}
+			p.Close()
+		}
+	}
 	b, err := json.Marshal(d)
 	if err != nil {
 		return "", err
 	}
-	return d.ID, e.St.PutDraft(store.Draft{ID: d.ID, AccountID: d.AccountID, Data: b, Subject: d.Subject})
+	if err := e.St.PutDraft(store.Draft{ID: d.ID, AccountID: d.AccountID, Data: b, Subject: d.Subject}); err != nil {
+		return "", err
+	}
+	e.SyncNow(d.AccountID)
+	return d.ID, nil
+}
+
+// DiscardDraft removes a draft here and in the provider's Drafts folder.
+func (e *Engine) DiscardDraft(id string) error {
+	if d, err := e.GetDraft(id); err == nil && d.RemoteID != "" {
+		e.deleteRemoteDraft(d)
+	}
+	return e.St.DeleteDraft(id)
+}
+
+func (e *Engine) deleteRemoteDraft(d DraftData) {
+	acct, err := e.St.Account(d.AccountID)
+	if err != nil {
+		return
+	}
+	p, err := e.Factory(acct, e.Sec.For(acct.ID))
+	if err != nil {
+		return
+	}
+	defer p.Close()
+	if ds, ok := p.(plugin.DraftSaver); ok {
+		ctx, cancel := context.WithTimeout(e.ctx, 60*time.Second)
+		defer cancel()
+		if err := ds.DeleteDraft(ctx, d.RemoteID); err != nil {
+			log.Printf("draft %s: remove server copy: %v", d.ID, err)
+		}
+		e.SyncNow(d.AccountID)
+	}
+}
+
+// OpenProviderDraft turns a message in a provider's Drafts folder into an
+// editable draft, with its attachments, so saving it again replaces the
+// server copy.
+func (e *Engine) OpenProviderDraft(ctx context.Context, messageID string) (DraftData, error) {
+	m, err := e.St.Message(messageID)
+	if err != nil {
+		return DraftData{}, errors.New("no such message")
+	}
+	acct, err := e.St.Account(m.AccountID)
+	if err != nil {
+		return DraftData{}, err
+	}
+	d := DraftData{AccountID: m.AccountID, Subject: m.Subject, BodyText: m.BodyText, BodyHTML: m.BodyHTML, InReplyTo: m.InReplyTo, References: m.References}
+	if i := strings.Index(m.ThreadID, "/"); i >= 0 {
+		d.ThreadHint = m.ThreadID[i+1:]
+	}
+	addrs := func(in []mailtypes.Address) []string {
+		var out []string
+		for _, a := range in {
+			if a.Name == "" {
+				out = append(out, a.Email)
+			} else {
+				out = append(out, fmt.Sprintf("%q <%s>", a.Name, a.Email))
+			}
+		}
+		return out
+	}
+	d.To, d.Cc, d.Bcc = addrs(m.To), addrs(m.Cc), addrs(m.Bcc)
+	for _, a := range m.Attach {
+		if a.Inline {
+			continue
+		}
+		b, _, err := e.Attachment(ctx, m.AccountID, m.RemoteID, a.ID)
+		if err != nil {
+			return d, fmt.Errorf("could not fetch attachment %s: %w", a.Filename, err)
+		}
+		d.Attachments = append(d.Attachments, DraftAttach{Filename: a.Filename, ContentType: a.ContentType, Base64: base64.StdEncoding.EncodeToString(b)})
+	}
+	p, err := e.Factory(acct, e.Sec.For(acct.ID))
+	if err != nil {
+		return d, err
+	}
+	defer p.Close()
+	if ds, ok := p.(plugin.DraftSaver); ok {
+		if id, err := ds.DraftID(ctx, m.RemoteID); err == nil {
+			d.RemoteID = id
+		}
+	}
+	d.ID = newID()
+	return d, nil
 }
 
 func (e *Engine) GetDraft(id string) (DraftData, error) {
@@ -171,6 +281,9 @@ func (e *Engine) SendDraft(id string) (string, error) {
 	out, err := e.Send(o)
 	if err != nil {
 		return "", err
+	}
+	if d.RemoteID != "" {
+		e.deleteRemoteDraft(d)
 	}
 	_ = e.St.DeleteDraft(id)
 	return out, nil

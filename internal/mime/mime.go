@@ -37,7 +37,13 @@ func MessageID(domain string, nonce string) string {
 // Build writes the message as RFC 5322 with a text and an HTML alternative and
 // the attachments as mixed parts. Bcc is deliberately not written as a header:
 // the SMTP envelope carries it.
-func Build(o mailtypes.Outgoing, msgID string) ([]byte, error) {
+func Build(o mailtypes.Outgoing, msgID string) ([]byte, error) { return build(o, msgID, false) }
+
+// BuildDraft is Build for a message that is saved, not sent: it keeps the Bcc
+// header, so reopening the draft still shows who is on Bcc.
+func BuildDraft(o mailtypes.Outgoing, msgID string) ([]byte, error) { return build(o, msgID, true) }
+
+func build(o mailtypes.Outgoing, msgID string, keepBcc bool) ([]byte, error) {
 	var h gomail.Header
 	h.SetDate(time.Now())
 	h.SetSubject(o.Subject)
@@ -47,6 +53,9 @@ func Build(o mailtypes.Outgoing, msgID string) ([]byte, error) {
 	}
 	if len(o.Cc) > 0 {
 		h.SetAddressList("Cc", toGo(o.Cc))
+	}
+	if keepBcc && len(o.Bcc) > 0 {
+		h.SetAddressList("Bcc", toGo(o.Bcc))
 	}
 	h.Set("Message-ID", msgID)
 	if o.InReplyTo != "" {

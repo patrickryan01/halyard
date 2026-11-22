@@ -34,14 +34,20 @@ must((await pg.locator('.row').count()) === 1, 'search narrows to one conversati
 await pg.click('#compose'); await pg.waitForSelector('.composer');
 await pg.fill('[data-f=to] input', 'dana@millwork.example'); await pg.keyboard.press('Enter');
 await pg.fill('[data-subj]', 'smoke draft');
+await pg.setInputFiles('[data-file]', { name: 'note.txt', mimeType: 'text/plain', buffer: Buffer.from('attached text') });
 await sleep(3800);
 const drafts = await (await fetch(url.replace(/\/\?.*/, '/api/drafts?token=' + new URL(url).searchParams.get('token')))).json();
 must(drafts.length === 1 && drafts[0].subject === 'smoke draft', 'draft was saved by the core');
+const dd = drafts.length ? (typeof drafts[0].data === 'string' ? JSON.parse(drafts[0].data) : drafts[0].data) : {};
+must((dd.attachments || []).length === 1 && dd.attachments[0].filename === 'note.txt', 'the draft kept its attachment');
 await pg.click('[data-x]'); await sleep(300);
 // Drafts view lists it
 await pg.keyboard.press('Escape');
 await pg.click('[data-nav="role:drafts"]'); await sleep(600);
 must((await pg.locator('[data-draft]').count()) === 1, 'Drafts view lists the saved draft');
+await pg.click('[data-draft]'); await pg.waitForSelector('.composer');
+must((await pg.locator('.composer .cfiles .att').count()) === 1, 'reopened draft shows its attachment');
+await pg.click('.composer [data-x]'); await sleep(300);
 // settings shows the MCP endpoint
 await pg.click('#settings'); await pg.waitForSelector('.dialog'); await sleep(500);
 must((await pg.locator('#mcpbox').innerText()).includes('/mcp'), 'settings shows the MCP endpoint');

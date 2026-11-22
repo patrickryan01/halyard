@@ -182,6 +182,7 @@ function draftRows() {
   return S.drafts.map((d, i) => {
     let x = {};
     try { x = typeof d.data === 'string' ? JSON.parse(d.data) : d.data; } catch (e) {}
+    if (x.remoteId) return '';
     return '<div class="row" data-draft="' + i + '"><span style="width:18px"></span><span class="from" style="color:var(--danger)">Draft</span><span class="mid">' + esc(x.subject || '(no subject)') + ' <span class="snip">- ' + esc((x.bodyText || '').slice(0, 120)) + '</span></span><span class="date">' + esc(fmtDate(d.updated)) + '</span></div>';
   }).join('');
 }
@@ -407,15 +408,16 @@ function bindMain() {
     const i = +r.dataset.i;
     r.onclick = e => {
       if (e.target.closest('[data-chk],[data-star],[data-ra]')) return;
-      S.cursor = i; openThread(S.threads[i].id);
+      S.cursor = i;
+      if (S.folder === 'role:drafts' && !S.q) { api('thread?id=' + encodeURIComponent(S.threads[i].id)).then(ms => { const m = ms[ms.length - 1]; if (m && m.draft) openServerDraft(m.id); else openThread(S.threads[i].id); }); return; }
+      openThread(S.threads[i].id);
     };
   });
   $$('[data-draft]').forEach(r => r.onclick = () => {
     const d = S.drafts[+r.dataset.draft];
     let x = {};
     try { x = typeof d.data === 'string' ? JSON.parse(d.data) : d.data; } catch (e) {}
-    api('drafts/discard', { id: d.id });
-    openComposer({ id: d.id, accountId: x.accountId, to: (x.to || []).flatMap(parseAddrs), cc: (x.cc || []).flatMap(parseAddrs), bcc: (x.bcc || []).flatMap(parseAddrs), subject: x.subject || '', html: x.bodyHtml || '', inReplyTo: x.inReplyTo || '', refs: x.references || [], threadHint: x.threadHint || '' });
+    openComposer(draftToComposer(x));
   });
   $$('[data-chk]').forEach(c => c.onchange = () => { const t = S.threads[+c.dataset.chk]; if (c.checked) S.sel.add(t.id); else S.sel.delete(t.id); render(); });
   $$('[data-star]').forEach(b => b.onclick = e => { e.stopPropagation(); const t = S.threads[+b.dataset.star]; doAct(t.starred ? 'unstar' : 'star', [t.id], { quiet: true }); });
@@ -601,6 +603,18 @@ function settingsDialog() {
 }
 
 // ---------- composer ----------
+const fileToB64 = f => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(',')[1] || ''); r.onerror = () => rej(r.error); r.readAsDataURL(f); });
+const b64ToFile = (a) => { const bin = atob(a.base64 || ''); const u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return new File([u], a.filename || 'attachment', { type: a.contentType || 'application/octet-stream' }); };
+function draftToComposer(x) {
+  return { id: x.id, accountId: x.accountId, to: (x.to || []).flatMap(parseAddrs), cc: (x.cc || []).flatMap(parseAddrs), bcc: (x.bcc || []).flatMap(parseAddrs), subject: x.subject || '', html: x.bodyHtml || '', inReplyTo: x.inReplyTo || '', refs: x.references || [], threadHint: x.threadHint || '', remoteId: x.remoteId || '', files: (x.attachments || []).map(b64ToFile) };
+}
+async function openServerDraft(messageId) {
+  try {
+    const d = await api('drafts/open?message=' + encodeURIComponent(messageId));
+    await api('drafts', d); // keep a local record so a send or discard removes the server copy
+    openComposer(draftToComposer(d));
+  } catch (e) { toast(e.message, { err: true }); }
+}
 let cseq = 0;
 function parseAddrs(s) {
   const out = [];
@@ -688,8 +702,8 @@ function openComposer(init) {
   $('[data-link]', root).onmousedown = e => { e.preventDefault(); const u = prompt('Link address (https://...)'); if (u) document.execCommand('createLink', false, u); };
   // attachments
   const files = $('.cfiles', root);
-  const drawFiles = () => { files.innerHTML = ''; c.files.forEach((f, i) => { const s = document.createElement('span'); s.className = 'att'; s.innerHTML = esc(f.name) + ' <small>' + fmtSize(f.size) + '</small> <button data-rm aria-label="Remove">&#10005;</button>'; s.querySelector('button').onclick = () => { c.files.splice(i, 1); drawFiles(); }; files.appendChild(s); }); };
-  const addFiles = list => { for (const f of list) { c.files.push(f); } drawFiles(); };
+  const drawFiles = () => { files.innerHTML = ''; c.files.forEach((f, i) => { const s = document.createElement('span'); s.className = 'att'; s.innerHTML = esc(f.name) + ' <small>' + fmtSize(f.size) + '</small> <button data-rm aria-label="Remove">&#10005;</button>'; s.querySelector('button').onclick = () => { c.files.splice(i, 1); drawFiles(); save(); }; files.appendChild(s); }); };
+  const addFiles = list => { for (const f of list) { c.files.push(f); } drawFiles(); save(); };
   $('[data-attach]', root).onclick = () => $('[data-file]', root).click();
   $('[data-file]', root).onchange = e => { addFiles(e.target.files); e.target.value = ''; };
   ['dragenter', 'dragover'].forEach(ev => root.addEventListener(ev, e => { if (e.dataTransfer && [...e.dataTransfer.types].includes('Files')) { e.preventDefault(); root.classList.add('drop'); } }));
@@ -713,7 +727,9 @@ function openComposer(init) {
     const empty = !c.to.length && !c.subject && !ed.innerText.trim();
     if (empty) return;
     try {
-      await api('drafts', { id: c.id, accountId: c.accountId, to: c.to.map(addrFmt), cc: c.cc.map(addrFmt), bcc: c.bcc.map(addrFmt), subject: c.subject, bodyText: ed.innerText, bodyHtml: ed.innerHTML, inReplyTo: c.inReplyTo, references: c.refs || [], threadHint: c.threadHint });
+      const attachments = [];
+      for (const f of c.files) attachments.push({ filename: f.name, contentType: f.type || 'application/octet-stream', base64: await fileToB64(f) });
+      await api('drafts', { id: c.id, accountId: c.accountId, to: c.to.map(addrFmt), cc: c.cc.map(addrFmt), bcc: c.bcc.map(addrFmt), subject: c.subject, bodyText: ed.innerText, bodyHtml: ed.innerHTML, inReplyTo: c.inReplyTo, references: c.refs || [], threadHint: c.threadHint, remoteId: c.remoteId || '', attachments });
       savedOnce = true;
     } catch (e) { /* the next tick tries again */ }
   }

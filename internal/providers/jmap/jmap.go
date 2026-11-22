@@ -754,3 +754,80 @@ func (p *Provider) archiveBox(ctx context.Context) (string, error) {
 	}
 	return p.CreateFolder(ctx, "Archive", mailtypes.RoleArchive)
 }
+
+// ---- drafts ----
+
+// SaveDraft imports the draft into the Drafts mailbox with the $draft keyword
+// and destroys the version it replaces.
+func (p *Provider) SaveDraft(ctx context.Context, o mailtypes.Outgoing, replaceID string) (string, error) {
+	acct, err := p.accountID(ctx)
+	if err != nil {
+		return "", err
+	}
+	s, _ := p.session(ctx)
+	if p.boxes == nil {
+		if _, err := p.mailboxes(ctx, acct); err != nil {
+			return "", err
+		}
+	}
+	drafts := p.roleID(mailtypes.RoleDrafts)
+	if drafts == "" {
+		if drafts, err = p.CreateFolder(ctx, "Drafts", mailtypes.RoleDrafts); err != nil {
+			return "", err
+		}
+	}
+	domain := "localhost"
+	if i := strings.LastIndex(o.From.Email, "@"); i >= 0 {
+		domain = o.From.Email[i+1:]
+	}
+	raw, err := mime.BuildDraft(o, mime.MessageID(domain, "d"))
+	if err != nil {
+		return "", err
+	}
+	up := strings.ReplaceAll(s.UploadURL, "{accountId}", url.PathEscape(acct))
+	req, _ := http.NewRequestWithContext(ctx, "POST", up, bytes.NewReader(raw))
+	req.Header.Set("Content-Type", "message/rfc822")
+	if err := p.auth(req); err != nil {
+		return "", err
+	}
+	resp, err := p.hc.Do(req)
+	if err != nil {
+		return "", err
+	}
+	var blob struct {
+		BlobID string `json:"blobId"`
+	}
+	_ = json.NewDecoder(resp.Body).Decode(&blob)
+	resp.Body.Close()
+	if resp.StatusCode >= 300 || blob.BlobID == "" {
+		return "", fmt.Errorf("jmap upload: http %d", resp.StatusCode)
+	}
+	r, err := p.do(ctx, mailUse, call{"Email/import", map[string]any{"accountId": acct, "emails": map[string]any{"e1": map[string]any{"blobId": blob.BlobID,
+		"mailboxIds": map[string]bool{drafts: true}, "keywords": map[string]bool{"$draft": true, "$seen": true}}}}, "imp"})
+	if err != nil {
+		return "", err
+	}
+	var imp struct {
+		Created map[string]struct {
+			ID string `json:"id"`
+		} `json:"created"`
+		NotCreated map[string]json.RawMessage `json:"notCreated"`
+	}
+	_ = json.Unmarshal(r["imp"], &imp)
+	id := imp.Created["e1"].ID
+	if id == "" {
+		return "", fmt.Errorf("jmap draft refused: %s", trunc(string(imp.NotCreated["e1"]), 300))
+	}
+	if replaceID != "" {
+		_ = p.DeleteDraft(ctx, replaceID)
+	}
+	return id, nil
+}
+
+func (p *Provider) DeleteDraft(ctx context.Context, id string) error {
+	return p.Apply(ctx, mailtypes.Action{Kind: mailtypes.ActDelete, IDs: []string{id}})
+}
+
+func (p *Provider) DraftID(ctx context.Context, messageID string) (string, error) {
+	return messageID, nil
+}

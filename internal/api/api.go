@@ -108,6 +108,7 @@ func (s *Server) Handler() http.Handler {
 	h("GET /api/drafts", s.drafts)
 	h("POST /api/drafts", s.saveDraft)
 	h("POST /api/drafts/discard", s.deleteDraft)
+	h("GET /api/drafts/open", s.openDraft)
 	h("POST /api/send", s.send)
 	h("POST /api/undo", s.undo)
 	h("POST /api/outbox/retry", s.retry)
@@ -779,9 +780,19 @@ func (s *Server) deleteDraft(w http.ResponseWriter, r *http.Request) {
 		fail(w, 400, err)
 		return
 	}
-	if err := s.Eng.St.DeleteDraft(in.ID); err != nil {
+	if err := s.Eng.DiscardDraft(in.ID); err != nil {
 		fail(w, 500, err)
 		return
 	}
 	writeJSON(w, map[string]bool{"ok": true})
+}
+
+// openDraft turns a message from a provider's Drafts folder into an editable draft.
+func (s *Server) openDraft(w http.ResponseWriter, r *http.Request) {
+	d, err := s.Eng.OpenProviderDraft(r.Context(), r.URL.Query().Get("message"))
+	if err != nil {
+		fail(w, 400, err)
+		return
+	}
+	writeJSON(w, d)
 }

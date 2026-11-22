@@ -425,7 +425,7 @@ func (s *Server) write(srv *mcp.Server) {
 		func(ctx context.Context, _ *mcp.CallToolRequest, in struct {
 			DraftID string `json:"draftId"`
 		}) (*mcp.CallToolResult, obj, error) {
-			return nil, obj{"ok": true}, s.Eng.St.DeleteDraft(in.DraftID)
+			return nil, obj{"ok": true}, s.Eng.DiscardDraft(in.DraftID)
 		})
 }
 
