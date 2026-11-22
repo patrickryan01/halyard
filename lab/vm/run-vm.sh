@@ -19,6 +19,8 @@ SERVE=$W/serve; rm -rf "$SERVE"; mkdir -p "$SERVE"; cp "$PKG" "$SERVE/"
 (cd "$SERVE" && exec python3 -m http.server 8099 --bind 127.0.0.1 >/dev/null 2>&1) & HTTP=$!
 trap 'kill $HTTP $QEMU 2>/dev/null || true' EXIT
 PKGNAME=$(basename "$PKG")
+# seatd: Arch ships a unit and a seat group; openSUSE ships neither, so write the unit and use video
+if [ $KIND = arch ]; then SEATGRP=seat; SEATUNIT=""; else SEATGRP=video; SEATUNIT=true; fi
 if [ $KIND = arch ]; then
   INSTALL="pacman -Syu --noconfirm --needed cage seatd mesa ttf-dejavu libinput xorg-xwayland python && pacman -U --noconfirm /tmp/$PKGNAME"
 else
@@ -50,7 +52,7 @@ write_files:
       Conflicts=getty@tty1.service
       [Service]
       User=tester
-      SupplementaryGroups=seat
+      SupplementaryGroups=$SEATGRP
       TTYPath=/dev/tty1
       StandardInput=tty
       StandardOutput=journal
@@ -62,6 +64,7 @@ write_files:
       Restart=on-failure
       [Install]
       WantedBy=multi-user.target
+$([ -n "$SEATUNIT" ] && printf '  - path: /etc/systemd/system/seatd.service\n    content: |\n      [Unit]\n      Description=Seat management daemon\n      [Service]\n      ExecStart=/usr/bin/seatd -g video\n      Restart=always\n      [Install]\n      WantedBy=multi-user.target\n')
   - path: /usr/local/bin/add-lab-account
     permissions: '0755'
     content: |
@@ -82,7 +85,7 @@ write_files:
 runcmd:
   - [sh, -c, "curl -fsS -o /tmp/$PKGNAME http://10.0.2.2:8099/$PKGNAME"]
   - [sh, -c, "$INSTALL > /var/log/halyard-install.log 2>&1; echo INSTALL-EXIT=\$? >> /var/log/halyard-install.log"]
-  - [sh, -c, "usermod -aG seat tester; loginctl enable-linger tester; systemctl daemon-reload; systemctl enable --now seatd; systemctl mask getty@tty1.service; systemctl enable --now halyard-kiosk.service"]
+  - [sh, -c, "usermod -aG $SEATGRP tester; loginctl enable-linger tester; systemctl daemon-reload; systemctl enable --now seatd; systemctl mask getty@tty1.service; systemctl enable --now halyard-kiosk.service"]
   - [sh, -c, "touch /var/lib/halyard-ready"]
 U
 xorriso -as mkisofs -quiet -V cidata -J -r -o "$W/seed-$KIND.iso" "$SEED" >/dev/null 2>&1
