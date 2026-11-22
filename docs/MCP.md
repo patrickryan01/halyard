@@ -6,7 +6,7 @@ On by default, read and write, and it signs in as the person using the app, so e
 
 * **HTTP (the running app):** `http://127.0.0.1:8765/mcp` with `Authorization: Bearer <token>`. The app and the headless daemon write the exact URL and token to `mcp.json` in the data directory, and Settings shows a ready client config. Only loopback is served. If port 8765 is taken, the next free port is used and `mcp.json` has it.
 * **stdio (a client launches it):** `halyardd --mcp-stdio`. It opens its own core on the same data directory, so use it when the app is not running.
-* Move the HTTP address with `HALYARD_MCP_ADDR` (the code reads `HALYARD_MCP_ADDR`; see `internal/app/app.go`).
+* Move the HTTP address with `HALYARD_MCP_ADDR`.
 
 
 ## Tools (37)
