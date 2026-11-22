@@ -1,0 +1,11 @@
+dist/
+*.test
+/mailcored
+/mailclient
+.data/
+build/
+*.exe
+*.msi
+*.deb
+*.rpm
+*.pkg.tar*
