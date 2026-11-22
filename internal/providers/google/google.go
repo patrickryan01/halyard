@@ -28,7 +28,6 @@ func init() { plugin.Register(mailtypes.KindGoogle, New) }
 var Scopes = []string{
 	"https://mail.google.com/",
 	"https://www.googleapis.com/auth/contacts",
-	"https://www.googleapis.com/auth/contacts.other.readonly",
 	"openid", "email", "profile",
 }
 
@@ -36,6 +35,8 @@ var Scopes = []string{
 var (
 	ClientID     = ""
 	ClientSecret = ""
+	// Ports is the fixed loopback ports a Web client registered ("49157,49158,49159"); empty for a Desktop client.
+	Ports = ""
 )
 
 const (
@@ -50,7 +51,7 @@ func OAuthConfig(settings map[string]string) oauth.Config {
 		id, sec = v, settings["client_secret"]
 	}
 	return oauth.Config{ClientID: id, ClientSecret: sec, AuthURL: AuthURL, TokenURL: TokenURL, Scopes: Scopes,
-		Extra: url.Values{"access_type": {"offline"}, "prompt": {"consent"}}}
+		Extra: url.Values{"access_type": {"offline"}, "prompt": {"consent"}}, Ports: oauth.ParsePorts(firstNonEmpty(settings["ports"], Ports))}
 }
 
 type Provider struct {
@@ -769,4 +770,11 @@ func (p *Provider) DraftID(ctx context.Context, messageID string) (string, error
 		}
 		page = r.Next
 	}
+}
+
+func firstNonEmpty(a, b string) string {
+	if a != "" {
+		return a
+	}
+	return b
 }

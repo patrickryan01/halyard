@@ -49,7 +49,7 @@ func OAuthConfig(settings map[string]string) oauth.Config {
 	}
 	base := "https://login.microsoftonline.com/" + tenant + "/oauth2/v2.0"
 	return oauth.Config{ClientID: id, AuthURL: base + "/authorize", TokenURL: base + "/token", Scopes: Scopes,
-		Extra: url.Values{"prompt": {"select_account"}}}
+		Extra: url.Values{"prompt": {"select_account"}}, Ports: oauth.ParsePorts(settings["ports"])}
 }
 
 type Provider struct {

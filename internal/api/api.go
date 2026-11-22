@@ -196,8 +196,13 @@ func (s *Server) state(w http.ResponseWriter, r *http.Request) {
 			"undoSeconds":   st.Setting("undoSeconds", "10"),
 		},
 		"oauth": map[string]bool{
-			"google":    google.OAuthConfig(nil).ClientID != "",
-			"microsoft": microsoft.OAuthConfig(nil).ClientID != "",
+			"google":    google.OAuthConfig(nil).ClientID != "" || st.Setting("oauth_google_client_id", "") != "",
+			"microsoft": microsoft.OAuthConfig(nil).ClientID != "" || st.Setting("oauth_microsoft_client_id", "") != "",
+		},
+		// the sign-in apps this person saved; the secret itself never leaves the core
+		"signInApps": map[string]map[string]any{
+			"google":    {"clientId": st.Setting("oauth_google_client_id", ""), "hasSecret": st.Setting("oauth_google_client_secret", "") != "", "ports": st.Setting("oauth_google_ports", "")},
+			"microsoft": {"clientId": st.Setting("oauth_microsoft_client_id", ""), "tenant": st.Setting("oauth_microsoft_tenant", ""), "ports": st.Setting("oauth_microsoft_ports", "")},
 		},
 	})
 }
@@ -331,11 +336,22 @@ func (s *Server) oauthStart(w http.ResponseWriter, r *http.Request) {
 // returns an ID to wait on and the sign-in URL; openBrowser opens it for the person.
 func (s *Server) StartOAuth(kind, clientID, clientSecret, tenant string, openBrowser bool) (string, string, error) {
 	set := map[string]string{}
+	// what the person typed wins; otherwise the sign-in app saved under Settings; otherwise the one this build carries
+	st := s.Eng.St
+	if clientID == "" {
+		clientID, clientSecret = st.Setting("oauth_"+kind+"_client_id", ""), st.Setting("oauth_"+kind+"_client_secret", "")
+	}
+	if tenant == "" {
+		tenant = st.Setting("oauth_"+kind+"_tenant", "")
+	}
 	if clientID != "" {
 		set["client_id"], set["client_secret"] = clientID, clientSecret
 	}
 	if tenant != "" {
 		set["tenant"] = tenant
+	}
+	if p := st.Setting("oauth_"+kind+"_ports", ""); p != "" {
+		set["ports"] = p
 	}
 	var cfg oauth.Config
 	switch kind {
@@ -671,7 +687,9 @@ func (s *Server) settings(w http.ResponseWriter, r *http.Request) {
 		fail(w, 400, err)
 		return
 	}
-	allowed := map[string]bool{"theme": true, "density": true, "loadImages": true, "notifications": true, "undoSeconds": true}
+	allowed := map[string]bool{"theme": true, "density": true, "loadImages": true, "notifications": true, "undoSeconds": true,
+		"oauth_google_client_id": true, "oauth_google_client_secret": true, "oauth_google_ports": true,
+		"oauth_microsoft_client_id": true, "oauth_microsoft_tenant": true, "oauth_microsoft_ports": true}
 	for k, v := range in {
 		if !allowed[k] {
 			continue

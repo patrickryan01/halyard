@@ -525,14 +525,34 @@ function addAccountFlow(host, done) {
 function stepFor(host, r, email, done) {
   const step = $('#step', host);
   if (r.kind === 'google' || r.kind === 'microsoft') {
-    const name = r.kind === 'google' ? 'Google' : 'Microsoft';
-    step.innerHTML = '<div class="row2" style="text-align:left"><b>' + esc(r.provider || name) + ' account found</b><div class="pill">A browser tab opens so you can approve access. Nothing is typed in this app.</div>' +
-      '<details><summary class="pill">Advanced</summary><label class="l">Client ID (only if this build has none)</label><input id="cid"><label class="l">Client secret (if the provider gave one)</label><input id="csec">' + (r.kind === 'microsoft' ? '<label class="l">Tenant (default: common)</label><input id="ten">' : '') + '</details>' +
+    const g = r.kind === 'google', name = g ? 'Google' : 'Microsoft';
+    const saved = (S.data.signInApps || {})[r.kind] || {};
+    const have = !!(S.data.oauth || {})[r.kind];
+    const help = g
+      ? 'Create an OAuth client in the Google Cloud console (APIs and Services, Credentials, Create credentials, OAuth client ID, type <b>Desktop app</b>), turn on the Gmail API and the People API, then paste its client ID and secret here.'
+      : 'Register an app in Microsoft Entra (App registrations, New registration, any organizational directory and personal accounts), add a <b>Mobile and desktop</b> redirect of <span class="kbd">http://localhost</span>, give it the delegated permissions Mail.ReadWrite, Mail.Send, Contacts.ReadWrite and offline_access, then paste its application (client) ID here.';
+    step.innerHTML = '<div class="row2" style="text-align:left"><b>' + esc(r.provider || name) + ' account</b>' +
+      '<div class="pill">A browser tab opens so you can approve access. Nothing is typed in this app.</div>' +
+      '<details ' + (have ? '' : 'open') + '><summary class="pill">' + (have ? 'Use my own sign-in app' : 'Sign-in app (needed once)') + '</summary>' +
+      (have ? '' : '<div class="pill" style="margin:6px 0">This copy of the app has no ' + name + ' sign-in app built in, so bring your own. ' + help + '</div>') +
+      (have ? '<div class="pill" style="margin:6px 0">Only if your organization gave you its own app. ' + help + '</div>' : '') +
+      '<label class="l">Client ID</label><input id="cid" value="' + esc(saved.clientId || '') + '" autocomplete="off">' +
+      (g ? '<label class="l">Client secret ' + (saved.hasSecret ? '(saved, leave empty to keep it)' : '(from the same page)') + '</label><input id="csec" type="password" autocomplete="off">' : '<label class="l">Directory (tenant), default: any</label><input id="ten" value="' + esc(saved.tenant || '') + '" placeholder="common">') +
+      '<label class="l">Fixed port (only if the app registers exact redirect addresses)</label><input id="prt" value="' + esc(saved.ports || '') + '" placeholder="any free port"></details>' +
       '<div class="btns"><button class="btn primary" id="oauth">Continue with ' + name + '</button></div><div id="wait"></div></div>';
     $('#oauth', step).onclick = async () => {
       const w = $('#wait', step);
       try {
-        const st = await api('accounts/oauth/start', { kind: r.kind, clientId: ($('#cid', step) || {}).value || '', clientSecret: ($('#csec', step) || {}).value || '', tenant: ($('#ten', step) || {}).value || '' });
+        // remember what was typed, so adding the next account asks for nothing
+        const typed = {};
+        const cid = $('#cid', step).value.trim();
+        if (cid) typed['oauth_' + r.kind + '_client_id'] = cid;
+        if (g && $('#csec', step).value) typed.oauth_google_client_secret = $('#csec', step).value;
+        if (!g) typed.oauth_microsoft_tenant = $('#ten', step).value.trim();
+        typed['oauth_' + r.kind + '_ports'] = $('#prt', step).value.trim();
+        await api('settings', typed);
+        await refreshState();
+        const st = await api('accounts/oauth/start', { kind: r.kind });
         w.innerHTML = '<span class="spin"></span> Waiting for you to approve in the browser... <a href="#" id="again">Open the page again</a> &middot; <a href="#" id="cancel">Cancel</a>';
         let live = true;
         $('#again', w).onclick = e => { e.preventDefault(); api('open', { url: st.url }); };
@@ -575,12 +595,16 @@ function stepFor(host, r, email, done) {
 // ---------- settings ----------
 function settingsDialog() {
   const d = S.data, s = d.settings;
+  s.signInApps = d.signInApps;
   const accts = d.accounts.map(a => '<div style="border:1px solid var(--line);border-radius:10px;padding:12px;margin:8px 0"><div style="display:flex;align-items:center;gap:8px"><span class="dot" style="width:10px;height:10px;border-radius:50%;background:' + esc(a.color) + '"></span><b>' + esc(a.email) + '</b><span class="pill">' + esc(a.kind) + '</span><span class="spacer"></span><button class="btn danger" data-rm="' + esc(a.id) + '">Remove</button></div>' +
     '<label class="l" style="margin-top:8px">Name on sent mail</label><input data-name="' + esc(a.id) + '" value="' + esc(a.name) + '"><label class="l" style="margin-top:8px">Signature</label><textarea rows="3" data-sig="' + esc(a.id) + '">' + esc(a.signature) + '</textarea></div>').join('');
   const el = dialog('<h2>Settings</h2><h3>Accounts</h3>' + accts + '<button class="btn" id="addacct">Add an account</button>' +
     '<h3>Appearance</h3><div class="grid2" style="grid-template-columns:1fr 1fr"><div><label class="l">Theme</label><select id="theme"><option value="auto">Match system</option><option value="light">Light</option><option value="dark">Dark</option></select></div><div><label class="l">Density</label><select id="density"><option value="comfortable">Comfortable</option><option value="compact">Compact</option></select></div></div>' +
     '<h3>Behavior</h3><div class="row2"><div><label class="l">Undo send delay</label><select id="undo"><option value="0">Off</option><option>5</option><option>10</option><option>20</option><option>30</option></select></div>' +
     '<label><input type="checkbox" id="imgs" style="width:auto"> Always load remote images (they can tell the sender you read the message)</label><label><input type="checkbox" id="notif" style="width:auto"> Desktop notifications for new mail</label></div>' +
+    '<h3>Sign-in apps</h3><div class="row2"><div class="pill">Used when you add a Google or Microsoft account. Leave empty to use the one built into this copy of the app.</div>' +
+    '<label class="l">Google client ID</label><input id="sg_id" autocomplete="off"><label class="l">Google client secret</label><input id="sg_sec" type="password" autocomplete="off" placeholder="' + ((s.signInApps || {}).google && s.signInApps.google.hasSecret ? 'saved, leave empty to keep it' : '') + '">' +
+    '<label class="l">Microsoft application (client) ID</label><input id="sm_id" autocomplete="off"><label class="l">Microsoft directory (tenant)</label><input id="sm_ten" placeholder="common"></div>' +
     '<h3>MCP server</h3><div class="row2"><div class="pill">The app runs a read and write MCP server on this computer so other programs can use your mail. It signs in as you and reaches every account above.</div><div id="mcpbox" class="pill">Loading...</div></div>' +
     '<div class="btns"><button class="btn" id="keys">Keyboard shortcuts</button><button class="btn primary" id="save">Save</button></div>');
   api('mcp').then(m => {
@@ -591,12 +615,16 @@ function settingsDialog() {
     $('#copycfg', el).onclick = () => { navigator.clipboard.writeText(cfg).then(() => toast('Copied')); };
   }).catch(() => { const b = $('#mcpbox', el); if (b) b.textContent = 'Not available here.'; });
   $('#theme', el).value = s.theme; $('#density', el).value = s.density; $('#undo', el).value = s.undoSeconds; $('#imgs', el).checked = s.loadImages === 'true'; $('#notif', el).checked = s.notifications === 'true';
+  const sia = d.signInApps || {};
+  $('#sg_id', el).value = (sia.google || {}).clientId || ''; $('#sm_id', el).value = (sia.microsoft || {}).clientId || ''; $('#sm_ten', el).value = (sia.microsoft || {}).tenant || '';
   $('#addacct', el).onclick = () => { el.remove(); addAccountDialog(); };
   $('#keys', el).onclick = () => { el.remove(); helpDialog(); };
   $$('[data-rm]', el).forEach(b => b.onclick = async () => { if (confirm('Remove this account and its saved mail from this computer? Mail on the server is not touched.')) { await api('accounts/remove', { id: b.dataset.rm }); el.remove(); await refreshState(); go('role:inbox'); } });
   $('#save', el).onclick = async () => {
     for (const a of d.accounts) await api('accounts/update', { id: a.id, name: $('[data-name="' + a.id + '"]', el).value, signature: $('[data-sig="' + a.id + '"]', el).value });
-    await api('settings', { theme: $('#theme', el).value, density: $('#density', el).value, undoSeconds: $('#undo', el).value, loadImages: String($('#imgs', el).checked), notifications: String($('#notif', el).checked) });
+    const apps = { oauth_google_client_id: $('#sg_id', el).value.trim(), oauth_microsoft_client_id: $('#sm_id', el).value.trim(), oauth_microsoft_tenant: $('#sm_ten', el).value.trim() };
+    if ($('#sg_sec', el).value) apps.oauth_google_client_secret = $('#sg_sec', el).value;
+    await api('settings', { ...apps, theme: $('#theme', el).value, density: $('#density', el).value, undoSeconds: $('#undo', el).value, loadImages: String($('#imgs', el).checked), notifications: String($('#notif', el).checked) });
     if ($('#notif', el).checked && window.Notification && Notification.permission === 'default') Notification.requestPermission();
     await refreshState(); el.remove(); render(); toast('Saved');
   };

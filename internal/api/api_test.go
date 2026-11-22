@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http/httptest"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/patrickryan01/halyard/internal/engine"
@@ -69,4 +70,26 @@ func TestTokenRequiredInDaemonMode(t *testing.T) {
 	if rr.Code != 200 {
 		t.Fatalf("want 200 with the token, got %d", rr.Code)
 	}
+}
+
+// A customer brings their own sign-in app: saved under Settings, it is what the next sign-in uses, with no build default needed.
+func TestSavedSignInAppIsUsed(t *testing.T) {
+	s, st := newServer(t)
+	if _, _, err := s.StartOAuth("google", "", "", "", false); err == nil {
+		t.Fatal("with no sign-in app anywhere the answer must be an error, not a broken link")
+	}
+	_ = st.SetSetting("oauth_google_client_id", "customer-id.apps.googleusercontent.com")
+	_ = st.SetSetting("oauth_google_client_secret", "customer-secret")
+	id, u, err := s.StartOAuth("google", "", "", "", false)
+	if err != nil || id == "" || !strings.Contains(u, "client_id=customer-id.apps.googleusercontent.com") {
+		t.Fatalf("saved app not used: %v %s", err, u)
+	}
+	s.pending[id].p.Cancel()
+	_ = st.SetSetting("oauth_microsoft_client_id", "ms-app-id")
+	_ = st.SetSetting("oauth_microsoft_tenant", "contoso.onmicrosoft.com")
+	id, u, err = s.StartOAuth("microsoft", "", "", "", false)
+	if err != nil || !strings.Contains(u, "contoso.onmicrosoft.com") || !strings.Contains(u, "client_id=ms-app-id") {
+		t.Fatalf("microsoft: %v %s", err, u)
+	}
+	s.pending[id].p.Cancel()
 }

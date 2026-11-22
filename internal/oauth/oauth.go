@@ -30,6 +30,9 @@ type Config struct {
 	TokenURL     string
 	Scopes       []string
 	Extra        url.Values // extra authorize params, such as access_type=offline
+	// Ports are the loopback ports to try, in order. Empty means any free port, which is what Desktop and public
+	// clients allow. A Web client registers exact redirect URIs, so it needs one or more fixed ports.
+	Ports []int
 }
 
 type Token struct {
@@ -71,9 +74,18 @@ type result struct {
 // Start opens the loopback listener and builds the sign-in URL. The caller
 // sends the person to URL in their browser and then calls Wait.
 func Start(c Config) (*Pending, error) {
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		return nil, err
+	var ln net.Listener
+	var err error
+	for _, port := range append(append([]int{}, c.Ports...), 0) {
+		if ln, err = net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", port)); err == nil {
+			break
+		}
+		if port == 0 {
+			return nil, err
+		}
+		if len(c.Ports) > 0 && port == c.Ports[len(c.Ports)-1] {
+			return nil, fmt.Errorf("sign-in needs one of the ports %v on this computer, and all are busy", c.Ports)
+		}
 	}
 	p := &Pending{ln: ln, verifier: randString(48), state: randString(16), done: make(chan result, 1)}
 	p.redirect = fmt.Sprintf("http://127.0.0.1:%d/callback", ln.Addr().(*net.TCPAddr).Port)
@@ -228,4 +240,16 @@ func (s Static) Token(context.Context) (string, error) { return string(s), nil }
 // TokenSource is what API clients take.
 type TokenSource interface {
 	Token(ctx context.Context) (string, error)
+}
+
+// ParsePorts reads "49157,49158" into ports. Anything that is not a port is ignored.
+func ParsePorts(v string) []int {
+	var out []int
+	for _, f := range strings.FieldsFunc(v, func(r rune) bool { return r == ',' || r == ' ' || r == ';' }) {
+		var n int
+		if _, err := fmt.Sscan(f, &n); err == nil && n > 1023 && n < 65536 {
+			out = append(out, n)
+		}
+	}
+	return out
 }

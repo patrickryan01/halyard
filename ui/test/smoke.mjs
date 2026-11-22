@@ -51,6 +51,15 @@ await pg.click('.composer [data-x]'); await sleep(300);
 // settings shows the MCP endpoint
 await pg.click('#settings'); await pg.waitForSelector('.dialog'); await sleep(500);
 must((await pg.locator('#mcpbox').innerText()).includes('/mcp'), 'settings shows the MCP endpoint');
+// a customer's own Google sign-in app is set up in the app and kept
+await pg.fill('#sg_id', 'smoke-id.apps.googleusercontent.com'); await pg.fill('#sg_sec', 'smoke-secret');
+await pg.click('#save'); await sleep(700);
+const st = await (await fetch(url.replace(/\/\?.*/, '/api/state'), { headers: { 'X-Token': new URL(url).searchParams.get('token') } })).json();
+must(st.signInApps.google.clientId === 'smoke-id.apps.googleusercontent.com' && st.signInApps.google.hasSecret === true, 'the Google sign-in app is saved from Settings');
+must(JSON.stringify(st).indexOf('smoke-secret') < 0, 'the saved secret never comes back out of the core');
+await pg.click('#settings'); await pg.waitForSelector('.dialog'); await pg.click('#addacct'); await pg.waitForSelector('[data-p=google]');
+await pg.click('[data-p=google]'); await pg.waitForSelector('#step summary'); await pg.click('#step summary'); await pg.waitForSelector('#cid');
+must((await pg.inputValue('#cid')) === 'smoke-id.apps.googleusercontent.com', 'account setup shows the saved Google client ID');
 await pg.keyboard.press('Escape');
 // a theme change made elsewhere (the MCP server does this) reaches the open window without a reload
 const tk = new URL(url).searchParams.get('token');
