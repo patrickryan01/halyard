@@ -24,7 +24,7 @@ rpm)
     mkdir -p /root/rpmbuild/SOURCES /root/rpmbuild/SPECS
     cp /out/src/halyard-'"$V"'.tar.gz /root/rpmbuild/SOURCES/
     tar -xzOf /out/src/halyard-'"$V"'.tar.gz halyard-'"$V"'/packaging/rpm/halyard.spec > /root/rpmbuild/SPECS/halyard.spec
-    rpmbuild -bb --define "hver '"$V"'" /root/rpmbuild/SPECS/halyard.spec
+    rpmbuild -bb --define "_topdir /root/rpmbuild" --define "hver '"$V"'" /root/rpmbuild/SPECS/halyard.spec
     cp /root/rpmbuild/RPMS/*/halyard-*.rpm /out/pkg/' ;;
 windows)
   podman run --rm $ENVS -v "$OUT:/out:Z" docker.io/library/golang:1.27-bookworm sh -ec '
