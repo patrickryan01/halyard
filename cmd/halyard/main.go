@@ -11,8 +11,10 @@ package main
 
 import (
 	"context"
+	_ "embed"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/gen2brain/beeep"
@@ -28,6 +30,9 @@ import (
 	"github.com/patrickryan01/halyard/internal/engine"
 )
 
+//go:embed icon.png
+var appIcon []byte
+
 func mailtoArg(args []string) string {
 	for _, a := range args {
 		if strings.HasPrefix(strings.ToLower(a), "mailto:") {
@@ -42,6 +47,10 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	// a windowed program has no console: keep a log next to the data, for support and for proof
+	if lf, err := os.OpenFile(filepath.Join(dir, "halyard.log"), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o600); err == nil {
+		log.SetOutput(lf)
+	}
 	a, err := app.Start(dir, "")
 	if err != nil {
 		log.Fatal(err)
@@ -55,7 +64,11 @@ func main() {
 		if ev.Type != "new" || a.Store.Setting("notifications", "true") != "true" {
 			return
 		}
-		_ = beeep.Notify(ev.From, ev.Subject, "")
+		if err := beeep.Notify(ev.From, ev.Subject, appIcon); err != nil {
+			log.Printf("desktop notification failed: %v", err)
+		} else {
+			log.Printf("desktop notification raised: %s", ev.Subject)
+		}
 	})
 
 	err = wails.Run(&options.App{
