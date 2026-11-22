@@ -389,3 +389,24 @@ func TestMCPMicrosoftLive(t *testing.T) {
 	waitFor(t, 120*time.Second, "first sync", func() bool { a, _ := r.st.Account(acct.ID); return !a.LastSync.IsZero() && a.LastError == "" })
 	r.fullFlow(acct.ID, os.Getenv("HEARTH_LIVE_MS_USER"), mailtypes.KindMicrosoft)
 }
+
+func TestMCPJMAPLab(t *testing.T) {
+	host := labHost(t)
+	r := newRig(t, nil)
+	var alice string
+	for _, u := range []string{"alice", "bob"} {
+		a := r.call("add_account_password", map[string]any{"kind": "jmap", "email": u + "@lab.test", "password": "labpass-" + u, "jmapUrl": "https://" + host + ":18443", "skipVerify": true})
+		acct, _ := a["account"].(map[string]any)
+		if acct == nil {
+			t.Fatalf("add %s: %v", u, a)
+		}
+		if u == "alice" {
+			alice, _ = acct["id"].(string)
+		}
+	}
+	waitFor(t, 60*time.Second, "alice synced", func() bool {
+		a, _ := r.st.Account(alice)
+		return !a.LastSync.IsZero()
+	})
+	r.fullFlow(alice, "alice@lab.test", mailtypes.KindJMAP)
+}

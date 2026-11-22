@@ -450,15 +450,11 @@ func (p *Provider) Apply(ctx context.Context, a mailtypes.Action) error {
 		case mailtypes.ActUnstar:
 			u["keywords/$flagged"] = nil
 		case mailtypes.ActArchive:
-			if p.roleID(mailtypes.RoleArchive) == "" {
-				// a message must stay in at least one mailbox, so make the archive
-				if _, err := p.CreateFolder(ctx, "Archive", mailtypes.RoleArchive); err != nil {
-					return fmt.Errorf("jmap: no archive mailbox and could not create one: %w", err)
-				}
-			}
-			if err := moveTo(mailtypes.RoleArchive); err != nil {
+			dest, err := p.archiveBox(ctx)
+			if err != nil {
 				return err
 			}
+			u["mailboxIds"] = map[string]bool{dest: true}
 		case mailtypes.ActTrash:
 			if err := moveTo(mailtypes.RoleTrash); err != nil {
 				return err
@@ -730,10 +726,31 @@ func (p *Provider) CreateFolder(ctx context.Context, name, role string) (string,
 	}
 	_ = json.Unmarshal(r["c"], &out)
 	if out.Created["n"].ID == "" {
+		var ne struct {
+			ExistingID string `json:"existingId"`
+		}
+		if json.Unmarshal(out.NotCreated["n"], &ne) == nil && ne.ExistingID != "" {
+			return ne.ExistingID, nil
+		}
 		return "", fmt.Errorf("jmap: could not create mailbox: %s", trunc(string(out.NotCreated["n"]), 200))
 	}
 	if _, err := p.mailboxes(ctx, acct); err != nil {
 		return "", err
 	}
 	return out.Created["n"].ID, nil
+}
+
+// archiveBox finds the mailbox archived mail goes to: the one with the archive
+// role, else one named Archive, else a new one. A message must stay in at
+// least one mailbox, so there always has to be somewhere to move it.
+func (p *Provider) archiveBox(ctx context.Context) (string, error) {
+	if id := p.roleID(mailtypes.RoleArchive); id != "" {
+		return id, nil
+	}
+	for id, f := range p.boxes {
+		if strings.EqualFold(f.Name, "Archive") {
+			return id, nil
+		}
+	}
+	return p.CreateFolder(ctx, "Archive", mailtypes.RoleArchive)
 }

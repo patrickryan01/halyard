@@ -233,27 +233,14 @@ func (p *Provider) toMessage(ctx context.Context, g *gmsg) mailtypes.Message {
 		}
 	}
 	if g.HasAttachments {
-		var r struct {
-			Value []struct {
-				ID, Name, ContentType, ContentID string
-				Size                             int64
-				IsInline                         bool
-			} `json:"value"`
-		}
-		if err := p.api.Do(ctx, "GET", p.base+"/me/messages/"+g.ID+"/attachments?$select=id,name,contentType,size,isInline,contentId", nil, hdr(), &r); err == nil {
-			for _, a := range r.Value {
-				m.Attach = append(m.Attach, mailtypes.Attachment{ID: a.ID, Filename: a.Name, ContentType: a.ContentType, Size: a.Size, Inline: a.IsInline && a.ContentID != "", ContentID: a.ContentID})
-			}
-		}
+		m.Attach = p.attachments(ctx, g.ID)
 	}
 	return m
 }
 
-// syncState keeps each folder's delta link and the recent messages to look at
-// again: Graph can report a new message a moment before its attachments are final.
+// syncState keeps each folder's delta link.
 type syncState struct {
-	Delta   map[string]string `json:"d"`
-	Recheck []string          `json:"r,omitempty"`
+	Delta map[string]string `json:"d"`
 }
 
 func (p *Provider) Sync(ctx context.Context, state string) (plugin.SyncResult, error) {
@@ -312,9 +299,6 @@ func (p *Provider) Sync(ctx context.Context, state string) (plugin.SyncResult, e
 				}
 				res.Change.Upsert = append(res.Change.Upsert, p.toMessage(ctx, g))
 				upserted[g.ID] = true
-				if !g.HasAttachments && state != "" {
-					next.Recheck = append(next.Recheck, g.ID+"|3")
-				}
 			}
 			if r.NextLink != "" {
 				link = r.NextLink
@@ -341,26 +325,7 @@ func (p *Provider) Sync(ctx context.Context, state string) (plugin.SyncResult, e
 			return res, err
 		}
 	}
-	// look again, for a few passes, at messages that had no attachments when first seen
-	var still []string
-	for _, e := range st.Recheck {
-		id, left, _ := strings.Cut(e, "|")
-		n := 0
-		fmt.Sscan(left, &n)
-		if upserted[id] || n <= 0 {
-			continue
-		}
-		var g gmsg
-		if err := p.api.Do(ctx, "GET", p.base+"/me/messages/"+id+"?$select="+selectFields, nil, hdr(), &g); err != nil {
-			continue
-		}
-		if g.HasAttachments {
-			res.Change.Upsert = append(res.Change.Upsert, p.toMessage(ctx, &g))
-		} else {
-			still = append(still, fmt.Sprintf("%s|%d", id, n-1))
-		}
-	}
-	next.Recheck = append(next.Recheck, still...)
+	p.fillAttachments(ctx, res.Change.Upsert)
 	b, _ := json.Marshal(next)
 	res.State = string(b)
 	return res, nil
@@ -547,4 +512,83 @@ func (p *Provider) UpdateContact(ctx context.Context, c mailtypes.Contact) (mail
 
 func (p *Provider) DeleteContact(ctx context.Context, id string) error {
 	return p.api.Do(ctx, "DELETE", p.base+"/me/contacts/"+id, nil, nil, nil)
+}
+
+// fillAttachments lists attachments for messages that have them. The delta
+// feed does not report hasAttachments reliably, so the flag cannot be trusted
+// there: ask the message list, which does.
+func (p *Provider) fillAttachments(ctx context.Context, ms []mailtypes.Message) {
+	var idx []int
+	for i := range ms {
+		if len(ms[i].Attach) == 0 {
+			idx = append(idx, i)
+		}
+	}
+	if len(idx) == 0 {
+		return
+	}
+	has := map[string]bool{}
+	if len(idx) > 40 {
+		u := p.base + "/me/messages?$filter=hasAttachments%20eq%20true&$select=id&$top=100"
+		for pages := 0; u != "" && pages < 60; pages++ {
+			var r struct {
+				Value []struct {
+					ID string `json:"id"`
+				} `json:"value"`
+				Next string `json:"@odata.nextLink"`
+			}
+			if err := p.api.Do(ctx, "GET", u, nil, hdr(), &r); err != nil {
+				return
+			}
+			for _, v := range r.Value {
+				has[v.ID] = true
+			}
+			u = r.Next
+		}
+	} else {
+		for _, i := range idx {
+			var r struct {
+				HasAttachments bool `json:"hasAttachments"`
+			}
+			if err := p.api.Do(ctx, "GET", p.base+"/me/messages/"+ms[i].RemoteID+"?$select=hasAttachments", nil, hdr(), &r); err == nil && r.HasAttachments {
+				has[ms[i].RemoteID] = true
+			}
+		}
+	}
+	for _, i := range idx {
+		if has[ms[i].RemoteID] {
+			ms[i].Attach = p.attachments(ctx, ms[i].RemoteID)
+		}
+	}
+}
+
+func (p *Provider) attachments(ctx context.Context, id string) []mailtypes.Attachment {
+	// contentId lives only on file attachments, so the list asks for the base
+	// fields; inline images are read one by one to learn their Content-ID
+	var r struct {
+		Value []struct {
+			ID          string `json:"id"`
+			Name        string `json:"name"`
+			ContentType string `json:"contentType"`
+			Size        int64  `json:"size"`
+			IsInline    bool   `json:"isInline"`
+		} `json:"value"`
+	}
+	if err := p.api.Do(ctx, "GET", p.base+"/me/messages/"+id+"/attachments?$select=id,name,contentType,size,isInline", nil, hdr(), &r); err != nil {
+		return nil
+	}
+	var out []mailtypes.Attachment
+	for _, a := range r.Value {
+		at := mailtypes.Attachment{ID: a.ID, Filename: a.Name, ContentType: a.ContentType, Size: a.Size}
+		if a.IsInline {
+			var one struct {
+				ContentID string `json:"contentId"`
+			}
+			if err := p.api.Do(ctx, "GET", p.base+"/me/messages/"+id+"/attachments/"+a.ID, nil, hdr(), &one); err == nil && one.ContentID != "" {
+				at.Inline, at.ContentID = true, one.ContentID
+			}
+		}
+		out = append(out, at)
+	}
+	return out
 }
