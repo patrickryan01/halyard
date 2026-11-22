@@ -6,7 +6,7 @@ W=${PHONEDESK:-$HOME/work/MAIL/win}; export PHONEDESK=$W
 INST=${1:?installer}; OUT=${2:?outdir}; HERE=$(cd "$(dirname "$0")" && pwd); mkdir -p "$OUT"
 V="python3 $W/winvm.py"
 ss -ltn | grep -q ':8800 ' && { echo "port 8800 is busy: the phone crew's server is running; wait for it"; exit 1; }
-$V put "$INST"
+$V put "$INST"; $V put "${CER:?CER=path to fireball-codesign.cer}"
 ($V serve >/dev/null 2>&1 &) ; sleep 1
 $V start
 for i in $(seq 1 90); do [ "$(curl -s http://127.0.0.1:8800/admin/seen | cut -d. -f1)" -gt $(( $(date +%s) - 30 )) ] 2>/dev/null && break; sleep 5; done
