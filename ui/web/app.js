@@ -508,8 +508,7 @@ function addAccountDialog() {
 }
 function addAccountFlow(host, done) {
   host.innerHTML = '<div class="row2" style="text-align:left"><label class="l" for="em">Email address</label><input id="em" type="email" autocomplete="email" placeholder="you@example.com" autofocus>' +
-    '<div class="btns" style="margin-top:6px"><button class="btn primary" id="go">Continue</button></div></div>' +
-    '<div class="pill" style="margin:6px 0">or sign in directly</div><button class="provbtn" data-p="google"><b>Google</b> Gmail and Google Workspace</button><button class="provbtn" data-p="microsoft"><b>Microsoft</b> Outlook, Microsoft 365, Hotmail</button><button class="provbtn" data-p="other"><b>Other</b> IMAP, JMAP or your own server</button><div id="step"></div>';
+    '<div class="btns" style="margin-top:6px"><button class="btn primary" id="go">Continue</button></div></div><div id="step"></div>';
   const em = $('#em', host);
   const go1 = async () => {
     const v = em.value.trim(); if (!v) return;
@@ -519,76 +518,97 @@ function addAccountFlow(host, done) {
     $('#go', host).textContent = 'Continue';
   };
   $('#go', host).onclick = go1; em.onkeydown = e => { if (e.key === 'Enter') go1(); };
-  $$('[data-p]', host).forEach(b => b.onclick = () => { const p = b.dataset.p; stepFor(host, p === 'other' ? { kind: 'imap', imapPort: 993, imapSecurity: 'ssl', smtpPort: 587, smtpSecurity: 'starttls' } : { kind: p, provider: p }, em.value.trim(), done); });
   setTimeout(() => em.focus(), 50);
 }
-function stepFor(host, r, email, done) {
-  const step = $('#step', host);
-  if (r.kind === 'google' || r.kind === 'microsoft') {
-    const g = r.kind === 'google', name = g ? 'Google' : 'Microsoft';
-    const saved = (S.data.signInApps || {})[r.kind] || {};
-    const have = !!(S.data.oauth || {})[r.kind];
-    const help = g
-      ? 'Create an OAuth client in the Google Cloud console (APIs and Services, Credentials, Create credentials, OAuth client ID, type <b>Desktop app</b>), turn on the Gmail API and the People API, then paste its client ID and secret here.'
-      : 'Register an app in Microsoft Entra (App registrations, New registration, any organizational directory and personal accounts), add a <b>Mobile and desktop</b> redirect of <span class="kbd">http://localhost</span>, give it the delegated permissions Mail.ReadWrite, Mail.Send, Contacts.ReadWrite and offline_access, then paste its application (client) ID here.';
-    step.innerHTML = '<div class="row2" style="text-align:left"><b>' + esc(r.provider || name) + ' account</b>' +
-      '<div class="pill">A browser tab opens so you can approve access. Nothing is typed in this app.</div>' +
-      '<details ' + (have ? '' : 'open') + '><summary class="pill">' + (have ? 'Use my own sign-in app' : 'Sign-in app (needed once)') + '</summary>' +
-      (have ? '' : '<div class="pill" style="margin:6px 0">This copy of the app has no ' + name + ' sign-in app built in, so bring your own. ' + help + '</div>') +
-      (have ? '<div class="pill" style="margin:6px 0">Only if your organization gave you its own app. ' + help + '</div>' : '') +
-      '<label class="l">Client ID</label><input id="cid" value="' + esc(saved.clientId || '') + '" autocomplete="off">' +
-      (g ? '<label class="l">Client secret ' + (saved.hasSecret ? '(saved, leave empty to keep it)' : '(from the same page)') + '</label><input id="csec" type="password" autocomplete="off">' : '<label class="l">Directory (tenant), default: any</label><input id="ten" value="' + esc(saved.tenant || '') + '" placeholder="common">') +
-      '<label class="l">Fixed port (only if the app registers exact redirect addresses)</label><input id="prt" value="' + esc(saved.ports || '') + '" placeholder="any free port"></details>' +
-      '<div class="btns"><button class="btn primary" id="oauth">Continue with ' + name + '</button></div><div id="wait"></div></div>';
-    $('#oauth', step).onclick = async () => {
-      const w = $('#wait', step);
-      try {
-        // remember what was typed, so adding the next account asks for nothing
-        const typed = {};
-        const cid = $('#cid', step).value.trim();
-        if (cid) typed['oauth_' + r.kind + '_client_id'] = cid;
+// the sign-in app fields live under Advanced: a normal add never needs them
+function advancedApp(r, saved, help) {
+  const g = r.kind === 'google';
+  return '<details id="adv"><summary class="pill">Advanced: use my own sign-in app</summary><div class="pill" style="margin:6px 0">Only if your organization gave you its own app. ' + help + '</div>' +
+    '<label class="l">Client ID</label><input id="cid" value="' + esc(saved.clientId || '') + '" autocomplete="off">' +
+    (g ? '<label class="l">Client secret ' + (saved.hasSecret ? '(saved, leave empty to keep it)' : '') + '</label><input id="csec" type="password" autocomplete="off">' : '<label class="l">Directory (tenant), default: any</label><input id="ten" value="' + esc(saved.tenant || '') + '" placeholder="common">') +
+    '<label class="l">Fixed port (only if the app registers exact redirect addresses)</label><input id="prt" value="' + esc(saved.ports || '') + '" placeholder="any free port"></details>';
+}
+function oauthButton(host, step, r, done) {
+  const g = r.kind === 'google', name = g ? 'Google' : 'Microsoft';
+  $('#oauth', step).onclick = async () => {
+    const w = $('#wait', step);
+    try {
+      const typed = {};
+      const cid = ($('#cid', step) || {}).value;
+      if (cid && cid.trim()) {
+        typed['oauth_' + r.kind + '_client_id'] = cid.trim();
         if (g && $('#csec', step).value) typed.oauth_google_client_secret = $('#csec', step).value;
         if (!g) typed.oauth_microsoft_tenant = $('#ten', step).value.trim();
         typed['oauth_' + r.kind + '_ports'] = $('#prt', step).value.trim();
         await api('settings', typed);
         await refreshState();
-        const st = await api('accounts/oauth/start', { kind: r.kind });
-        w.innerHTML = '<span class="spin"></span> Waiting for you to approve in the browser... <a href="#" id="again">Open the page again</a> &middot; <a href="#" id="cancel">Cancel</a>';
-        let live = true;
-        $('#again', w).onclick = e => { e.preventDefault(); api('open', { url: st.url }); };
-        $('#cancel', w).onclick = e => { e.preventDefault(); live = false; api('accounts/oauth/cancel?id=' + st.id, {}); w.textContent = ''; };
-        while (live) {
-          const res = await api('accounts/oauth/wait?id=' + st.id);
-          if (res.pending) continue;
-          toast('Added ' + res.email); done(); return;
-        }
-      } catch (e) { w.innerHTML = ''; toast(e.message, { err: true }); }
-    };
+      }
+      const st = await api('accounts/oauth/start', { kind: r.kind });
+      w.innerHTML = '<span class="spin"></span> Waiting for you to approve in the browser... <a href="#" id="again">Open the page again</a> &middot; <a href="#" id="cancel">Cancel</a>';
+      let live = true;
+      $('#again', w).onclick = e => { e.preventDefault(); api('open', { url: st.url }); };
+      $('#cancel', w).onclick = e => { e.preventDefault(); live = false; api('accounts/oauth/cancel?id=' + st.id, {}); w.textContent = ''; };
+      while (live) {
+        const res = await api('accounts/oauth/wait?id=' + st.id);
+        if (res.pending) continue;
+        toast('Added ' + res.email); done(); return;
+      }
+    } catch (e) { w.innerHTML = ''; toast(e.message, { err: true }); }
+  };
+}
+function stepFor(host, r, email, done) {
+  const step = $('#step', host);
+  const saved = (S.data.signInApps || {})[r.kind] || {};
+  const builtIn = !!(S.data.oauth || {})[r.kind];
+  if (r.kind === 'microsoft' || (r.kind === 'google' && (builtIn || saved.clientId))) {
+    const g = r.kind === 'google', name = g ? 'Google' : 'Microsoft';
+    const help = g
+      ? 'Create an OAuth client in the Google Cloud console (type <b>Desktop app</b>), turn on the Gmail API and the People API, then paste its client ID and secret.'
+      : 'Register an app in Microsoft Entra (any organizational directory and personal accounts), add a <b>Mobile and desktop</b> redirect of <span class="kbd">http://localhost</span>, give it Mail.ReadWrite, Mail.Send, Contacts.ReadWrite and offline_access, then paste its application (client) ID.';
+    step.innerHTML = '<div class="row2" style="text-align:left"><b>' + esc(r.provider || name) + ' account</b>' +
+      '<div class="pill">One click. A browser tab opens so you can approve access; nothing is typed in this app.</div>' +
+      '<div class="btns"><button class="btn primary" id="oauth">Sign in with ' + name + '</button></div><div id="wait"></div>' + advancedApp(r, saved, help) + '</div>';
+    oauthButton(host, step, r, done);
     return;
   }
-  const j = r.kind === 'jmap';
-  step.innerHTML = '<div class="row2" style="text-align:left"><b>' + esc(r.provider || (j ? 'JMAP server' : 'IMAP server')) + '</b>' + (r.note ? '<div class="pill">' + esc(r.note) + '</div>' : '') +
-    '<label class="l" for="pw">Password' + (r.note && /app/i.test(r.note) ? ' (app password)' : '') + '</label><input id="pw" type="password" autocomplete="current-password">' +
-    '<details ' + ((!r.imapHost && !r.jmapUrl) ? 'open' : '') + '><summary class="pill">Server settings</summary>' +
+  const g = r.kind === 'google';
+  const proto = (r.kind === 'pop3') ? 'pop3' : r.kind;
+  const j = proto === 'jmap';
+  const steps = g
+    ? '<div class="pill" style="margin:6px 0"><b>Gmail with an app password</b><ol style="margin:6px 0 6px 18px;padding:0"><li>Turn on 2-Step Verification at <span class="kbd">myaccount.google.com/security</span> (Workspace: ask your admin if it is off).</li><li>Open <span class="kbd">myaccount.google.com/apppasswords</span>, name it ' + esc(BRAND) + ', and create it.</li><li>Paste the 16 letter password below, without the spaces if you like.</li></ol></div>'
+    : '';
+  const o = (v, cur, t) => '<option value="' + v + '"' + (cur === v ? ' selected' : '') + '>' + t + '</option>';
+  step.innerHTML = '<div class="row2" style="text-align:left"><b>' + esc(r.provider || (j ? 'JMAP server' : 'Mail server')) + '</b>' + (r.note && !g ? '<div class="pill">' + esc(r.note) + '</div>' : '') + steps +
+    '<label class="l" for="pw">' + (g ? 'App password' : 'Password') + '</label><input id="pw" type="password" autocomplete="current-password">' +
+    '<details ' + ((!r.imapHost && !r.pop3Host && !r.jmapUrl) ? 'open' : '') + '><summary class="pill">Server settings</summary>' +
     (j ? '<label class="l">JMAP server address</label><input id="jurl" value="' + esc(r.jmapUrl || '') + '" placeholder="https://mail.example.com">'
-      : '<div class="grid2"><div><label class="l">IMAP server</label><input id="ih" value="' + esc(r.imapHost || '') + '"></div><div><label class="l">Port</label><input id="ip" value="' + esc(r.imapPort || 993) + '"></div></div>' +
-        '<label class="l">IMAP security</label><select id="is"><option value="ssl">SSL/TLS</option><option value="starttls">STARTTLS</option><option value="none">None</option></select>' +
+      : '<label class="l">Incoming protocol</label><select id="pr">' + o('imap', proto, 'IMAP (keeps mail on the server)') + o('pop3', proto, 'POP3 (downloads mail)') + '</select>' +
+        '<div class="grid2"><div><label class="l">Incoming server</label><input id="ih" value="' + esc((proto === 'pop3' ? r.pop3Host : r.imapHost) || '') + '"></div><div><label class="l">Port</label><input id="ip" value="' + esc((proto === 'pop3' ? r.pop3Port : r.imapPort) || (proto === 'pop3' ? 995 : 993)) + '"></div></div>' +
+        '<label class="l">Incoming security</label><select id="is">' + o('ssl', (proto === 'pop3' ? r.pop3Security : r.imapSecurity) || 'ssl', 'SSL/TLS') + o('starttls', (proto === 'pop3' ? r.pop3Security : r.imapSecurity), 'STARTTLS') + o('none', (proto === 'pop3' ? r.pop3Security : r.imapSecurity), 'None') + '</select>' +
         '<div class="grid2"><div><label class="l">SMTP server</label><input id="sh" value="' + esc(r.smtpHost || '') + '"></div><div><label class="l">Port</label><input id="sp" value="' + esc(r.smtpPort || 587) + '"></div></div>' +
-        '<label class="l">SMTP security</label><select id="ss"><option value="starttls">STARTTLS</option><option value="ssl">SSL/TLS</option><option value="none">None</option></select>') +
-    '<label class="l">Username (if not the email address)</label><input id="un"><label style="display:block;margin-top:8px"><input type="checkbox" id="sk" style="width:auto"> Trust this server\'s certificate even if it is self-signed</label></details>' +
+        '<label class="l">SMTP security</label><select id="ss">' + o('starttls', r.smtpSecurity || 'starttls', 'STARTTLS') + o('ssl', r.smtpSecurity, 'SSL/TLS') + o('none', r.smtpSecurity, 'None') + '</select>' +
+        '<label style="display:block;margin-top:8px"><input type="checkbox" id="lv" checked style="width:auto"> POP3: leave mail on the server after downloading</label>') +
+    '<label class="l">Username (if not the email address)</label><input id="un" value="' + esc(r.username && r.username !== email ? r.username : '') + '"><label style="display:block;margin-top:8px"><input type="checkbox" id="sk" style="width:auto"> Trust this server\'s certificate even if it is self-signed</label></details>' +
+    (g ? advancedApp({ kind: 'google' }, saved, 'Gmail also signs in with your own Google client: paste its ID and secret, then use the button.') + '<div class="btns"><button class="btn" id="oauth" style="display:none">Sign in with Google</button></div><div id="wait"></div>' : '') +
     '<div class="btns"><button class="btn primary" id="add">Add account</button></div></div>';
-  if (!j) { $('#is', step).value = r.imapSecurity || 'ssl'; $('#ss', step).value = r.smtpSecurity || 'starttls'; }
   const emailEl = $('#em', host);
+  if (g) {
+    const adv = $('#adv', step), ob = $('#oauth', step);
+    adv.ontoggle = () => { ob.style.display = adv.open ? '' : 'none'; };
+    oauthButton(host, step, r, done);
+  }
   $('#add', step).onclick = async () => {
     const btn = $('#add', step); btn.innerHTML = '<span class="spin"></span>';
-    try {
-      const a = await api('accounts/password', {
-        kind: r.kind, email: emailEl.value.trim() || email, password: $('#pw', step).value, username: $('#un', step).value, skipVerify: $('#sk', step).checked,
-        jmapUrl: j ? $('#jurl', step).value : '', imapHost: j ? '' : $('#ih', step).value, imapPort: j ? 0 : +$('#ip', step).value, imapSecurity: j ? '' : $('#is', step).value,
-        smtpHost: j ? '' : $('#sh', step).value, smtpPort: j ? 0 : +$('#sp', step).value, smtpSecurity: j ? '' : $('#ss', step).value,
-      });
-      toast('Added ' + a.email); done();
-    } catch (e) { toast(e.message, { err: true }); btn.textContent = 'Add account'; }
+    const p = j ? 'jmap' : ($('#pr', step) ? $('#pr', step).value : 'imap');
+    const body = { kind: p, email: emailEl.value.trim() || email, password: (g ? $('#pw', step).value.replace(/\s+/g, '') : $('#pw', step).value), username: $('#un', step).value, skipVerify: $('#sk', step).checked };
+    if (j) body.jmapUrl = $('#jurl', step).value;
+    else {
+      body.smtpHost = $('#sh', step).value; body.smtpPort = +$('#sp', step).value; body.smtpSecurity = $('#ss', step).value;
+      if (p === 'pop3') { body.pop3Host = $('#ih', step).value; body.pop3Port = +$('#ip', step).value; body.pop3Security = $('#is', step).value; body.leaveOnServer = $('#lv', step).checked; }
+      else { body.imapHost = $('#ih', step).value; body.imapPort = +$('#ip', step).value; body.imapSecurity = $('#is', step).value; }
+    }
+    try { const a = await api('accounts/password', body); toast('Added ' + a.email); done(); }
+    catch (e) { toast(e.message, { err: true }); btn.textContent = 'Add account'; }
   };
 }
 

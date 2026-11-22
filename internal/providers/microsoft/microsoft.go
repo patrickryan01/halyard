@@ -34,7 +34,7 @@ var Scopes = []string{
 
 // ClientID is the Entra application (public client) registration, set at
 // build time or in the account settings.
-var ClientID = ""
+var ClientID = "5bc58f81-5155-4a3e-aedc-d6692de040c7"
 
 const graph = "https://graph.microsoft.com/v1.0"
 

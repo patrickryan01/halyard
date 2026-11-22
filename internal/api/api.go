@@ -238,19 +238,23 @@ func (s *Server) discoverAcct(w http.ResponseWriter, r *http.Request) {
 
 // PasswordIn is the form for a password account.
 type PasswordIn struct {
-	Kind         string `json:"kind"` // imap or jmap
-	Email        string `json:"email"`
-	Name         string `json:"name,omitempty"`
-	Username     string `json:"username,omitempty"`
-	Password     string `json:"password"`
-	IMAPHost     string `json:"imapHost,omitempty"`
-	IMAPPort     int    `json:"imapPort,omitempty"`
-	IMAPSecurity string `json:"imapSecurity,omitempty"`
-	SMTPHost     string `json:"smtpHost,omitempty"`
-	SMTPPort     int    `json:"smtpPort,omitempty"`
-	SMTPSecurity string `json:"smtpSecurity,omitempty"`
-	JMAPURL      string `json:"jmapUrl,omitempty"`
-	SkipVerify   bool   `json:"skipVerify,omitempty"`
+	Kind          string `json:"kind"` // imap, pop3 or jmap
+	POP3Host      string `json:"pop3Host,omitempty"`
+	POP3Port      int    `json:"pop3Port,omitempty"`
+	POP3Security  string `json:"pop3Security,omitempty"`
+	LeaveOnServer *bool  `json:"leaveOnServer,omitempty"`
+	Email         string `json:"email"`
+	Name          string `json:"name,omitempty"`
+	Username      string `json:"username,omitempty"`
+	Password      string `json:"password"`
+	IMAPHost      string `json:"imapHost,omitempty"`
+	IMAPPort      int    `json:"imapPort,omitempty"`
+	IMAPSecurity  string `json:"imapSecurity,omitempty"`
+	SMTPHost      string `json:"smtpHost,omitempty"`
+	SMTPPort      int    `json:"smtpPort,omitempty"`
+	SMTPSecurity  string `json:"smtpSecurity,omitempty"`
+	JMAPURL       string `json:"jmapUrl,omitempty"`
+	SkipVerify    bool   `json:"skipVerify,omitempty"`
 }
 
 func (s *Server) addPassword(w http.ResponseWriter, r *http.Request) {
@@ -288,6 +292,22 @@ func (s *Server) AddPassword(ctx context.Context, in PasswordIn) (mailtypes.Acco
 			return a, fmt.Errorf("server address is required")
 		}
 		set["jmap_url"] = in.JMAPURL
+	case mailtypes.KindPOP3:
+		if in.POP3Host == "" {
+			return a, fmt.Errorf("server address is required")
+		}
+		set["pop3_host"], set["pop3_security"] = in.POP3Host, orDef(in.POP3Security, "ssl")
+		if in.POP3Port > 0 {
+			set["pop3_port"] = strconv.Itoa(in.POP3Port)
+		}
+		if in.LeaveOnServer != nil && !*in.LeaveOnServer {
+			set["leave_on_server"] = "false"
+		}
+		set[imap.SSMTPHost] = orDef(in.SMTPHost, in.POP3Host)
+		set[imap.SSMTPSec] = orDef(in.SMTPSecurity, "starttls")
+		if in.SMTPPort > 0 {
+			set[imap.SSMTPPort] = strconv.Itoa(in.SMTPPort)
+		}
 	default:
 		a.Kind = mailtypes.KindIMAP
 		if in.IMAPHost == "" {
