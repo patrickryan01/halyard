@@ -95,7 +95,8 @@ type Message struct {
 	Snoozed    *time.Time   `json:"snoozedUntil,omitempty"`
 	Size       int64        `json:"size,omitempty"`
 	// ICS is the calendar invitation carried by the message, if any, as text.
-	ICS string `json:"ics,omitempty"`
+	ICS       string `json:"ics,omitempty"`
+	HasInvite bool   `json:"hasInvite,omitempty"`
 	// ListUnsubscribe is the List-Unsubscribe header (RFC 2369), and ListUnsubscribePost says the sender accepts
 	// the one click form (RFC 8058).
 	ListUnsubscribe     string `json:"listUnsubscribe,omitempty"`
@@ -142,8 +143,14 @@ type Outgoing struct {
 	// ReceiptRequested asks the recipient's client for a read receipt.
 	ReceiptRequested bool
 	// Date, when set, is the Date header; zero means now.
-	Date        time.Time
-	ReplyTo     []Address
+	Date    time.Time
+	ReplyTo []Address
+	// Sign and Encrypt ask for S/MIME or OpenPGP protection, named by Protect ("smime" or "pgp").
+	Protect string
+	Sign    bool
+	Encrypt bool
+	// Raw is the finished message when it has been built already (signed or encrypted); providers send it as it is.
+	Raw         []byte
 	Attachments []OutAttachment
 }
 
@@ -207,6 +214,8 @@ type Identity struct {
 	Default   bool   `json:"default"`
 	// Alias is true for identities that came from the provider (Gmail send-as, JMAP identities, Microsoft aliases).
 	Alias bool `json:"alias"`
+	// Source is "provider" for an address the server reported, "user" for one added here.
+	Source string `json:"source"`
 }
 
 // Rule is a filter: when a message matches, do the actions. It runs on mail as it arrives and on demand.

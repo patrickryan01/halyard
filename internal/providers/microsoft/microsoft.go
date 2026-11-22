@@ -230,6 +230,12 @@ func (p *Provider) toMessage(ctx context.Context, g *gmsg) mailtypes.Message {
 			m.InReplyTo = strings.TrimSpace(h.Value)
 		case "references":
 			m.References = strings.Fields(h.Value)
+		case "list-unsubscribe":
+			m.ListUnsubscribe = strings.TrimSpace(h.Value)
+		case "list-unsubscribe-post":
+			m.ListUnsubscribePost = strings.Contains(strings.ToLower(h.Value), "one-click")
+		case "disposition-notification-to":
+			m.ReceiptTo = strings.TrimSpace(h.Value)
 		}
 	}
 	if g.HasAttachments {

@@ -5,11 +5,13 @@ package importer
 import (
 	"bufio"
 	"bytes"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
+	"time"
 )
 
 // Mbox splits an mbox stream into raw messages. Both the "From " separator line and ">From " quoting (mboxrd and mboxo)
@@ -109,4 +111,22 @@ func walkTB(dir, prefix string, out *[]Folder) {
 			}
 		}
 	}
+}
+
+// WriteMbox appends one message to an mbox stream in the mboxrd form: a "From " line, the message with "From " lines in
+// the body quoted, and a blank line.
+func WriteMbox(w io.Writer, from string, date time.Time, raw []byte) {
+	if from == "" {
+		from = "MAILER-DAEMON"
+	}
+	fmt.Fprintf(w, "From %s %s\r\n", strings.ReplaceAll(from, " ", "_"), date.UTC().Format("Mon Jan _2 15:04:05 2006"))
+	for _, l := range bytes.Split(bytes.ReplaceAll(raw, []byte("\r\n"), []byte("\n")), []byte("\n")) {
+		t := bytes.TrimLeft(l, ">")
+		if bytes.HasPrefix(t, []byte("From ")) {
+			w.Write([]byte(">"))
+		}
+		w.Write(l)
+		w.Write([]byte("\r\n"))
+	}
+	w.Write([]byte("\r\n"))
 }

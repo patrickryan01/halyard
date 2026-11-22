@@ -440,6 +440,7 @@ func toMessage(acct, mbox string, v uint32, it *imapclient.FetchMessageBuffer, r
 		AccountID: acct, RemoteID: rid(mbox, v, it.UID), Subject: pm.Subject, From: pm.From, To: pm.To, Cc: pm.Cc, ReplyTo: pm.ReplyTo,
 		Date: pm.Date, BodyText: pm.Text, BodyHTML: pm.HTML, MessageID: pm.MessageID, InReplyTo: pm.InReplyTo, References: pm.References,
 		Attach: pm.Attach, Folders: []string{mbox}, Snippet: mime.Snippet(pm.Text, pm.HTML),
+		Size: pm.Size, ICS: pm.ICS, ListUnsubscribe: pm.ListUnsubscribe, ListUnsubscribePost: pm.ListUnsubscribePost, ReceiptTo: pm.ReceiptTo,
 	}
 	if m.Date.IsZero() {
 		m.Date = it.InternalDate

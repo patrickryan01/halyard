@@ -112,3 +112,28 @@ type DraftSaver interface {
 	// ID SaveDraft and DeleteDraft use for it.
 	DraftID(ctx context.Context, messageRemoteID string) (string, error)
 }
+
+// FolderManager is implemented by providers that can rename and delete a folder or label.
+type FolderManager interface {
+	RenameFolder(ctx context.Context, remoteID, name string) error
+	DeleteFolder(ctx context.Context, remoteID string) error
+}
+
+// IdentityLister is implemented by providers that know the addresses a person may send as (Gmail send-as, JMAP
+// identities, Microsoft aliases).
+type IdentityLister interface {
+	Identities(ctx context.Context) ([]mailtypes.Identity, error)
+}
+
+// VacationManager is implemented by providers that keep an automatic reply on the server, so it answers while this
+// app is closed.
+type VacationManager interface {
+	GetVacation(ctx context.Context) (mailtypes.Vacation, error)
+	SetVacation(ctx context.Context, v mailtypes.Vacation) error
+}
+
+// RawFetcher is implemented by providers that can return the original text of a message, exactly as it was sent. It is
+// what signature checks, decryption, view source and a faithful export read.
+type RawFetcher interface {
+	Raw(ctx context.Context, remoteMsgID string) ([]byte, error)
+}

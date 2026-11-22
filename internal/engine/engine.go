@@ -16,8 +16,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/patrickryan01/halyard/internal/mime"
 	"github.com/patrickryan01/halyard/internal/mailtypes"
 	"github.com/patrickryan01/halyard/internal/plugin"
+	"github.com/patrickryan01/halyard/internal/providers/local"
 	"github.com/patrickryan01/halyard/internal/secret"
 	"github.com/patrickryan01/halyard/internal/store"
 )
@@ -46,6 +48,7 @@ type Engine struct {
 }
 
 func New(st *store.Store, sec *secret.Store) *Engine {
+	local.Raw = st.Raw
 	return &Engine{St: st, Sec: sec, UndoDelay: 10 * time.Second, runners: map[string]*runner{}, subs: map[chan Event]struct{}{}, Factory: plugin.New}
 }
 
@@ -217,6 +220,12 @@ func (e *Engine) Send(o mailtypes.Outgoing) (string, error) { return e.SendAfter
 
 // SendAfter is Send with an explicit undo window; zero sends at once.
 func (e *Engine) SendAfter(o mailtypes.Outgoing, delay time.Duration) (string, error) {
+	return e.SendAt(o, time.Now().Add(delay))
+}
+
+// SendAt queues a message to go out at a given time. Until then it sits in the outbox and can be cancelled; a time in
+// the past sends at once.
+func (e *Engine) SendAt(o mailtypes.Outgoing, at time.Time) (string, error) {
 	if len(o.To)+len(o.Cc)+len(o.Bcc) == 0 {
 		return "", errors.New("add at least one recipient")
 	}
@@ -224,21 +233,43 @@ func (e *Engine) SendAfter(o mailtypes.Outgoing, delay time.Duration) (string, e
 	if err != nil {
 		return "", errors.New("unknown account")
 	}
+	sig := acct.Signature
 	if o.From.Email == "" {
 		o.From = mailtypes.Address{Name: acct.Name, Email: acct.Email}
 	}
-	if sig := strings.TrimSpace(acct.Signature); sig != "" && !strings.Contains(o.BodyText, sig) {
+	if ident, ok := e.identityFor(o.AccountID, o.From.Email); ok {
+		if o.From.Name == "" {
+			o.From.Name = ident.Name
+		}
+		if ident.Signature != "" || ident.Default {
+			sig = ident.Signature
+		}
+		if ident.ReplyTo != "" && len(o.ReplyTo) == 0 {
+			o.ReplyTo = mime.ParseList(ident.ReplyTo)
+		}
+	}
+	if o.From.Name == "" {
+		o.From.Name = acct.Name
+	}
+	if sig = strings.TrimSpace(sig); sig != "" && !strings.Contains(o.BodyText, sig) {
 		o.BodyText += "\n\n-- \n" + sig
 		if o.BodyHTML != "" {
 			o.BodyHTML += "<br><br>-- <br>" + strings.ReplaceAll(htmlEscape(sig), "\n", "<br>")
 		}
+	}
+	if o.Sign || o.Encrypt {
+		raw, err := e.protect(o)
+		if err != nil {
+			return "", err
+		}
+		o.Raw = raw
 	}
 	payload, err := json.Marshal(o)
 	if err != nil {
 		return "", err
 	}
 	id := newID()
-	if err := e.St.QueueOutbox(store.OutboxItem{ID: id, AccountID: o.AccountID, Payload: payload, SendAt: time.Now().Add(delay), Subject: o.Subject}); err != nil {
+	if err := e.St.QueueOutbox(store.OutboxItem{ID: id, AccountID: o.AccountID, Payload: payload, SendAt: at, Subject: o.Subject}); err != nil {
 		return "", err
 	}
 	e.emit(Event{Type: "outbox", ID: id, Subject: o.Subject})
@@ -485,6 +516,7 @@ func (r *runner) once() error {
 	if cs, err := p.Contacts(ctx, ""); err == nil && len(cs) > 0 {
 		_ = r.e.St.PutContacts(r.acct.ID, cs)
 	}
+	r.e.syncDAVContacts(ctx, acct)
 	return nil
 }
 
@@ -541,6 +573,28 @@ func (r *runner) apply(res plugin.SyncResult, firstSync bool) error {
 					break
 				}
 			}
+		}
+		// rules run on mail that is new to this computer, in the inbox, whether read or not
+		var arrivals []mailtypes.Message
+		for _, m := range res.Change.Upsert {
+			if known[m.RemoteID] || m.Draft || strings.EqualFold(m.From.Email, r.acct.Email) {
+				continue
+			}
+			for _, f := range m.Folders {
+				if f == inbox {
+					arrivals = append(arrivals, m)
+					break
+				}
+			}
+		}
+		if quiet := r.e.RunRules(arrivals); len(quiet) > 0 {
+			kept := fresh[:0]
+			for _, m := range fresh {
+				if !quiet[m.RemoteID] {
+					kept = append(kept, m)
+				}
+			}
+			fresh = kept
 		}
 		for i, m := range fresh {
 			if i == 5 && len(fresh) > 5 {

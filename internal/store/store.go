@@ -13,6 +13,7 @@ import (
 
 	_ "modernc.org/sqlite"
 
+	"github.com/patrickryan01/halyard/internal/mime"
 	"github.com/patrickryan01/halyard/internal/mailtypes"
 )
 
@@ -51,8 +52,9 @@ CREATE TABLE IF NOT EXISTS local_contacts(id TEXT PRIMARY KEY, account_id TEXT N
 CREATE TABLE IF NOT EXISTS rules(id TEXT PRIMARY KEY, account_id TEXT NOT NULL DEFAULT '', pos INTEGER NOT NULL, data TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS templates(id TEXT PRIMARY KEY, name TEXT NOT NULL, subject TEXT NOT NULL DEFAULT '', body TEXT NOT NULL DEFAULT '');
 CREATE TABLE IF NOT EXISTS identities(id TEXT PRIMARY KEY, account_id TEXT NOT NULL, name TEXT NOT NULL DEFAULT '', email TEXT NOT NULL, reply_to TEXT NOT NULL DEFAULT '',
-  signature TEXT NOT NULL DEFAULT '', is_default INTEGER NOT NULL DEFAULT 0, alias INTEGER NOT NULL DEFAULT 0);
+  signature TEXT NOT NULL DEFAULT '', is_default INTEGER NOT NULL DEFAULT 0, alias INTEGER NOT NULL DEFAULT 0, source TEXT NOT NULL DEFAULT 'user');
 CREATE TABLE IF NOT EXISTS saved_searches(id TEXT PRIMARY KEY, name TEXT NOT NULL, query TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS raw_messages(account_id TEXT NOT NULL, remote_id TEXT NOT NULL, data BLOB NOT NULL, PRIMARY KEY(account_id, remote_id));
 CREATE TABLE IF NOT EXISTS settings(k TEXT PRIMARY KEY, v TEXT NOT NULL);
 `
 
@@ -525,14 +527,16 @@ func (s *Store) ListThreads(q ListQuery) ([]mailtypes.Thread, error) {
 		}
 	}
 	if strings.TrimSpace(q.Text) != "" {
-		fq := FTSQuery(q.Text)
-		if fq == "" {
+		sw, sa, ok := searchSQL(q.Text)
+		if !ok {
 			return nil, nil
 		}
-		where = append(where, `m.rowid IN (SELECT rowid FROM search WHERE search MATCH ?)`)
-		args = append(args, fq)
-		// a search spans everything except trash and spam
-		where = append(where, `NOT EXISTS(SELECT 1 FROM msg_folders mf JOIN folders f ON f.account_id=mf.account_id AND f.remote_id=mf.folder_remote WHERE mf.msg_id=m.id AND f.role IN('trash','spam'))`)
+		where = append(where, sw...)
+		args = append(args, sa...)
+		// a search spans everything except trash and spam, unless it names a folder itself
+		if !strings.Contains(strings.ToLower(q.Text), "in:") && !strings.Contains(strings.ToLower(q.Text), "label:") && !strings.Contains(strings.ToLower(q.Text), "folder:") {
+			where = append(where, `NOT EXISTS(SELECT 1 FROM msg_folders mf JOIN folders f ON f.account_id=mf.account_id AND f.remote_id=mf.folder_remote WHERE mf.msg_id=m.id AND f.role IN('trash','spam'))`)
+		}
 	}
 	if q.Unread {
 		where = append(where, `m.is_read=0`)
@@ -1147,10 +1151,19 @@ type extra struct {
 }
 
 func packExtra(m mailtypes.Message) string {
-	if m.ICS == "" && m.ListUnsubscribe == "" && m.ReceiptTo == "" {
+	ics := m.ICS
+	if ics == "" {
+		for _, a := range m.Attach {
+			if mime.IsCalendar(a) {
+				ics = "1" // there is an invitation to fetch when the message is opened
+				break
+			}
+		}
+	}
+	if ics == "" && m.ListUnsubscribe == "" && m.ReceiptTo == "" {
 		return ""
 	}
-	return js(extra{m.ICS, m.ListUnsubscribe, m.ListUnsubscribePost, m.ReceiptTo})
+	return js(extra{ics, m.ListUnsubscribe, m.ListUnsubscribePost, m.ReceiptTo})
 }
 
 func unpackExtra(s string, m *mailtypes.Message) {
@@ -1160,5 +1173,11 @@ func unpackExtra(s string, m *mailtypes.Message) {
 	var e extra
 	if json.Unmarshal([]byte(s), &e) == nil {
 		m.ICS, m.ListUnsubscribe, m.ListUnsubscribePost, m.ReceiptTo = e.ICS, e.Unsub, e.UnsubPost, e.Receipt
+		if m.ICS == "1" {
+			m.ICS = ""
+			m.HasInvite = true
+		} else if m.ICS != "" {
+			m.HasInvite = true
+		}
 	}
 }

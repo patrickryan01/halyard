@@ -95,6 +95,12 @@ type DraftData struct {
 	Attachments []DraftAttach `json:"attachments"`
 	// RemoteID is the draft\'s ID in the provider\'s Drafts folder, when the provider keeps drafts.
 	RemoteID string `json:"remoteId,omitempty"`
+	// FromEmail is the identity the message is sent as; empty means the account's own address.
+	FromEmail        string `json:"fromEmail,omitempty"`
+	ReceiptRequested bool   `json:"receiptRequested,omitempty"`
+	Protect          string `json:"protect,omitempty"`
+	Sign             bool   `json:"sign,omitempty"`
+	Encrypt          bool   `json:"encrypt,omitempty"`
 }
 
 type DraftAttach struct {
@@ -233,7 +239,11 @@ func (e *Engine) GetDraft(id string) (DraftData, error) {
 
 // Outgoing turns a draft into a sendable message.
 func (d DraftData) Outgoing() (mailtypes.Outgoing, error) {
-	o := mailtypes.Outgoing{AccountID: d.AccountID, Subject: d.Subject, BodyText: d.BodyText, BodyHTML: d.BodyHTML, InReplyTo: d.InReplyTo, References: d.References, ThreadHint: d.ThreadHint}
+	o := mailtypes.Outgoing{AccountID: d.AccountID, Subject: d.Subject, BodyText: d.BodyText, BodyHTML: d.BodyHTML, InReplyTo: d.InReplyTo, References: d.References, ThreadHint: d.ThreadHint,
+		ReceiptRequested: d.ReceiptRequested, Protect: d.Protect, Sign: d.Sign, Encrypt: d.Encrypt}
+	if d.FromEmail != "" {
+		o.From = mailtypes.Address{Email: d.FromEmail}
+	}
 	list := func(in []string) []mailtypes.Address {
 		var out []mailtypes.Address
 		for _, s := range in {
@@ -384,6 +394,11 @@ func (e *Engine) writer(accountID string) (plugin.Provider, plugin.ContactWriter
 		return nil, nil, err
 	}
 	cw, _ := p.(plugin.ContactWriter)
+	if cw == nil && acct.Settings[SDAVURL] != "" {
+		if c, err := e.davFor(acct); err == nil {
+			cw = davContacts{e: e, c: c, accountID: acct.ID}
+		}
+	}
 	return p, cw, nil
 }
 

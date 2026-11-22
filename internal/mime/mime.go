@@ -44,8 +44,15 @@ func Build(o mailtypes.Outgoing, msgID string) ([]byte, error) { return build(o,
 func BuildDraft(o mailtypes.Outgoing, msgID string) ([]byte, error) { return build(o, msgID, true) }
 
 func build(o mailtypes.Outgoing, msgID string, keepBcc bool) ([]byte, error) {
+	if len(o.Raw) > 0 && !keepBcc {
+		return o.Raw, nil
+	}
 	var h gomail.Header
-	h.SetDate(time.Now())
+	if o.Date.IsZero() {
+		h.SetDate(time.Now())
+	} else {
+		h.SetDate(o.Date)
+	}
 	h.SetSubject(o.Subject)
 	h.SetAddressList("From", toGo([]mailtypes.Address{o.From}))
 	if len(o.To) > 0 {
@@ -56,6 +63,12 @@ func build(o mailtypes.Outgoing, msgID string, keepBcc bool) ([]byte, error) {
 	}
 	if keepBcc && len(o.Bcc) > 0 {
 		h.SetAddressList("Bcc", toGo(o.Bcc))
+	}
+	if len(o.ReplyTo) > 0 {
+		h.SetAddressList("Reply-To", toGo(o.ReplyTo))
+	}
+	if o.ReceiptRequested {
+		h.Set("Disposition-Notification-To", (&gomail.Address{Name: o.From.Name, Address: o.From.Email}).String())
 	}
 	h.Set("Message-ID", msgID)
 	if o.InReplyTo != "" {
@@ -187,6 +200,18 @@ type Parsed struct {
 	// Parts holds attachment bytes by index so a provider that has the raw
 	// message can serve them without another round trip.
 	Parts [][]byte
+	// ICS is the calendar invitation in the message, if there is one.
+	ICS                 string
+	ListUnsubscribe     string
+	ListUnsubscribePost bool
+	ReceiptTo           string
+	Size                int64
+}
+
+// IsCalendar says whether an attachment is a calendar invitation or a calendar file.
+func IsCalendar(a mailtypes.Attachment) bool {
+	ct := strings.ToLower(a.ContentType)
+	return strings.HasPrefix(ct, "text/calendar") || strings.HasPrefix(ct, "application/ics") || strings.HasSuffix(strings.ToLower(a.Filename), ".ics")
 }
 
 // Parse reads a raw RFC 5322 message.
@@ -220,6 +245,10 @@ func Parse(raw []byte) (Parsed, error) {
 	p.MessageID = strings.TrimSpace(h.Get("Message-ID"))
 	p.InReplyTo = strings.TrimSpace(h.Get("In-Reply-To"))
 	p.References = strings.Fields(h.Get("References"))
+	p.ListUnsubscribe = strings.TrimSpace(h.Get("List-Unsubscribe"))
+	p.ListUnsubscribePost = strings.Contains(strings.ToLower(h.Get("List-Unsubscribe-Post")), "one-click")
+	p.ReceiptTo = strings.TrimSpace(h.Get("Disposition-Notification-To"))
+	p.Size = int64(len(raw))
 	idx := 0
 	for {
 		part, err := mr.NextPart()
@@ -249,6 +278,13 @@ func Parse(raw []byte) (Parsed, error) {
 				} else {
 					p.HTML += string(b)
 				}
+			case "text/calendar":
+				if p.ICS == "" {
+					p.ICS = string(b)
+				}
+				p.Attach = append(p.Attach, mailtypes.Attachment{ID: fmt.Sprint(idx), Filename: "invite.ics", ContentType: ct, Size: int64(len(b))})
+				p.Parts = append(p.Parts, b)
+				idx++
 			default:
 				name := ct
 				p.Attach = append(p.Attach, mailtypes.Attachment{ID: fmt.Sprint(idx), Filename: name, ContentType: ct, Size: int64(len(b)), Inline: true})
@@ -263,6 +299,9 @@ func Parse(raw []byte) (Parsed, error) {
 			disp, _, _ := ph.ContentDisposition()
 			if fn == "" {
 				fn = "attachment"
+			}
+			if p.ICS == "" && (strings.HasPrefix(strings.ToLower(ct), "text/calendar") || strings.HasSuffix(strings.ToLower(fn), ".ics")) {
+				p.ICS = string(b)
 			}
 			p.Attach = append(p.Attach, mailtypes.Attachment{ID: fmt.Sprint(idx), Filename: fn, ContentType: ct, Size: int64(len(b)),
 				Inline: disp == "inline" && cid != "", ContentID: cid})

@@ -229,6 +229,9 @@ func (p *Provider) toMessage(g *gmsg) mailtypes.Message {
 	m.To = mime.ParseList(g.header("To"))
 	m.Cc = mime.ParseList(g.header("Cc"))
 	m.Bcc = mime.ParseList(g.header("Bcc"))
+	m.ListUnsubscribe = strings.TrimSpace(g.header("List-Unsubscribe"))
+	m.ListUnsubscribePost = strings.Contains(strings.ToLower(g.header("List-Unsubscribe-Post")), "one-click")
+	m.ReceiptTo = strings.TrimSpace(g.header("Disposition-Notification-To"))
 	if ms, err := strconv.ParseInt(g.Internal, 10, 64); err == nil {
 		m.Date = time.UnixMilli(ms)
 	}

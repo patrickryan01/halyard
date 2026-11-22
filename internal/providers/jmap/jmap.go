@@ -237,7 +237,8 @@ func (p *Provider) roleID(role string) string {
 // ---- email ----
 
 var emailProps = []string{"id", "threadId", "mailboxIds", "keywords", "receivedAt", "subject", "from", "to", "cc", "bcc", "replyTo",
-	"messageId", "inReplyTo", "references", "preview", "textBody", "htmlBody", "bodyValues", "attachments", "hasAttachment"}
+	"messageId", "inReplyTo", "references", "preview", "textBody", "htmlBody", "bodyValues", "attachments", "hasAttachment", "size",
+	"header:List-Unsubscribe:asText", "header:List-Unsubscribe-Post:asText", "header:Disposition-Notification-To:asText"}
 
 type jaddr struct {
 	Name  *string
@@ -256,6 +257,10 @@ type jemail struct {
 	InReplyTo                  []string `json:"inReplyTo"`
 	References                 []string `json:"references"`
 	Preview                    string   `json:"preview"`
+	Size                       int64    `json:"size"`
+	Unsub                      *string  `json:"header:List-Unsubscribe:asText"`
+	UnsubPost                  *string  `json:"header:List-Unsubscribe-Post:asText"`
+	Receipt                    *string  `json:"header:Disposition-Notification-To:asText"`
 	TextBody                   []struct {
 		PartID string `json:"partId"`
 	} `json:"textBody"`
@@ -290,6 +295,16 @@ func (p *Provider) toMessage(e jemail) mailtypes.Message {
 		Read: e.Keywords["$seen"], Starred: e.Keywords["$flagged"], Draft: e.Keywords["$draft"]}
 	if f := conv(e.From); len(f) > 0 {
 		m.From = f[0]
+	}
+	m.Size = e.Size
+	if e.Unsub != nil {
+		m.ListUnsubscribe = strings.TrimSpace(*e.Unsub)
+	}
+	if e.UnsubPost != nil {
+		m.ListUnsubscribePost = strings.Contains(strings.ToLower(*e.UnsubPost), "one-click")
+	}
+	if e.Receipt != nil {
+		m.ReceiptTo = strings.TrimSpace(*e.Receipt)
 	}
 	if len(e.MessageID) > 0 {
 		m.MessageID = "<" + strings.Trim(e.MessageID[0], "<>") + ">"
