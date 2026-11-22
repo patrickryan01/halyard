@@ -110,8 +110,11 @@ type Thread struct {
 }
 
 type Contact struct {
+	ID    string `json:"id,omitempty"` // provider ID; empty for contacts learned from mail
 	Name  string `json:"name"`
 	Email string `json:"email"`
+	Phone string `json:"phone,omitempty"`
+	Org   string `json:"org,omitempty"`
 }
 
 // Outgoing is a message to send. Attachments carry their bytes.

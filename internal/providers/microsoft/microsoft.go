@@ -444,6 +444,7 @@ func (p *Provider) Contacts(ctx context.Context, q string) ([]mailtypes.Contact,
 	for u != "" && len(out) < 3000 {
 		var r struct {
 			Value []struct {
+				ID          string                     `json:"id"`
 				DisplayName string                     `json:"displayName"`
 				Emails      []struct{ Address string } `json:"emailAddresses"`
 			} `json:"value"`
@@ -454,7 +455,7 @@ func (p *Provider) Contacts(ctx context.Context, q string) ([]mailtypes.Contact,
 		}
 		for _, c := range r.Value {
 			for _, e := range c.Emails {
-				out = append(out, mailtypes.Contact{Name: c.DisplayName, Email: e.Address})
+				out = append(out, mailtypes.Contact{ID: c.ID, Name: c.DisplayName, Email: e.Address})
 			}
 		}
 		u = r.Next
@@ -476,4 +477,44 @@ func (p *Provider) Watch(ctx context.Context, notify func()) error {
 			notify()
 		}
 	}
+}
+
+// CreateFolder makes a mail folder under the mailbox root.
+func (p *Provider) CreateFolder(ctx context.Context, name, role string) (string, error) {
+	var f gfolder
+	err := p.api.Do(ctx, "POST", p.base+"/me/mailFolders", map[string]string{"displayName": name}, hdr(), &f)
+	return f.ID, err
+}
+
+func contactBody(c mailtypes.Contact) map[string]any {
+	b := map[string]any{"displayName": c.Name, "givenName": c.Name}
+	if c.Email != "" {
+		b["emailAddresses"] = []map[string]string{{"address": c.Email, "name": c.Name}}
+	}
+	if c.Phone != "" {
+		b["mobilePhone"] = c.Phone
+	}
+	if c.Org != "" {
+		b["companyName"] = c.Org
+	}
+	return b
+}
+
+func (p *Provider) CreateContact(ctx context.Context, c mailtypes.Contact) (mailtypes.Contact, error) {
+	var r struct {
+		ID string `json:"id"`
+	}
+	if err := p.api.Do(ctx, "POST", p.base+"/me/contacts", contactBody(c), nil, &r); err != nil {
+		return c, err
+	}
+	c.ID = r.ID
+	return c, nil
+}
+
+func (p *Provider) UpdateContact(ctx context.Context, c mailtypes.Contact) (mailtypes.Contact, error) {
+	return c, p.api.Do(ctx, "PATCH", p.base+"/me/contacts/"+c.ID, contactBody(c), nil, nil)
+}
+
+func (p *Provider) DeleteContact(ctx context.Context, id string) error {
+	return p.api.Do(ctx, "DELETE", p.base+"/me/contacts/"+id, nil, nil, nil)
 }

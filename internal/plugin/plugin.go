@@ -86,3 +86,17 @@ func Kinds() []string {
 	sort.Strings(k)
 	return k
 }
+
+// FolderCreator is implemented by providers that can create a label or folder.
+// It returns the new folder's remote ID.
+type FolderCreator interface {
+	CreateFolder(ctx context.Context, name string, role string) (string, error)
+}
+
+// ContactWriter is implemented by providers with an address book that takes
+// writes. Contacts for other accounts are kept in the local address book.
+type ContactWriter interface {
+	CreateContact(ctx context.Context, c mailtypes.Contact) (mailtypes.Contact, error)
+	UpdateContact(ctx context.Context, c mailtypes.Contact) (mailtypes.Contact, error)
+	DeleteContact(ctx context.Context, id string) error
+}

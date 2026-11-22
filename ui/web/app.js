@@ -766,4 +766,10 @@ document.addEventListener('keydown', onKey);
     }
   } catch (e) { $('#app').innerHTML = '<div class="empty"><div><h2>Could not start</h2><p>' + esc(e.message) + '</p></div></div>'; }
   pollEvents();
+  // inside the native window the Wails runtime exists: mailto links and notifications come from the shell
+  if (window.runtime && window.runtime.EventsOn) {
+    window.__native = true;
+    window.runtime.EventsOn('mailto', url => { const u = new URL(url); openComposer({ mode: 'new', to: [{ email: decodeURIComponent(u.pathname) }], subject: u.searchParams.get('subject') || '', html: esc(u.searchParams.get('body') || '') }); });
+    window.runtime.EventsEmit('ready');
+  }
 })();

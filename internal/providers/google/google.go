@@ -586,7 +586,8 @@ func (p *Provider) Contacts(ctx context.Context, q string) ([]mailtypes.Contact,
 }
 
 type person struct {
-	Names []struct {
+	ResourceName string `json:"resourceName"`
+	Names        []struct {
 		DisplayName string `json:"displayName"`
 	} `json:"names"`
 	Emails []struct {
@@ -601,7 +602,7 @@ func (p person) contacts() []mailtypes.Contact {
 	}
 	var out []mailtypes.Contact
 	for _, e := range p.Emails {
-		out = append(out, mailtypes.Contact{Name: name, Email: e.Value})
+		out = append(out, mailtypes.Contact{ID: p.ResourceName, Name: name, Email: e.Value})
 	}
 	return out
 }
@@ -634,4 +635,59 @@ func (p *Provider) Watch(ctx context.Context, notify func()) error {
 			}
 		}
 	}
+}
+
+// CreateFolder makes a user label.
+func (p *Provider) CreateFolder(ctx context.Context, name, role string) (string, error) {
+	var r struct {
+		ID string `json:"id"`
+	}
+	err := p.api.Do(ctx, "POST", p.base+"/labels", map[string]any{"name": name, "labelListVisibility": "labelShow", "messageListVisibility": "show"}, nil, &r)
+	return r.ID, err
+}
+
+func personBody(c mailtypes.Contact) map[string]any {
+	b := map[string]any{"names": []map[string]string{{"givenName": c.Name}}}
+	if c.Email != "" {
+		b["emailAddresses"] = []map[string]string{{"value": c.Email}}
+	}
+	if c.Phone != "" {
+		b["phoneNumbers"] = []map[string]string{{"value": c.Phone}}
+	}
+	if c.Org != "" {
+		b["organizations"] = []map[string]string{{"name": c.Org}}
+	}
+	return b
+}
+
+type fullPerson struct {
+	ResourceName string `json:"resourceName"`
+	Etag         string `json:"etag"`
+	person
+}
+
+// CreateContact adds to the person's Google contacts.
+func (p *Provider) CreateContact(ctx context.Context, c mailtypes.Contact) (mailtypes.Contact, error) {
+	var r fullPerson
+	if err := p.api.Do(ctx, "POST", p.people+"/people:createContact?personFields=names,emailAddresses", personBody(c), nil, &r); err != nil {
+		return c, err
+	}
+	c.ID = r.ResourceName
+	return c, nil
+}
+
+// UpdateContact replaces a contact's name, email, phone and organization.
+func (p *Provider) UpdateContact(ctx context.Context, c mailtypes.Contact) (mailtypes.Contact, error) {
+	var cur fullPerson
+	if err := p.api.Do(ctx, "GET", p.people+"/"+c.ID+"?personFields=names", nil, nil, &cur); err != nil {
+		return c, err
+	}
+	b := personBody(c)
+	b["etag"] = cur.Etag
+	err := p.api.Do(ctx, "PATCH", p.people+"/"+c.ID+":updateContact?updatePersonFields=names,emailAddresses,phoneNumbers,organizations", b, nil, nil)
+	return c, err
+}
+
+func (p *Provider) DeleteContact(ctx context.Context, id string) error {
+	return p.api.Do(ctx, "DELETE", p.people+"/"+id+":deleteContact", nil, nil, nil)
 }

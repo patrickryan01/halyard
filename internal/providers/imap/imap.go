@@ -745,3 +745,9 @@ func (p *Provider) watchOnce(ctx context.Context, notify func()) error {
 		}
 	}
 }
+
+// CreateFolder makes a mailbox. IMAP has no way to give it a role, so role is ignored.
+func (p *Provider) CreateFolder(ctx context.Context, name, role string) (string, error) {
+	err := p.withConn(func(c *imapclient.Client) error { return c.Create(name, nil).Wait() })
+	return name, err
+}

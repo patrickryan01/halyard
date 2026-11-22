@@ -361,22 +361,34 @@ func (s *Store) Thread(threadID string) ([]mailtypes.Message, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-	var out []mailtypes.Message
+	var all []mailtypes.Message
 	for rows.Next() {
 		m, err := scanMsg(rows)
 		if err != nil {
+			rows.Close()
 			return nil, err
 		}
-		fr, _ := s.db.Query(`SELECT folder_remote FROM msg_folders WHERE msg_id=?`, m.ID)
-		for fr != nil && fr.Next() {
-			var f string
-			_ = fr.Scan(&f)
-			m.Folders = append(m.Folders, f)
-		}
-		if fr != nil {
-			fr.Close()
-		}
+		all = append(all, m)
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	// the connection pool is one wide, so folders are read after the cursor is closed
+	fr, err := s.db.Query(`SELECT mf.msg_id, mf.folder_remote FROM msg_folders mf JOIN messages m ON m.id=mf.msg_id WHERE m.thread_id=?`, threadID)
+	if err != nil {
+		return nil, err
+	}
+	byMsg := map[string][]string{}
+	for fr.Next() {
+		var id, f string
+		_ = fr.Scan(&id, &f)
+		byMsg[id] = append(byMsg[id], f)
+	}
+	fr.Close()
+	var out []mailtypes.Message
+	for _, m := range all {
+		m.Folders = byMsg[m.ID]
 		// the same message filed in two IMAP folders is one message in a thread
 		if m.MessageID != "" {
 			dup := -1
@@ -393,7 +405,7 @@ func (s *Store) Thread(threadID string) ([]mailtypes.Message, error) {
 		}
 		out = append(out, m)
 	}
-	return out, rows.Err()
+	return out, nil
 }
 
 func (s *Store) Message(id string) (mailtypes.Message, error) {

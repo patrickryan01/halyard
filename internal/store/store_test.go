@@ -154,3 +154,18 @@ func TestIMAPStyleThreading(t *testing.T) {
 		t.Fatalf("expected one thread of 3, got %+v", th)
 	}
 }
+
+func TestThreadReturnsFoldersWithoutDeadlock(t *testing.T) {
+	s := open(t)
+	_ = s.UpsertMessages([]mailtypes.Message{msg("1", "t1", "a", "b", time.Hour, "INBOX", "Archive")})
+	done := make(chan []mailtypes.Message, 1)
+	go func() { ms, _ := s.Thread("a1/t1"); done <- ms }()
+	select {
+	case ms := <-done:
+		if len(ms) != 1 || len(ms[0].Folders) != 2 {
+			t.Fatalf("%+v", ms)
+		}
+	case <-time.After(3 * time.Second):
+		t.Fatal("Thread deadlocked on the single connection")
+	}
+}

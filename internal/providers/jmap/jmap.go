@@ -102,6 +102,7 @@ func (p *Provider) session(ctx context.Context) (*session, error) {
 	if s.PrimaryAccounts[capMail] == "" {
 		return nil, errors.New("jmap: server has no mail capability")
 	}
+	p.pinHost(&s)
 	p.sess = &s
 	return &s, nil
 }
@@ -449,10 +450,14 @@ func (p *Provider) Apply(ctx context.Context, a mailtypes.Action) error {
 		case mailtypes.ActUnstar:
 			u["keywords/$flagged"] = nil
 		case mailtypes.ActArchive:
+			if p.roleID(mailtypes.RoleArchive) == "" {
+				// a message must stay in at least one mailbox, so make the archive
+				if _, err := p.CreateFolder(ctx, "Archive", mailtypes.RoleArchive); err != nil {
+					return fmt.Errorf("jmap: no archive mailbox and could not create one: %w", err)
+				}
+			}
 			if err := moveTo(mailtypes.RoleArchive); err != nil {
-				// no archive mailbox: leave the inbox so it is out of the way
-				inbox := p.roleID(mailtypes.RoleInbox)
-				u["mailboxIds/"+inbox] = nil
+				return err
 			}
 		case mailtypes.ActTrash:
 			if err := moveTo(mailtypes.RoleTrash); err != nil {
@@ -675,4 +680,60 @@ func (p *Provider) Watch(ctx context.Context, notify func()) error {
 		return nil
 	}
 	return sc.Err()
+}
+
+// pinHost keeps the session's URLs on the address the person typed. Servers
+// behind a proxy, a port forward or a lab network often advertise their own
+// internal name in the session, which this machine cannot reach. The paths are
+// the server's; the host and port are the ones that just answered. Set
+// trust_session_urls to "true" to use the advertised URLs as they are.
+func (p *Provider) pinHost(s *session) {
+	if p.acct.Settings["trust_session_urls"] == "true" {
+		return
+	}
+	b, err := url.Parse(p.base)
+	if err != nil {
+		return
+	}
+	fix := func(u string) string {
+		x, err := url.Parse(strings.NewReplacer("{", "%7B", "}", "%7D").Replace(u))
+		if err != nil || x.Host == "" {
+			return u
+		}
+		x.Scheme, x.Host = b.Scheme, b.Host
+		return strings.NewReplacer("%7B", "{", "%7D", "}").Replace(x.String())
+	}
+	s.APIURL, s.DownloadURL, s.UploadURL, s.EventSourceURL = fix(s.APIURL), fix(s.DownloadURL), fix(s.UploadURL), fix(s.EventSourceURL)
+}
+
+// CreateFolder makes a mailbox. role is one of the standard roles or custom.
+func (p *Provider) CreateFolder(ctx context.Context, name, role string) (string, error) {
+	acct, err := p.accountID(ctx)
+	if err != nil {
+		return "", err
+	}
+	c := map[string]any{"name": name}
+	for k, v := range roleMap {
+		if v == role && role != mailtypes.RoleCustom {
+			c["role"] = k
+		}
+	}
+	r, err := p.do(ctx, mailUse, call{"Mailbox/set", map[string]any{"accountId": acct, "create": map[string]any{"n": c}}, "c"})
+	if err != nil {
+		return "", err
+	}
+	var out struct {
+		Created map[string]struct {
+			ID string `json:"id"`
+		} `json:"created"`
+		NotCreated map[string]json.RawMessage `json:"notCreated"`
+	}
+	_ = json.Unmarshal(r["c"], &out)
+	if out.Created["n"].ID == "" {
+		return "", fmt.Errorf("jmap: could not create mailbox: %s", trunc(string(out.NotCreated["n"]), 200))
+	}
+	if _, err := p.mailboxes(ctx, acct); err != nil {
+		return "", err
+	}
+	return out.Created["n"].ID, nil
 }
