@@ -194,23 +194,35 @@ func (e *Engine) runner(id string) *runner {
 // SyncNow asks an account (or all of them) to sync immediately.
 func (e *Engine) SyncNow(id string) {
 	e.mu.Lock()
+	defer e.mu.Unlock()
+	for k, r := range e.runners {
+		if id == "" || id == k {
+			r.poke()
+		}
+	}
+}
+
+// SyncAll is the Sync now button: every account syncs at once, and SyncStatus counts the accounts that finish. Pressing it again
+// while a round is running joins that round instead of starting a second count.
+func (e *Engine) SyncAll() {
+	e.mu.Lock()
 	running := false
 	for _, r := range e.runners {
-		if r.inRound || r.busy {
+		if r.inRound {
 			running = true
 		}
 	}
 	if !running {
 		e.roundDone = 0
-	}
-	for k, r := range e.runners {
-		if id == "" || id == k {
+		for _, r := range e.runners {
 			r.inRound = true
-			r.poke()
 		}
 	}
+	for _, r := range e.runners {
+		r.poke()
+	}
 	e.mu.Unlock()
-	e.emit(Event{Type: "syncing", AccountID: id})
+	e.emit(Event{Type: "syncing"})
 }
 
 // AccountSync is one account's part of a SyncStatus.
@@ -245,8 +257,10 @@ func (e *Engine) SyncStatus() SyncStatus {
 		if r != nil {
 			as.Syncing = r.busy
 			if r.busy || r.inRound {
-				pending++
 				out.Running = true
+			}
+			if r.inRound {
+				pending++ // only accounts a Sync now is waiting on are counted; a background sync reads as plain "Syncing..."
 			}
 		}
 		if out.LastSync.IsZero() || a.LastSync.Before(out.LastSync) {
@@ -254,7 +268,11 @@ func (e *Engine) SyncStatus() SyncStatus {
 		}
 		out.Accounts = append(out.Accounts, as)
 	}
-	out.Total = e.roundDone + pending
+	if pending > 0 {
+		out.Total = e.roundDone + pending
+	} else {
+		out.Done = 0
+	}
 	return out
 }
 
@@ -262,13 +280,14 @@ func (e *Engine) SyncStatus() SyncStatus {
 func (r *runner) cycle() error {
 	r.e.mu.Lock()
 	r.busy = true
+	r.thisRound = r.inRound
 	r.e.mu.Unlock()
 	r.e.emit(Event{Type: "syncing", AccountID: r.acct.ID})
 	err := r.once()
 	r.e.mu.Lock()
 	r.busy = false
-	if r.inRound {
-		r.inRound = false
+	if r.thisRound {
+		r.thisRound, r.inRound = false, false
 		r.e.roundDone++
 	}
 	r.e.mu.Unlock()
@@ -468,9 +487,11 @@ type runner struct {
 	kick   chan struct{}
 	prov   plugin.Provider
 	first  bool
-	// both guarded by Engine.mu: busy while a sync cycle is running, inRound from a Sync now until that account finishes
-	busy    bool
-	inRound bool
+	// guarded by Engine.mu: busy while a sync cycle runs; inRound from Sync now until that account finishes a cycle that began after it
+	// (a cycle already under way when the button was pressed may have read the server before the press); thisRound marks such a cycle
+	busy      bool
+	inRound   bool
+	thisRound bool
 }
 
 func (r *runner) stop() {

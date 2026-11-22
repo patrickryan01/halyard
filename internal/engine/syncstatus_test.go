@@ -84,7 +84,8 @@ func TestSyncStatusProgress(t *testing.T) {
 	provs["a1"].setHold(h1)
 	provs["a2"].setHold(h2)
 	time.Sleep(1100 * time.Millisecond) // the stored last sync has one second resolution
-	e.SyncNow("")
+	e.SyncAll()
+	e.SyncAll() // pressing it again joins the round, it does not count the accounts twice
 	s := waitFor("both running", func(s SyncStatus) bool { return s.Running && s.Total == 2 && s.Done == 0 })
 	if !s.Accounts[0].Syncing && !s.Accounts[1].Syncing {
 		t.Fatalf("an account must read as syncing: %+v", s)
@@ -96,7 +97,7 @@ func TestSyncStatusProgress(t *testing.T) {
 	}
 	close(h2)
 	s = waitFor("all done", func(s SyncStatus) bool { return !s.Running })
-	if s.Done != 2 || s.Total != 2 || !s.LastSync.After(before) {
-		t.Fatalf("a finished Sync now reads 2 of 2 and a newer last sync: %+v (before %v)", s, before)
+	if s.Total != 0 || !s.LastSync.After(before) {
+		t.Fatalf("a finished Sync now clears its count and reads a newer last sync: %+v (before %v)", s, before)
 	}
 }
