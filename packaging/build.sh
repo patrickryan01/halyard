@@ -20,7 +20,7 @@ arch)
     cp /home/builder/b/*.pkg.tar.zst /out/pkg/' ;;
 rpm)
   podman run --rm $ENVS -v "$OUT:/out:Z" registry.opensuse.org/opensuse/tumbleweed:latest sh -ec '
-    zypper -n install --no-recommends rpm-build go gcc pkgconf-pkg-config gtk3-devel webkit2gtk4_1-devel tar gzip >/dev/null
+    zypper -n install --no-recommends rpm-build go gcc pkgconf-pkg-config "pkgconfig(gtk+-3.0)" "pkgconfig(webkit2gtk-4.1)" tar gzip >/dev/null
     mkdir -p /root/rpmbuild/SOURCES /root/rpmbuild/SPECS
     cp /out/src/halyard-'"$V"'.tar.gz /root/rpmbuild/SOURCES/
     tar -xzOf /out/src/halyard-'"$V"'.tar.gz halyard-'"$V"'/packaging/rpm/halyard.spec > /root/rpmbuild/SPECS/halyard.spec

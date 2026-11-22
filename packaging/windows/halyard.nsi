@@ -21,6 +21,7 @@ VIAddVersionKey "ProductName" "${APP}"
 VIAddVersionKey "CompanyName" "Fireball Industries"
 VIAddVersionKey "FileDescription" "${APP} mail client installer"
 VIAddVersionKey "FileVersion" "${VERSION}"
+VIAddVersionKey "LegalCopyright" "Copyright Fireball Industries"
 Icon "halyard.ico"
 UninstallIcon "halyard.ico"
 

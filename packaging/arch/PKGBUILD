@@ -11,6 +11,7 @@ depends=(gtk3 webkit2gtk-4.1 libsecret xdg-utils)
 makedepends=(go gcc pkgconf)
 source=("$pkgname-$pkgver.tar.gz")
 sha256sums=(SKIP)
+options=(!debug)
 
 build() {
   cd "$pkgname-$pkgver"
