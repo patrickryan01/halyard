@@ -525,3 +525,7 @@
 527|此版本的更新来自您的包管理器（EmberArch 用 pacman -Syu，EmberRTOS Desktop 用 zypper dup）。Halyard 不会自己替换自己。
 528|版本 {x} 已发布。安装程序已用发布的哈希值校验。
 529|您使用的已是最新版本（{x}）。
+530|上次同步 {time}
+531|尚未同步
+532|正在同步 {done}/{total}
+533|正在同步...

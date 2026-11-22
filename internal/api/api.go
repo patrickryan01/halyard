@@ -119,8 +119,9 @@ func (s *Server) Handler() http.Handler {
 	h("GET /api/events", s.eventsPoll)
 	h("POST /api/sync", func(w http.ResponseWriter, r *http.Request) {
 		s.Eng.SyncNow("")
-		writeJSON(w, map[string]bool{"ok": true})
+		writeJSON(w, s.Eng.SyncStatus())
 	})
+	h("GET /api/syncstatus", func(w http.ResponseWriter, r *http.Request) { writeJSON(w, s.Eng.SyncStatus()) })
 	h("POST /api/open", s.open)
 	h("GET /api/mcp", func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, map[string]any{"enabled": s.MCPURL != "", "url": s.MCPURL, "token": s.MCPToken})

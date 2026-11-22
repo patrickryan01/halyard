@@ -38,11 +38,12 @@ type Engine struct {
 	Sec       *secret.Store
 	UndoDelay time.Duration
 
-	mu      sync.Mutex
-	runners map[string]*runner
-	subs    map[chan Event]struct{}
-	ctx     context.Context
-	cancel  context.CancelFunc
+	mu        sync.Mutex
+	runners   map[string]*runner
+	roundDone int // accounts that finished since the last Sync now, for the progress count
+	subs      map[chan Event]struct{}
+	ctx       context.Context
+	cancel    context.CancelFunc
 	// Factory builds providers; tests replace it.
 	Factory func(mailtypes.Account, plugin.Secrets) (plugin.Provider, error)
 }
@@ -193,12 +194,86 @@ func (e *Engine) runner(id string) *runner {
 // SyncNow asks an account (or all of them) to sync immediately.
 func (e *Engine) SyncNow(id string) {
 	e.mu.Lock()
-	defer e.mu.Unlock()
+	running := false
+	for _, r := range e.runners {
+		if r.inRound || r.busy {
+			running = true
+		}
+	}
+	if !running {
+		e.roundDone = 0
+	}
 	for k, r := range e.runners {
 		if id == "" || id == k {
+			r.inRound = true
 			r.poke()
 		}
 	}
+	e.mu.Unlock()
+	e.emit(Event{Type: "syncing", AccountID: id})
+}
+
+// AccountSync is one account's part of a SyncStatus.
+type AccountSync struct {
+	ID       string    `json:"id"`
+	Email    string    `json:"email"`
+	Syncing  bool      `json:"syncing"`
+	LastSync time.Time `json:"lastSync"`
+	Error    string    `json:"error,omitempty"`
+}
+
+// SyncStatus is what the Sync now button shows: whether a sync is running, how many accounts the current Sync now has
+// finished out of how many it started, and when every account was last brought up to date.
+type SyncStatus struct {
+	Running  bool          `json:"running"`
+	Total    int           `json:"total"`
+	Done     int           `json:"done"`
+	LastSync time.Time     `json:"lastSync"` // the oldest account's last sync: all accounts are at least this fresh. Zero until each has synced once
+	Accounts []AccountSync `json:"accounts"`
+}
+
+// SyncStatus reports the running state of every account's sync loop.
+func (e *Engine) SyncStatus() SyncStatus {
+	accts, _ := e.St.Accounts()
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	out := SyncStatus{Accounts: []AccountSync{}, Done: e.roundDone}
+	pending := 0
+	for _, a := range accts {
+		r := e.runners[a.ID]
+		as := AccountSync{ID: a.ID, Email: a.Email, LastSync: a.LastSync, Error: a.LastError}
+		if r != nil {
+			as.Syncing = r.busy
+			if r.busy || r.inRound {
+				pending++
+				out.Running = true
+			}
+		}
+		if out.LastSync.IsZero() || a.LastSync.Before(out.LastSync) {
+			out.LastSync = a.LastSync
+		}
+		out.Accounts = append(out.Accounts, as)
+	}
+	out.Total = e.roundDone + pending
+	return out
+}
+
+// cycle runs one sync pass and keeps the progress the Sync now button shows.
+func (r *runner) cycle() error {
+	r.e.mu.Lock()
+	r.busy = true
+	r.e.mu.Unlock()
+	r.e.emit(Event{Type: "syncing", AccountID: r.acct.ID})
+	err := r.once()
+	r.e.mu.Lock()
+	r.busy = false
+	if r.inRound {
+		r.inRound = false
+		r.e.roundDone++
+	}
+	r.e.mu.Unlock()
+	r.e.emit(Event{Type: "syncdone", AccountID: r.acct.ID})
+	return err
 }
 
 // Act applies an action to the cache at once, queues it for the server, and
@@ -393,6 +468,9 @@ type runner struct {
 	kick   chan struct{}
 	prov   plugin.Provider
 	first  bool
+	// both guarded by Engine.mu: busy while a sync cycle is running, inRound from a Sync now until that account finishes
+	busy    bool
+	inRound bool
 }
 
 func (r *runner) stop() {
@@ -413,7 +491,7 @@ func (r *runner) loop() {
 	backoff := 2 * time.Second
 	watching := false
 	for r.ctx.Err() == nil {
-		err := r.once()
+		err := r.cycle()
 		if err != nil {
 			if r.ctx.Err() != nil {
 				return
