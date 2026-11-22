@@ -77,19 +77,19 @@ write_files:
       sid, _ = rpc({'jsonrpc': '2.0', 'id': 1, 'method': 'initialize', 'params': {'protocolVersion': '2025-06-18', 'capabilities': {}, 'clientInfo': {'name': 'vm-proof', 'version': '1'}}})
       rpc({'jsonrpc': '2.0', 'method': 'notifications/initialized'}, sid)
       for u in sys.argv[1:]:
-          _, out = rpc({'jsonrpc': '2.0', 'id': 2, 'method': 'tools/call', 'params': {'name': 'add_account_password', 'arguments': {'kind': 'imap', 'email': u + '@lab.test', 'password': 'labpass-' + u, 'imapHost': '10.0.2.100', 'imapPort': 993, 'imapSecurity': 'ssl', 'smtpHost': '10.0.2.100', 'smtpPort': 465, 'smtpSecurity': 'ssl', 'skipVerify': True}}}, sid)
+          _, out = rpc({'jsonrpc': '2.0', 'id': 2, 'method': 'tools/call', 'params': {'name': 'add_account_password', 'arguments': {'kind': 'imap', 'email': u + '@lab.test', 'password': 'labpass-' + u, 'imapHost': '127.0.0.1', 'imapPort': 1993, 'imapSecurity': 'ssl', 'smtpHost': '127.0.0.1', 'smtpPort': 1465, 'smtpSecurity': 'ssl', 'skipVerify': True}}}, sid)
           print(out[:300])
 runcmd:
   - [sh, -c, "curl -fsS -o /tmp/$PKGNAME http://10.0.2.2:8099/$PKGNAME"]
   - [sh, -c, "$INSTALL > /var/log/halyard-install.log 2>&1; echo INSTALL-EXIT=\$? >> /var/log/halyard-install.log"]
-  - [sh, -c, "usermod -aG seat tester; systemctl daemon-reload; systemctl enable --now seatd; systemctl mask getty@tty1.service; systemctl enable --now halyard-kiosk.service"]
+  - [sh, -c, "usermod -aG seat tester; loginctl enable-linger tester; systemctl daemon-reload; systemctl enable --now seatd; systemctl mask getty@tty1.service; systemctl enable --now halyard-kiosk.service"]
   - [sh, -c, "touch /var/lib/halyard-ready"]
 U
 xorriso -as mkisofs -quiet -V cidata -J -r -o "$W/seed-$KIND.iso" "$SEED" >/dev/null 2>&1
 MON=$W/mon-$KIND.sock; rm -f "$MON"
 qemu-system-x86_64 -enable-kvm -cpu host -smp 2 -m 3072 -machine q35 \
   -drive file="$DISK",if=virtio -drive file="$W/seed-$KIND.iso",if=virtio,media=cdrom,readonly=on \
-  -netdev user,id=n0,hostfwd=tcp:127.0.0.1:2222-:22,guestfwd=tcp:10.0.2.100:993-tcp:127.0.0.1:18993,guestfwd=tcp:10.0.2.100:465-tcp:127.0.0.1:18465 \
+  -netdev user,id=n0,hostfwd=tcp:127.0.0.1:2222-:22 \
   -device virtio-net-pci,netdev=n0 -device virtio-vga -display none -monitor unix:"$MON",server,nowait -daemonize -pidfile "$W/qemu-$KIND.pid"
 QEMU=$(cat "$W/qemu-$KIND.pid")
 shot() { python3 - "$MON" "$1" <<'PY'
@@ -100,10 +100,14 @@ PY
 }
 SSH="ssh -i $W/key -p 2222 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=5 -o LogLevel=ERROR tester@127.0.0.1"
 echo "waiting for the guest to install and start the app"
+# the guest reaches the lab through a reverse tunnel on its own loopback (1993 imaps, 1465 smtps)
+SSHT="ssh -i $W/key -p 2222 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=5 -o LogLevel=ERROR -o ExitOnForwardFailure=yes"
 for i in $(seq 1 200); do $SSH 'test -f /var/lib/halyard-ready' 2>/dev/null && break; sleep 5; done
 $SSH 'cat /var/log/halyard-install.log | tail -3; systemctl is-active halyard-kiosk; pacman -Qi halyard 2>/dev/null | head -3; rpm -qi halyard 2>/dev/null | head -3' || true
 for i in $(seq 1 60); do $SSH 'test -f ~/.config/halyard/mcp.json' 2>/dev/null && break; sleep 3; done
 sleep 8; shot "$OUT/$KIND-1-first-run.ppm"
+$SSHT -N -R 1993:127.0.0.1:18993 -R 1465:127.0.0.1:18465 tester@127.0.0.1 & TUN=$!
+trap 'kill $HTTP $QEMU $TUN 2>/dev/null || true' EXIT
 $SSH '/usr/local/bin/add-lab-account alice' | tee "$OUT/$KIND-add-account.txt"
 sleep 25; shot "$OUT/$KIND-2-inbox.ppm"
 $SSH 'journalctl -u halyard-kiosk --no-pager | tail -15' > "$OUT/$KIND-kiosk.log" || true
