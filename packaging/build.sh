@@ -10,7 +10,7 @@ mkdir -p "$OUT/src" "$OUT/pkg"
 ENVS="-e HALYARD_VERSION=$V -e HALYARD_GOOGLE_CLIENT_ID=${HALYARD_GOOGLE_CLIENT_ID:-} -e HALYARD_GOOGLE_CLIENT_SECRET=${HALYARD_GOOGLE_CLIENT_SECRET:-} -e HALYARD_MS_CLIENT_ID=${HALYARD_MS_CLIENT_ID:-}"
 case "$T" in
 arch)
-  podman run --rm --cpus=2 --cpus "${HALYARD_BUILD_CPUS:-2}" $ENVS -v "$OUT:/out:Z" docker.io/library/archlinux:latest sh -ec '
+  podman run --rm --cpus "${HALYARD_BUILD_CPUS:-2}" $ENVS -v "$OUT:/out:Z" docker.io/library/archlinux:latest sh -ec '
     pacman -Syu --noconfirm --needed base-devel go gtk3 webkit2gtk-4.1 libsecret xdg-utils git >/dev/null
     useradd -m builder; mkdir -p /home/builder/b
     tar -xzf /out/src/halyard-'"$V"'.tar.gz -C /home/builder/b; cp /out/src/halyard-'"$V"'.tar.gz /home/builder/b/
@@ -19,7 +19,7 @@ arch)
     su builder -c "cd /home/builder/b && HALYARD_VERSION='"$V"' makepkg --noconfirm --nocheck -f"
     cp /home/builder/b/*.pkg.tar.zst /out/pkg/' ;;
 rpm)
-  podman run --rm --cpus=2 --cpus "${HALYARD_BUILD_CPUS:-2}" $ENVS -v "$OUT:/out:Z" registry.opensuse.org/opensuse/tumbleweed:latest sh -ec '
+  podman run --rm --cpus "${HALYARD_BUILD_CPUS:-2}" $ENVS -v "$OUT:/out:Z" registry.opensuse.org/opensuse/tumbleweed:latest sh -ec '
     zypper -n install --no-recommends rpm-build go gcc pkgconf-pkg-config "pkgconfig(gtk+-3.0)" "pkgconfig(webkit2gtk-4.1)" tar gzip >/dev/null
     mkdir -p /root/rpmbuild/SOURCES /root/rpmbuild/SPECS
     cp /out/src/halyard-'"$V"'.tar.gz /root/rpmbuild/SOURCES/
@@ -29,7 +29,7 @@ rpm)
 windows)
   # Signing: SIGN_CERT_PFX_BASE64 and SIGN_CERT_PASSWORD (the house certificate). HALYARD_REQUIRE_SIGNING=1 refuses to
   # produce an unsigned installer; every release build sets it. A rehearsal without the certificate says so.
-  podman run --rm --cpus=2 --cpus "${HALYARD_BUILD_CPUS:-2}" $ENVS -e SIGN_TRUST_PEM="${SIGN_TRUST_PEM:-}" -e SIGN_CERT_PFX_BASE64="${SIGN_CERT_PFX_BASE64:-}" -e SIGN_CERT_PASSWORD="${SIGN_CERT_PASSWORD:-}" -e HALYARD_REQUIRE_SIGNING="${HALYARD_REQUIRE_SIGNING:-}" \
+  podman run --rm --cpus "${HALYARD_BUILD_CPUS:-2}" $ENVS -e SIGN_TRUST_PEM="${SIGN_TRUST_PEM:-}" -e SIGN_CERT_PFX_BASE64="${SIGN_CERT_PFX_BASE64:-}" -e SIGN_CERT_PASSWORD="${SIGN_CERT_PASSWORD:-}" -e HALYARD_REQUIRE_SIGNING="${HALYARD_REQUIRE_SIGNING:-}" \
     -v "$OUT:/out:Z" docker.io/library/golang:1.27-bookworm sh -ec '
     apt-get update -qq >/dev/null && apt-get install -y -qq nsis osslsigncode >/dev/null
     mkdir -p /src && tar -xzf /out/src/halyard-'"$V"'.tar.gz -C /src && cd /src/halyard-'"$V"'
