@@ -11,13 +11,11 @@ package main
 
 import (
 	"context"
-	_ "embed"
 	"log"
 	"os"
 	"path/filepath"
 	"strings"
 
-	"github.com/gen2brain/beeep"
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
@@ -28,10 +26,8 @@ import (
 	"github.com/patrickryan01/halyard/internal/app"
 	"github.com/patrickryan01/halyard/internal/brand"
 	"github.com/patrickryan01/halyard/internal/engine"
+	"github.com/patrickryan01/halyard/internal/platform"
 )
-
-//go:embed icon.png
-var appIcon []byte
 
 func mailtoArg(args []string) string {
 	for _, a := range args {
@@ -56,7 +52,6 @@ func main() {
 		log.Fatal(err)
 	}
 	defer a.Close()
-	beeep.AppName = brand.Name
 
 	var ctx context.Context
 	startMailto := mailtoArg(os.Args[1:])
@@ -64,7 +59,7 @@ func main() {
 		if ev.Type != "new" || a.Store.Setting("notifications", "true") != "true" {
 			return
 		}
-		if err := beeep.Notify(ev.From, ev.Subject, appIcon); err != nil {
+		if err := platform.Notify(ev.From, ev.Subject); err != nil {
 			log.Printf("desktop notification failed: %v", err)
 		} else {
 			log.Printf("desktop notification raised: %s", ev.Subject)
