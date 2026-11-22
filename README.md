@@ -47,8 +47,8 @@ Writing is just as quick. Rich text, attachments by drop or paste, drafts kept o
 
 * **Windows:** run `halyard-<version>-setup.exe` from the release page. The installer is signed.
 * **Arch Linux and EmberArch:** `pacman -U halyard-<version>-1-x86_64.pkg.tar.zst`.
-* **EmberRTOS Desktop:** `zypper install halyard`.
-* **openSUSE and other rpm systems:** `zypper install ./halyard-<version>-0.x86_64.rpm` from the release page.
+* **EmberRTOS Desktop:** `sudo transactional-update pkg install halyard`, then restart. Halyard updates arrive with the rest of the system.
+* **Other rpm systems:** download `halyard-<version>-0.x86_64.rpm` from the release page and install it with your package manager.
 
 Open it from your application menu, or start it with `halyard`. On Linux, updates come from your package manager. On Windows, Halyard tells you when a newer release is out and checks the installer before you run it.
 
