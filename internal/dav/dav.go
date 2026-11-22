@@ -29,7 +29,9 @@ type Client struct {
 // New makes a client. skipVerify trusts a self-signed server certificate.
 func New(base, user, password, token string, skipVerify bool) *Client {
 	tr := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: skipVerify, MinVersion: tls.VersionTLS12}, Proxy: http.ProxyFromEnvironment}
-	return &Client{Base: base, User: user, Password: password, Token: token, HTTP: &http.Client{Transport: tr, Timeout: 40 * time.Second}}
+	// a redirect (the well known address answers with one) keeps the method and the body, which Go's client would drop
+	return &Client{Base: base, User: user, Password: password, Token: token, HTTP: &http.Client{Transport: tr, Timeout: 40 * time.Second,
+		CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}}
 }
 
 type multistatus struct {
@@ -84,6 +86,10 @@ func (c *Client) abs(ref string) (string, error) {
 }
 
 func (c *Client) do(ctx context.Context, method, ref string, hdr map[string]string, body []byte) (*http.Response, []byte, error) {
+	return c.doN(ctx, method, ref, hdr, body, 0)
+}
+
+func (c *Client) doN(ctx context.Context, method, ref string, hdr map[string]string, body []byte, redirects int) (*http.Response, []byte, error) {
 	u, err := c.abs(ref)
 	if err != nil {
 		return nil, nil, err
@@ -110,6 +116,14 @@ func (c *Client) do(ctx context.Context, method, ref string, hdr map[string]stri
 	}
 	defer resp.Body.Close()
 	b, err := io.ReadAll(io.LimitReader(resp.Body, 64<<20))
+	if redirects < 5 && (resp.StatusCode == 301 || resp.StatusCode == 302 || resp.StatusCode == 307 || resp.StatusCode == 308) {
+		if loc := resp.Header.Get("Location"); loc != "" {
+			next, err := resp.Request.URL.Parse(loc)
+			if err == nil {
+				return c.doN(ctx, method, next.String(), hdr, body, redirects+1)
+			}
+		}
+	}
 	return resp, b, err
 }
 

@@ -58,6 +58,7 @@ func New(eng *engine.Engine, a *api.Server, name, version string) *mcp.Server {
 	s.actions(srv)
 	s.contacts(srv)
 	s.settings(srv)
+	s.features(srv)
 	return srv
 }
 
@@ -166,7 +167,7 @@ func (s *Server) folders(srv *mcp.Server) {
 type listIn struct {
 	AccountID string `json:"accountId,omitempty" jsonschema:"limit to one account; empty means all accounts (unified)"`
 	Folder    string `json:"folder,omitempty" jsonschema:"role:inbox, role:sent, role:drafts, role:archive, role:trash, role:spam, role:all, starred, snoozed, or a folder id from list_folders. Default role:inbox"`
-	Query     string `json:"query,omitempty" jsonschema:"full text search; supports from: to: subject: is:unread is:starred has:attachment"`
+	Query     string `json:"query,omitempty" jsonschema:"full text search; the same operators as search_threads"`
 	Unread    bool   `json:"unreadOnly,omitempty"`
 	Limit     int    `json:"limit,omitempty" jsonschema:"default 25, max 200"`
 	Offset    int    `json:"offset,omitempty"`
@@ -180,21 +181,7 @@ func (s *Server) listThreads(in listIn) ([]mailtypes.Thread, error) {
 		in.Limit = 200
 	}
 	q := store.ListQuery{AccountID: in.AccountID, Folder: in.Folder, Text: in.Query, Unread: in.Unread, Limit: in.Limit, Offset: in.Offset}
-	var words []string
-	for _, w := range strings.Fields(q.Text) {
-		switch strings.ToLower(w) {
-		case "is:unread":
-			q.Unread = true
-		case "has:attachment":
-			q.HasAttach = true
-		case "is:starred":
-			q.Starred = true
-		default:
-			words = append(words, w)
-		}
-	}
-	q.Text = strings.Join(words, " ")
-	if q.Folder == "" && q.Text == "" && !q.HasAttach && !q.Starred {
+	if q.Folder == "" && strings.TrimSpace(q.Text) == "" {
 		q.Folder = "role:inbox"
 	}
 	ts, err := s.Eng.St.ListThreads(q)
@@ -210,7 +197,7 @@ func (s *Server) read(srv *mcp.Server) {
 			ts, err := s.listThreads(in)
 			return nil, obj{"threads": ts}, err
 		})
-	mcp.AddTool(srv, &mcp.Tool{Name: "search_threads", Description: "Full text search over every synced message (subject, sender, recipients, body). Operators: from:, to:, subject:, is:unread, is:starred, has:attachment. Trash and spam are excluded."},
+	mcp.AddTool(srv, &mcp.Tool{Name: "search_threads", Description: "Full text search over every synced message (subject, sender, recipients, body). Operators: from:, to:, cc:, bcc:, subject:, filename:, label:, in:, is:unread, is:read, is:starred, is:snoozed, has:attachment, has:invite, has:unsubscribe, before:, after:, older_than:, newer_than:, larger:, smaller:, quoted phrases, -exclude and OR. Trash and spam are excluded unless in: names them."},
 		func(ctx context.Context, _ *mcp.CallToolRequest, in listIn) (*mcp.CallToolResult, obj, error) {
 			in.Folder = ""
 			if strings.TrimSpace(in.Query) == "" {
@@ -293,6 +280,28 @@ type sendIn struct {
 	BodyHTML    string               `json:"bodyHtml,omitempty"`
 	Attachments []engine.DraftAttach `json:"attachments,omitempty" jsonschema:"each with filename and either base64 content or a local path"`
 	Immediate   bool                 `json:"immediate,omitempty" jsonschema:"send now instead of after the undo window"`
+	SendAt      string               `json:"sendAt,omitempty" jsonschema:"schedule the send for a time, RFC 3339, for example 2026-12-01T08:00:00-05:00"`
+	From        string               `json:"from,omitempty" jsonschema:"an identity address to send as; empty means the account's own"`
+	Receipt     bool                 `json:"receipt,omitempty" jsonschema:"ask for a read receipt"`
+	Protect     string               `json:"protect,omitempty" jsonschema:"pgp or smime"`
+	Sign        bool                 `json:"sign,omitempty"`
+	Encrypt     bool                 `json:"encrypt,omitempty"`
+}
+
+func (s *Server) queueAt(d engine.DraftData, at string) (obj, error) {
+	t, err := time.Parse(time.RFC3339, at)
+	if err != nil {
+		return nil, errors.New("sendAt must be RFC 3339, for example 2026-12-01T08:00:00-05:00")
+	}
+	o, err := d.Outgoing()
+	if err != nil {
+		return nil, err
+	}
+	id, err := s.Eng.SendAt(o, t)
+	if err != nil {
+		return nil, err
+	}
+	return obj{"outboxId": id, "sendsAt": t.Format(time.RFC3339), "note": "call cancel_send with outboxId before then to cancel"}, nil
 }
 
 func (s *Server) queue(d engine.DraftData, immediate bool) (obj, error) {
@@ -320,7 +329,13 @@ func (s *Server) queue(d engine.DraftData, immediate bool) (obj, error) {
 func (s *Server) write(srv *mcp.Server) {
 	mcp.AddTool(srv, &mcp.Tool{Name: "send_message", Description: "Send a new message. It goes through the outbox, so it leaves after the user's undo window unless immediate is true. The account's signature is appended."},
 		func(ctx context.Context, _ *mcp.CallToolRequest, in sendIn) (*mcp.CallToolResult, obj, error) {
-			o, err := s.queue(engine.DraftData{AccountID: in.AccountID, To: in.To, Cc: in.Cc, Bcc: in.Bcc, Subject: in.Subject, BodyText: in.BodyText, BodyHTML: in.BodyHTML, Attachments: in.Attachments}, in.Immediate)
+			d := engine.DraftData{AccountID: in.AccountID, To: in.To, Cc: in.Cc, Bcc: in.Bcc, Subject: in.Subject, BodyText: in.BodyText, BodyHTML: in.BodyHTML, Attachments: in.Attachments,
+				FromEmail: in.From, ReceiptRequested: in.Receipt, Protect: in.Protect, Sign: in.Sign, Encrypt: in.Encrypt}
+			if in.SendAt != "" {
+				o, err := s.queueAt(d, in.SendAt)
+				return nil, o, err
+			}
+			o, err := s.queue(d, in.Immediate)
 			return nil, o, err
 		})
 	type replyIn struct {

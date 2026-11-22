@@ -92,10 +92,12 @@ func Dial(cfg Config) (*Client, error) {
 			return nil, err
 		}
 		c.conn, c.r = tcn, bufio.NewReader(tcn)
-	}
-	if err := c.capability(); err != nil {
-		c.Close()
-		return nil, err
+		// the server sends its capabilities again once the connection is secure (RFC 5804, 2.2)
+		c.deadline()
+		if _, err := c.read(); err != nil {
+			conn.Close()
+			return nil, err
+		}
 	}
 	if err := c.login(); err != nil {
 		c.Close()

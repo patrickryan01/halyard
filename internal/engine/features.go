@@ -35,7 +35,22 @@ func (e *Engine) provider(accountID string) (plugin.Provider, mailtypes.Account,
 
 // ApplyRule runs one rule's actions on one message.
 func (e *Engine) applyActions(r mailtypes.Rule, m mailtypes.Message) {
+	// flags first: a move can give the message a new ID on the server, and a flag set after it would miss
+	acts := make([]mailtypes.RuleAction, 0, len(r.Actions))
 	for _, a := range r.Actions {
+		switch a.Kind {
+		case "move", "archive", "trash", "spam":
+		default:
+			acts = append(acts, a)
+		}
+	}
+	for _, a := range r.Actions {
+		switch a.Kind {
+		case "move", "archive", "trash", "spam":
+			acts = append(acts, a)
+		}
+	}
+	for _, a := range acts {
 		switch a.Kind {
 		case "move":
 			_ = e.Act(m.AccountID, mailtypes.Action{Kind: mailtypes.ActMove, FolderID: a.FolderID, IDs: []string{m.RemoteID}})

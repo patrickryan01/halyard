@@ -25,8 +25,10 @@ import (
 
 	"github.com/patrickryan01/halyard/internal/app"
 	"github.com/patrickryan01/halyard/internal/brand"
+	"github.com/patrickryan01/halyard/internal/cli"
 	"github.com/patrickryan01/halyard/internal/engine"
 	"github.com/patrickryan01/halyard/internal/platform"
+	"github.com/patrickryan01/halyard/internal/tray"
 )
 
 func mailtoArg(args []string) string {
@@ -39,6 +41,10 @@ func mailtoArg(args []string) string {
 }
 
 func main() {
+	// "halyard send ..." and the other commands run in the terminal; with no command the window opens
+	if len(os.Args) > 1 && cli.IsCommand(os.Args[1]) {
+		os.Exit(cli.Main(os.Args[1:], os.Stdout, os.Stderr))
+	}
 	dir, err := app.DataDir()
 	if err != nil {
 		log.Fatal(err)
@@ -66,13 +72,37 @@ func main() {
 		}
 	})
 
+	trayOn := a.Store.Setting("tray", "true") == "true" && os.Getenv("HALYARD_NO_TRAY") == ""
+	var tr *tray.Tray
+	updateTray := func() {
+		if tr == nil {
+			return
+		}
+		n := 0
+		fs, _ := a.Store.Folders("")
+		for _, f := range fs {
+			if f.Role == "inbox" {
+				n += f.Unread
+			}
+		}
+		tr.SetUnread(n)
+	}
+	a.API.OnEvent(func(ev engine.Event) {
+		switch ev.Type {
+		case "synced", "new", "accounts":
+			updateTray()
+		}
+	})
+
 	err = wails.Run(&options.App{
-		Title:       brand.Name,
-		Width:       1280,
-		Height:      820,
-		MinWidth:    900,
-		MinHeight:   560,
-		AssetServer: &assetserver.Options{Handler: a.API.Handler()},
+		Title:             brand.Name,
+		HideWindowOnClose: trayOn,
+		StartHidden:       trayOn && a.Store.Setting("startMinimized", "false") == "true",
+		Width:             1280,
+		Height:            820,
+		MinWidth:          900,
+		MinHeight:         560,
+		AssetServer:       &assetserver.Options{Handler: a.API.Handler()},
 		SingleInstanceLock: &options.SingleInstanceLock{
 			UniqueId: brand.ID,
 			OnSecondInstanceLaunch: func(d options.SecondInstanceData) {
@@ -88,6 +118,16 @@ func main() {
 		},
 		OnStartup: func(c context.Context) {
 			ctx = c
+			if trayOn {
+				show := func() { runtime.WindowUnminimise(c); runtime.Show(c) }
+				tr = tray.Start(brand.Name, tray.Actions{
+					Open:    show,
+					Compose: func() { show(); runtime.EventsEmit(c, "mailto", "mailto:") },
+					Check:   func() { a.Engine.SyncNow("") },
+					Quit:    func() { runtime.Quit(c) },
+				})
+				updateTray()
+			}
 			if startMailto != "" {
 				// the page is not loaded yet; it asks for this when it starts
 				runtime.EventsOn(c, "ready", func(...interface{}) { runtime.EventsEmit(c, "mailto", startMailto) })

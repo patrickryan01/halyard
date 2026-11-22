@@ -337,6 +337,12 @@ func (e *Engine) sendOne(it store.OutboxItem) {
 		err = p.Send(ctx, o)
 		p.Close()
 	}
+	if err != nil && temporary(err) {
+		if ok, derr := e.St.DeferOutbox(it.ID, err, retryDelays); derr == nil && ok {
+			e.emit(Event{Type: "outbox", ID: it.ID, Subject: it.Subject})
+			return
+		}
+	}
 	_ = e.St.FinishOutbox(it.ID, err)
 	if err != nil {
 		e.emit(Event{Type: "error", AccountID: acct.ID, ID: it.ID, Subject: it.Subject, Text: "Could not send: " + err.Error()})
@@ -610,4 +616,19 @@ func (r *runner) apply(res plugin.SyncResult, firstSync bool) error {
 	}
 	r.e.emit(Event{Type: "synced", AccountID: r.acct.ID})
 	return nil
+}
+
+// retryDelays is how long a message that could not be sent for a temporary reason waits before each new try.
+var retryDelays = []time.Duration{20 * time.Second, 2 * time.Minute, 10 * time.Minute, 30 * time.Minute, 2 * time.Hour}
+
+// temporary says whether a failed send is worth trying again by itself: the server said "try later" (an SMTP 4xx
+// answer) or the network was not there. A refusal (5xx), a bad login and a message that cannot be built are not.
+func temporary(err error) bool {
+	msg := strings.ToLower(err.Error())
+	for _, s := range []string{"smtp error 4", " 421", " 450", " 451", " 452", "timeout", "timed out", "connection refused", "connection reset", "no such host", "network is unreachable", "i/o timeout", "temporar", "try again", "rate limit"} {
+		if strings.Contains(msg, s) {
+			return true
+		}
+	}
+	return false
 }

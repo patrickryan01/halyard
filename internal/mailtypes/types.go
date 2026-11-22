@@ -145,6 +145,8 @@ type Outgoing struct {
 	// Date, when set, is the Date header; zero means now.
 	Date    time.Time
 	ReplyTo []Address
+	// ExtraHeaders are written as given, for headers such as List-Unsubscribe on a newsletter.
+	ExtraHeaders map[string]string
 	// Sign and Encrypt ask for S/MIME or OpenPGP protection, named by Protect ("smime" or "pgp").
 	Protect string
 	Sign    bool
@@ -205,66 +207,66 @@ type FlagUpdate struct {
 
 // Identity is one address a person sends from: the account's own, and every alias the provider says they may send as.
 type Identity struct {
-	ID        string `json:"id"`
-	AccountID string `json:"accountId"`
-	Name      string `json:"name"`
-	Email     string `json:"email"`
+	ID        string `json:"id,omitempty"`
+	AccountID string `json:"accountId,omitempty"`
+	Name      string `json:"name,omitempty"`
+	Email     string `json:"email,omitempty"`
 	ReplyTo   string `json:"replyTo,omitempty"`
-	Signature string `json:"signature"`
-	Default   bool   `json:"default"`
+	Signature string `json:"signature,omitempty"`
+	Default   bool   `json:"default,omitempty"`
 	// Alias is true for identities that came from the provider (Gmail send-as, JMAP identities, Microsoft aliases).
-	Alias bool `json:"alias"`
+	Alias bool `json:"alias,omitempty"`
 	// Source is "provider" for an address the server reported, "user" for one added here.
-	Source string `json:"source"`
+	Source string `json:"source,omitempty"`
 }
 
 // Rule is a filter: when a message matches, do the actions. It runs on mail as it arrives and on demand.
 type Rule struct {
-	ID         string          `json:"id"`
-	AccountID  string          `json:"accountId"` // empty means every account
-	Name       string          `json:"name"`
-	Enabled    bool            `json:"enabled"`
-	Match      string          `json:"match"` // all or any
-	Conditions []RuleCondition `json:"conditions"`
-	Actions    []RuleAction    `json:"actions"`
+	ID         string          `json:"id,omitempty"`
+	AccountID  string          `json:"accountId,omitempty"` // empty means every account
+	Name       string          `json:"name,omitempty"`
+	Enabled    bool            `json:"enabled,omitempty"`
+	Match      string          `json:"match,omitempty"` // all or any
+	Conditions []RuleCondition `json:"conditions,omitempty"`
+	Actions    []RuleAction    `json:"actions,omitempty"`
 	// Stop means no later rule runs on a message this one matched.
-	Stop bool `json:"stop"`
+	Stop bool `json:"stop,omitempty"`
 }
 
 type RuleCondition struct {
-	Field string `json:"field"` // from, to, cc, subject, body, has_attachment, list_id, size_over
-	Op    string `json:"op"`    // contains, equals, starts, ends, not_contains
-	Value string `json:"value"`
+	Field string `json:"field,omitempty"` // from, to, cc, subject, body, has_attachment, list_id, size_over
+	Op    string `json:"op,omitempty"`    // contains, equals, starts, ends, not_contains
+	Value string `json:"value,omitempty"`
 }
 
 type RuleAction struct {
-	Kind     string `json:"kind"` // move, label, archive, read, star, trash, spam, forward
+	Kind     string `json:"kind,omitempty"` // move, label, archive, read, star, trash, spam, forward
 	FolderID string `json:"folderId,omitempty"`
 	To       string `json:"to,omitempty"` // for forward
 }
 
 // Template is a canned reply: a subject and a body to insert in the composer.
 type Template struct {
-	ID      string `json:"id"`
-	Name    string `json:"name"`
-	Subject string `json:"subject"`
-	Body    string `json:"body"`
+	ID      string `json:"id,omitempty"`
+	Name    string `json:"name,omitempty"`
+	Subject string `json:"subject,omitempty"`
+	Body    string `json:"body,omitempty"`
 }
 
 // SavedSearch is a search kept by name.
 type SavedSearch struct {
-	ID    string `json:"id"`
-	Name  string `json:"name"`
-	Query string `json:"query"`
+	ID    string `json:"id,omitempty"`
+	Name  string `json:"name,omitempty"`
+	Query string `json:"query,omitempty"`
 }
 
 // Vacation is an automatic reply.
 type Vacation struct {
-	Enabled bool      `json:"enabled"`
-	Subject string    `json:"subject"`
-	Body    string    `json:"body"`
+	Enabled bool      `json:"enabled,omitempty"`
+	Subject string    `json:"subject,omitempty"`
+	Body    string    `json:"body,omitempty"`
 	Start   time.Time `json:"start,omitempty"`
 	End     time.Time `json:"end,omitempty"`
 	// ContactsOnly limits replies to people in the address book.
-	ContactsOnly bool `json:"contactsOnly"`
+	ContactsOnly bool `json:"contactsOnly,omitempty"`
 }

@@ -3,6 +3,7 @@ package engine
 import (
 	"bytes"
 	"context"
+	"errors"
 	_ "github.com/patrickryan01/halyard/internal/providers/local"
 	"path/filepath"
 	"strings"
@@ -163,5 +164,38 @@ func TestRulesRunOnNewMail(t *testing.T) {
 	rs, _ := e.St.Rules()
 	if rs[0].ID != r2.ID || rs[1].ID != r.ID {
 		t.Fatal("rule order did not change")
+	}
+}
+
+func TestTemporaryFailuresAreRetried(t *testing.T) {
+	for msg, want := range map[string]bool{
+		"smtp send: SMTP error 452: Rate limit exceeded, try again later.": true,
+		"dial tcp 1.2.3.4:25: i/o timeout":                                 true,
+		"smtp send: SMTP error 550: no such user":                          false,
+		"imap login: authentication failed":                                false,
+	} {
+		if temporary(errors.New(msg)) != want {
+			t.Errorf("%q: want %v", msg, want)
+		}
+	}
+	e := testEngine(t)
+	if err := e.St.PutAccount(mailtypes.Account{ID: "a9", Kind: "imap", Email: "x@y.test"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := e.St.QueueOutbox(store.OutboxItem{ID: "o1", AccountID: "a9", Payload: []byte("{}"), SendAt: time.Now(), Subject: "s"}); err != nil {
+		t.Fatal(err)
+	}
+	for i := 0; i < 3; i++ {
+		ok, err := e.St.DeferOutbox("o1", errors.New("452 try later"), []time.Duration{time.Minute, time.Minute, time.Minute})
+		if err != nil || !ok {
+			t.Fatalf("attempt %d: %v %v", i, ok, err)
+		}
+	}
+	if ok, _ := e.St.DeferOutbox("o1", errors.New("452 try later"), []time.Duration{time.Minute, time.Minute, time.Minute}); ok {
+		t.Fatal("a message kept being retried forever")
+	}
+	items, _ := e.St.Outbox()
+	if len(items) != 1 || items[0].State != "queued" || !items[0].SendAt.After(time.Now()) {
+		t.Fatalf("%+v", items)
 	}
 }

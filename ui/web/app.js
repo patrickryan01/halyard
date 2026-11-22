@@ -101,6 +101,7 @@ async function loadThreads(append) {
   if (S.q) p.set('q', S.q); else p.set('folder', S.folder === 'starred' ? '' : S.folder);
   if (!S.q && S.folder === 'starred') p.set('q', 'is:starred');
   p.set('limit', '100'); p.set('offset', String(S.offset));
+  if (S.data.settings.conversations === 'false') p.set('flat', '1');
   const t = await api('threads?' + p.toString());
   S.threads = append ? S.threads.concat(t) : t;
   S.more = t.length === 100;
@@ -156,12 +157,13 @@ function render() {
   if (queued.length) banner += '<div class="banner err">' + queued.length + ' message(s) did not send: ' + esc(queued[0].error) + ' <button class="btn" data-retry="' + esc(queued[0].id) + '">Retry</button></div>';
   app.innerHTML =
     '<div class="top"><button class="icon" id="menu" aria-label="Menu">' + IC.menu + '</button><div class="brand"><i></i><span>' + esc(BRAND) + '</span></div>' +
-    '<div class="search">' + IC.search + '<input id="q" placeholder="Search mail   (from:  to:  subject:  is:unread  has:attachment)" value="' + esc(S.q) + '" aria-label="Search mail"></div>' +
+    '<div class="search">' + IC.search + '<input id="q" placeholder="Search mail   (from:  to:  subject:  is:unread  has:attachment  before:  larger:)" value="' + esc(S.q) + '" aria-label="Search mail"></div>' +
     '<div class="spacer"></div><button class="icon" id="syncbtn" title="Sync now" aria-label="Sync now"><svg viewBox="0 0 24 24"><path d="M17.650 6.350A8 8 0 1 0 19.730 14h-2.080A6 6 0 1 1 12 6c1.660 0 3.140.69 4.220 1.780L13 11h7V4l-2.350 2.350z"/></svg></button>' +
     '<button class="icon" id="settings" aria-label="Settings">' + IC.gear + '</button></div>' +
     '<div class="main"><nav class="side ' + (S.side ? '' : 'closed') + '" aria-label="Folders">' + side + '</nav><section class="content">' + banner + (S.open ? convoHtml() : listHtml()) + '</section></div><button class="fab" id="fab" aria-label="Compose">' + IC.plus + '</button>';
   bindMain();
   if (S.open) mountBodies();
+  if (window.H && H.afterRender) H.afterRender();
 }
 function listTitle() {
   if (S.q) return 'Search results';
@@ -432,6 +434,7 @@ function stepConvo(d) {
 // ---------- keyboard ----------
 let gTimer = null;
 function onKey(e) {
+  if (window.H && H.key) { H.key(e); return; }
   if (e.ctrlKey || e.metaKey || e.altKey) return;
   if (e.key === 'Escape') { closePop(); const d = $('.scrim'); if (d && !d.dataset.sticky) { d.remove(); return; } if (S.open && !typing(e)) { S.open = null; render(); } return; }
   if (typing(e) || $('.scrim')) return;
@@ -622,11 +625,13 @@ function settingsDialog() {
     '<h3>Appearance</h3><div class="grid2" style="grid-template-columns:1fr 1fr"><div><label class="l">Theme</label><select id="theme"><option value="auto">Match system</option><option value="light">Light</option><option value="dark">Dark</option></select></div><div><label class="l">Density</label><select id="density"><option value="comfortable">Comfortable</option><option value="compact">Compact</option></select></div></div>' +
     '<h3>Behavior</h3><div class="row2"><div><label class="l">Undo send delay</label><select id="undo"><option value="0">Off</option><option>5</option><option>10</option><option>20</option><option>30</option></select></div>' +
     '<label><input type="checkbox" id="imgs" style="width:auto"> Always load remote images (they can tell the sender you read the message)</label><label><input type="checkbox" id="notif" style="width:auto"> Desktop notifications for new mail</label></div>' +
-    '<h3>Sign-in apps</h3><div class="row2"><div class="pill">Used when you add a Google or Microsoft account. Leave empty to use the one built into this copy of the app.</div>' +
+    '<details id="signinapps"><summary><b>Advanced: sign-in apps</b></summary><div class="row2"><div class="pill">Only for an organization that gave you its own Google or Microsoft app. Leave empty to use the one built into this copy of the app.</div>' +
     '<label class="l">Google client ID</label><input id="sg_id" autocomplete="off"><label class="l">Google client secret</label><input id="sg_sec" type="password" autocomplete="off" placeholder="' + ((s.signInApps || {}).google && s.signInApps.google.hasSecret ? 'saved, leave empty to keep it' : '') + '">' +
-    '<label class="l">Microsoft application (client) ID</label><input id="sm_id" autocomplete="off"><label class="l">Microsoft directory (tenant)</label><input id="sm_ten" placeholder="common"></div>' +
+    '<label class="l">Microsoft application (client) ID</label><input id="sm_id" autocomplete="off"><label class="l">Microsoft directory (tenant)</label><input id="sm_ten" placeholder="common"></div></details>' +
     '<h3>MCP server</h3><div class="row2"><div class="pill">The app runs a read and write MCP server on this computer so other programs can use your mail. It signs in as you and reaches every account above.</div><div id="mcpbox" class="pill">Loading...</div></div>' +
+    '<h3>Mail tools</h3><div class="toolgrid">' + [['identities', 'Identities and signatures'], ['rules', 'Filters'], ['templates', 'Templates'], ['vacation', 'Vacation reply'], ['sieve', 'Server filters'], ['security', 'Encryption keys'], ['dav', 'Calendar and contacts server'], ['importExport', 'Import mail'], ['contacts', 'Contacts'], ['calendar', 'Calendar'], ['general', 'More settings']].map(t => '<button class="btn" data-tool="' + t[0] + '">' + t[1] + '</button>').join('') + '</div>' +
     '<div class="btns"><button class="btn" id="keys">Keyboard shortcuts</button><button class="btn primary" id="save">Save</button></div>');
+  $$('[data-tool]', el).forEach(b => b.onclick = () => { el.remove(); const c = H.commands.find(c => c.id === b.dataset.tool); if (c) c.run(); });
   api('mcp').then(m => {
     const b = $('#mcpbox', el); if (!b) return;
     if (!m.enabled) { b.textContent = 'The MCP server is not running in this session.'; return; }
@@ -654,7 +659,7 @@ function settingsDialog() {
 const fileToB64 = f => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(',')[1] || ''); r.onerror = () => rej(r.error); r.readAsDataURL(f); });
 const b64ToFile = (a) => { const bin = atob(a.base64 || ''); const u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return new File([u], a.filename || 'attachment', { type: a.contentType || 'application/octet-stream' }); };
 function draftToComposer(x) {
-  return { id: x.id, accountId: x.accountId, to: (x.to || []).flatMap(parseAddrs), cc: (x.cc || []).flatMap(parseAddrs), bcc: (x.bcc || []).flatMap(parseAddrs), subject: x.subject || '', html: x.bodyHtml || '', inReplyTo: x.inReplyTo || '', refs: x.references || [], threadHint: x.threadHint || '', remoteId: x.remoteId || '', files: (x.attachments || []).map(b64ToFile) };
+  return { id: x.id, accountId: x.accountId, to: (x.to || []).flatMap(parseAddrs), cc: (x.cc || []).flatMap(parseAddrs), bcc: (x.bcc || []).flatMap(parseAddrs), subject: x.subject || '', html: x.bodyHtml || '', fromEmail: x.fromEmail || '', receipt: !!x.receiptRequested, protect: x.protect || '', sign: !!x.sign, encrypt: !!x.encrypt, fromDraft: true, inReplyTo: x.inReplyTo || '', refs: x.references || [], threadHint: x.threadHint || '', remoteId: x.remoteId || '', files: (x.attachments || []).map(b64ToFile) };
 }
 async function openServerDraft(messageId) {
   try {
@@ -687,7 +692,7 @@ function quoteHtml(m) {
 async function replyTo(i, mode) {
   const m = S.open.msgs[i];
   const me = myEmails();
-  const c = { mode, accountId: m.accountId, inReplyTo: m.messageId, refs: (m.references || []).concat(m.messageId ? [m.messageId] : []), threadHint: (m.threadId || '').split('/').slice(1).join('/') };
+  const c = { mode, accountId: m.accountId, threadId: m.threadId, inReplyTo: m.messageId, refs: (m.references || []).concat(m.messageId ? [m.messageId] : []), threadHint: (m.threadId || '').split('/').slice(1).join('/') };
   const re = /^re:\s*/i, fw = /^fwd?:\s*/i;
   if (mode === 'forward') {
     c.subject = (fw.test(m.subject) ? '' : 'Fwd: ') + m.subject; c.inReplyTo = ''; c.refs = [];
@@ -764,6 +769,7 @@ function openComposer(init) {
   $('[data-send]', root).onclick = send;
   c.root = root;
   S.composers.push(c);
+  if (window.H && H.composer) H.composer(root, c, { ed, save: () => save(), send: () => send() });
   setTimeout(() => (c.to.length ? ed : $('[data-f=to] input', root)).focus(), 30);
   if (c.mode !== 'new' && c.to.length) { const r = document.createRange(); r.setStart(ed, 0); r.collapse(true); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); }
 
@@ -777,7 +783,7 @@ function openComposer(init) {
     try {
       const attachments = [];
       for (const f of c.files) attachments.push({ filename: f.name, contentType: f.type || 'application/octet-stream', base64: await fileToB64(f) });
-      await api('drafts', { id: c.id, accountId: c.accountId, to: c.to.map(addrFmt), cc: c.cc.map(addrFmt), bcc: c.bcc.map(addrFmt), subject: c.subject, bodyText: ed.innerText, bodyHtml: ed.innerHTML, inReplyTo: c.inReplyTo, references: c.refs || [], threadHint: c.threadHint, remoteId: c.remoteId || '', attachments });
+      await api('drafts', { id: c.id, accountId: c.accountId, to: c.to.map(addrFmt), cc: c.cc.map(addrFmt), bcc: c.bcc.map(addrFmt), subject: c.subject, bodyText: ed.innerText, bodyHtml: ed.innerHTML, inReplyTo: c.inReplyTo, references: c.refs || [], threadHint: c.threadHint, remoteId: c.remoteId || '', attachments, ...(window.H ? H.draftExtras(c) : {}) });
       savedOnce = true;
     } catch (e) { /* the next tick tries again */ }
   }
@@ -798,17 +804,20 @@ function openComposer(init) {
     if (bad) { toast('"' + bad.email + '" is not a valid address.', { err: true }); return; }
     if (!c.to.length && !c.cc.length && !c.bcc.length) { toast('Add at least one recipient.', { err: true }); return; }
     if (!c.subject.trim() && !confirm('Send this message without a subject?')) return;
+    if (window.H && H.checkSend && !H.checkSend(c)) return;
     const html = ed.innerHTML, text = ed.innerText;
     if (/attach|attached|enclosed/i.test(text.replace(/\n>.*/g, '')) && !c.files.length && !confirm('You mentioned an attachment but none is attached. Send anyway?')) return;
     const fd = new FormData();
-    fd.append('json', JSON.stringify({ accountId: c.accountId, to: c.to.map(addrFmt).join(', '), cc: c.cc.map(addrFmt).join(', '), bcc: c.bcc.map(addrFmt).join(', '), subject: c.subject, bodyText: text, bodyHtml: '<div>' + html + '</div>', inReplyTo: c.inReplyTo, references: (c.refs || []).join(' '), threadHint: c.threadHint }));
+    fd.append('json', JSON.stringify({ accountId: c.accountId, to: c.to.map(addrFmt).join(', '), cc: c.cc.map(addrFmt).join(', '), bcc: c.bcc.map(addrFmt).join(', '), subject: c.subject, bodyText: text, bodyHtml: '<div>' + html + '</div>', inReplyTo: c.inReplyTo, references: (c.refs || []).join(' '), threadHint: c.threadHint, sendAt: c.sendAt || '', ...(window.H ? H.extras(c) : {}) }));
     c.files.forEach(f => fd.append('file', f, f.name));
     const btn = $('[data-send]', root); btn.disabled = true; btn.innerHTML = '<span class="spin"></span>';
     try {
       const r = await api('send', fd);
+      if (S.data.settings.archiveAfterReply === 'true' && c.threadId && c.mode !== 'new' && c.mode !== 'forward') doAct('archive', [c.threadId], { quiet: true });
       const snapshot = { to: c.to, cc: c.cc, bcc: c.bcc, subject: c.subject, html, files: c.files.slice(), accountId: c.accountId, inReplyTo: c.inReplyTo, refs: c.refs, threadHint: c.threadHint, mode: c.mode };
       drop();
-      if (r.undoMs > 0) {
+      if (r.scheduled) { toast('Scheduled for ' + new Date(r.scheduled).toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) + '. It waits in the outbox until then.', { ms: 8000, action: { label: 'Cancel', fn: async () => { const u = await api('undo', { id: r.id }); toast(u.undone ? 'Cancelled.' : 'Too late, it has already been sent.'); } } }); }
+      else if (r.undoMs > 0) {
         toast('Sending message...', { ms: r.undoMs + 800, action: { label: 'Undo', fn: async () => { const u = await api('undo', { id: r.id }); if (u.undone) { toast('Send undone.'); openComposer(snapshot); } else toast('Too late, it has already been sent.'); } } });
       }
     } catch (e) { btn.disabled = false; btn.textContent = 'Send'; toast(e.message, { err: true }); }
@@ -881,6 +890,7 @@ document.addEventListener('keydown', onKey);
     await loadThreads(false);
     render();
     S.drafts = await api('drafts').catch(() => []);
+    if (window.H) { await Promise.all([H.loadSearches(), H.loadTemplates(), H.loadIdentities(), H.loadKeys()]); if (H.i18n) H.i18n.set(S.data.settings.language); render(); }
   } catch (e) { $('#app').innerHTML = '<div class="empty"><div><h2>Could not start</h2><p>' + esc(e.message) + '</p></div></div>'; }
   pollEvents();
   // inside the native window the Wails runtime exists: mailto links and notifications come from the shell

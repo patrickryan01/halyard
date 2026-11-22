@@ -44,7 +44,7 @@ CREATE INDEX IF NOT EXISTS mf_folder ON msg_folders(account_id, folder_remote);
 CREATE VIRTUAL TABLE IF NOT EXISTS search USING fts5(subject, sender, recipients, body, tokenize='unicode61 remove_diacritics 2');
 CREATE TABLE IF NOT EXISTS ops(id INTEGER PRIMARY KEY AUTOINCREMENT, account_id TEXT NOT NULL, action TEXT NOT NULL, created INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS outbox(id TEXT PRIMARY KEY, account_id TEXT NOT NULL, payload BLOB NOT NULL, send_at INTEGER NOT NULL,
-  state TEXT NOT NULL, error TEXT NOT NULL DEFAULT '', subject TEXT NOT NULL DEFAULT '');
+  state TEXT NOT NULL, error TEXT NOT NULL DEFAULT '', subject TEXT NOT NULL DEFAULT '', attempts INTEGER NOT NULL DEFAULT 0);
 CREATE TABLE IF NOT EXISTS contacts(account_id TEXT NOT NULL, email TEXT NOT NULL, name TEXT NOT NULL DEFAULT '',
   uses INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(account_id, email));
 CREATE TABLE IF NOT EXISTS drafts(id TEXT PRIMARY KEY, account_id TEXT NOT NULL, data TEXT NOT NULL, subject TEXT NOT NULL DEFAULT '', updated INTEGER NOT NULL);
@@ -95,6 +95,9 @@ func migrate(db *sql.DB) error {
 		have[name] = true
 	}
 	rows.Close()
+	if _, err := db.Exec(`ALTER TABLE outbox ADD COLUMN attempts INTEGER NOT NULL DEFAULT 0`); err != nil && !strings.Contains(err.Error(), "duplicate column") {
+		return err
+	}
 	for _, c := range []struct{ name, ddl string }{
 		{"size", "ALTER TABLE messages ADD COLUMN size INTEGER NOT NULL DEFAULT 0"},
 		{"extra", "ALTER TABLE messages ADD COLUMN extra TEXT NOT NULL DEFAULT ''"},
@@ -488,8 +491,10 @@ type ListQuery struct {
 	Unread    bool
 	HasAttach bool
 	Starred   bool
-	Limit     int
-	Offset    int
+	// Flat lists every message on its own line (conversation view off); the line still opens the whole conversation.
+	Flat   bool
+	Limit  int
+	Offset int
 }
 
 func (s *Store) ListThreads(q ListQuery) ([]mailtypes.Thread, error) {
@@ -551,12 +556,16 @@ func (s *Store) ListThreads(q ListQuery) ([]mailtypes.Thread, error) {
 	if len(where) > 0 {
 		w = "WHERE " + strings.Join(where, " AND ")
 	}
+	groupBy := `m.thread_id`
+	if q.Flat {
+		groupBy = `m.id`
+	}
 	query := `SELECT m.thread_id, m.account_id, MAX(m.date) d, m.subject, m.snippet,
 	   (SELECT COUNT(DISTINCT CASE WHEN x.message_id='' THEN x.id ELSE x.message_id END) FROM messages x WHERE x.thread_id=m.thread_id),
 	   (SELECT COUNT(*) FROM messages x WHERE x.thread_id=m.thread_id AND x.is_read=0),
 	   MAX(m.is_starred), MAX(m.has_attach), MAX(m.snoozed),
 	   (SELECT group_concat(DISTINCT CASE WHEN x.from_name<>'' THEN x.from_name ELSE x.from_email END) FROM messages x WHERE x.thread_id=m.thread_id)
-	 FROM messages m ` + w + ` GROUP BY m.thread_id ORDER BY d DESC LIMIT ? OFFSET ?`
+	 FROM messages m ` + w + ` GROUP BY ` + groupBy + ` ORDER BY d DESC LIMIT ? OFFSET ?`
 	args = append(args, q.Limit, q.Offset)
 	rows, err := s.db.Query(query, args...)
 	if err != nil {
@@ -840,6 +849,20 @@ func (s *Store) Outbox() ([]OutboxItem, error) {
 		out = append(out, it)
 	}
 	return out, rows.Err()
+}
+
+// DeferOutbox puts a message that failed for a temporary reason back in the queue to be tried again at a later time.
+// It returns false when the message has been tried too often, and is then left to the person.
+func (s *Store) DeferOutbox(id string, sendErr error, delays []time.Duration) (bool, error) {
+	var tries int
+	if err := s.db.QueryRow(`SELECT attempts FROM outbox WHERE id=?`, id).Scan(&tries); err != nil {
+		return false, err
+	}
+	if tries >= len(delays) {
+		return false, nil
+	}
+	_, err := s.db.Exec(`UPDATE outbox SET state='queued', error=?, attempts=attempts+1, send_at=? WHERE id=?`, "will try again: "+sendErr.Error(), time.Now().Add(delays[tries]).UnixMilli(), id)
+	return err == nil, err
 }
 
 func (s *Store) FinishOutbox(id string, sendErr error) error {

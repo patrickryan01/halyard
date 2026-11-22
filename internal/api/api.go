@@ -125,6 +125,7 @@ func (s *Server) Handler() http.Handler {
 	h("GET /api/mcp", func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, map[string]any{"enabled": s.MCPURL != "", "url": s.MCPURL, "token": s.MCPToken})
 	})
+	s.features(h)
 	if s.UI != nil {
 		mux.Handle("/", s.UI)
 	}
@@ -189,11 +190,24 @@ func (s *Server) state(w http.ResponseWriter, r *http.Request) {
 		"kinds":    plugin.Kinds(),
 		"outbox":   outboxList(st),
 		"settings": map[string]string{
-			"theme":         st.Setting("theme", "auto"),
-			"density":       st.Setting("density", "comfortable"),
-			"loadImages":    st.Setting("loadImages", "false"),
-			"notifications": st.Setting("notifications", "true"),
-			"undoSeconds":   st.Setting("undoSeconds", "10"),
+			"theme":               st.Setting("theme", "auto"),
+			"density":             st.Setting("density", "comfortable"),
+			"loadImages":          st.Setting("loadImages", "false"),
+			"notifications":       st.Setting("notifications", "true"),
+			"undoSeconds":         st.Setting("undoSeconds", "10"),
+			"language":            st.Setting("language", "auto"),
+			"shortcuts":           st.Setting("shortcuts", "{}"),
+			"receipts":            st.Setting("receipts", "ask"),
+			"tray":                st.Setting("tray", "true"),
+			"startMinimized":      st.Setting("startMinimized", "false"),
+			"conversations":       st.Setting("conversations", "true"),
+			"defaultProtect":      st.Setting("defaultProtect", "pgp"),
+			"signAll":             st.Setting("signAll", "false"),
+			"encryptWhenPossible": st.Setting("encryptWhenPossible", "false"),
+			"spellcheck":          st.Setting("spellcheck", "true"),
+			"notifySound":         st.Setting("notifySound", "false"),
+			"composeFormat":       st.Setting("composeFormat", "html"),
+			"archiveAfterReply":   st.Setting("archiveAfterReply", "false"),
 		},
 		"oauth": map[string]bool{
 			"google":    google.OAuthConfig(nil).ClientID != "" || st.Setting("oauth_google_client_id", "") != "",
@@ -500,7 +514,7 @@ func (s *Server) threads(w http.ResponseWriter, r *http.Request) {
 	off, _ := strconv.Atoi(q.Get("offset"))
 	lim, _ := strconv.Atoi(q.Get("limit"))
 	text := q.Get("q")
-	lq := store.ListQuery{AccountID: q.Get("account"), Folder: q.Get("folder"), Text: text, Unread: q.Get("unread") == "1", Offset: off, Limit: lim}
+	lq := store.ListQuery{AccountID: q.Get("account"), Folder: q.Get("folder"), Text: text, Unread: q.Get("unread") == "1", Flat: q.Get("flat") == "1", Offset: off, Limit: lim}
 	// operators the FTS table cannot answer
 	lq.Text, lq.Unread, lq.HasAttach, lq.Starred = stripOps(lq.Text, lq.Unread)
 	th, err := s.Eng.St.ListThreads(lq)
@@ -600,6 +614,12 @@ type sendIn struct {
 	InReplyTo  string `json:"inReplyTo"`
 	References string `json:"references"`
 	ThreadHint string `json:"threadHint"`
+	From       string `json:"from"`    // the identity to send as; empty means the account's own address
+	Receipt    bool   `json:"receipt"` // ask for a read receipt
+	SendAt     string `json:"sendAt"`  // RFC 3339; empty sends after the undo window
+	Protect    string `json:"protect"` // pgp or smime
+	Sign       bool   `json:"sign"`
+	Encrypt    bool   `json:"encrypt"`
 }
 
 // send takes a multipart form: a "json" field and any number of "file" parts.
@@ -614,7 +634,13 @@ func (s *Server) send(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	o := mailtypes.Outgoing{AccountID: in.AccountID, To: mimeb.ParseList(in.To), Cc: mimeb.ParseList(in.Cc), Bcc: mimeb.ParseList(in.Bcc), Subject: in.Subject,
-		BodyText: in.BodyText, BodyHTML: in.BodyHTML, InReplyTo: in.InReplyTo, References: strings.Fields(in.References), ThreadHint: in.ThreadHint}
+		BodyText: in.BodyText, BodyHTML: in.BodyHTML, InReplyTo: in.InReplyTo, References: strings.Fields(in.References), ThreadHint: in.ThreadHint,
+		ReceiptRequested: in.Receipt, Protect: in.Protect, Sign: in.Sign, Encrypt: in.Encrypt}
+	if in.From != "" {
+		if a, ok := mimeb.ParseAddress(in.From); ok {
+			o.From = a
+		}
+	}
 	if r.MultipartForm != nil {
 		for _, fh := range r.MultipartForm.File["file"] {
 			f, err := fh.Open()
@@ -633,6 +659,20 @@ func (s *Server) send(w http.ResponseWriter, r *http.Request) {
 	}
 	if n, err := strconv.Atoi(s.Eng.St.Setting("undoSeconds", "10")); err == nil && n >= 0 && n <= 30 {
 		s.Eng.UndoDelay = time.Duration(n) * time.Second
+	}
+	if in.SendAt != "" {
+		at, err := time.Parse(time.RFC3339, in.SendAt)
+		if err != nil {
+			fail(w, 400, fmt.Errorf("the send time is not valid"))
+			return
+		}
+		id, err := s.Eng.SendAt(o, at)
+		if err != nil {
+			fail(w, 400, err)
+			return
+		}
+		writeJSON(w, map[string]any{"id": id, "scheduled": at.UnixMilli()})
+		return
 	}
 	id, err := s.Eng.Send(o)
 	if err != nil {
@@ -709,7 +749,9 @@ func (s *Server) settings(w http.ResponseWriter, r *http.Request) {
 	}
 	allowed := map[string]bool{"theme": true, "density": true, "loadImages": true, "notifications": true, "undoSeconds": true,
 		"oauth_google_client_id": true, "oauth_google_client_secret": true, "oauth_google_ports": true,
-		"oauth_microsoft_client_id": true, "oauth_microsoft_tenant": true, "oauth_microsoft_ports": true}
+		"oauth_microsoft_client_id": true, "oauth_microsoft_tenant": true, "oauth_microsoft_ports": true,
+		"language": true, "shortcuts": true, "receipts": true, "tray": true, "startMinimized": true, "conversations": true, "defaultProtect": true,
+		"signAll": true, "encryptWhenPossible": true, "spellcheck": true, "notifySound": true, "composeFormat": true, "archiveAfterReply": true}
 	for k, v := range in {
 		if !allowed[k] {
 			continue

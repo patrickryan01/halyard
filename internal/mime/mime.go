@@ -70,6 +70,11 @@ func build(o mailtypes.Outgoing, msgID string, keepBcc bool) ([]byte, error) {
 	if o.ReceiptRequested {
 		h.Set("Disposition-Notification-To", (&gomail.Address{Name: o.From.Name, Address: o.From.Email}).String())
 	}
+	for k, v := range o.ExtraHeaders {
+		if !strings.ContainsAny(k+v, "\r\n") {
+			h.Set(k, v)
+		}
+	}
 	h.Set("Message-ID", msgID)
 	if o.InReplyTo != "" {
 		h.Set("In-Reply-To", o.InReplyTo)

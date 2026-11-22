@@ -238,7 +238,7 @@ func (p *Provider) roleID(role string) string {
 
 var emailProps = []string{"id", "threadId", "mailboxIds", "keywords", "receivedAt", "subject", "from", "to", "cc", "bcc", "replyTo",
 	"messageId", "inReplyTo", "references", "preview", "textBody", "htmlBody", "bodyValues", "attachments", "hasAttachment", "size",
-	"header:List-Unsubscribe:asText", "header:List-Unsubscribe-Post:asText", "header:Disposition-Notification-To:asText"}
+	"header:List-Unsubscribe:asURLs", "header:List-Unsubscribe-Post:asRaw", "header:Disposition-Notification-To:asAddresses"}
 
 type jaddr struct {
 	Name  *string
@@ -258,9 +258,9 @@ type jemail struct {
 	References                 []string `json:"references"`
 	Preview                    string   `json:"preview"`
 	Size                       int64    `json:"size"`
-	Unsub                      *string  `json:"header:List-Unsubscribe:asText"`
-	UnsubPost                  *string  `json:"header:List-Unsubscribe-Post:asText"`
-	Receipt                    *string  `json:"header:Disposition-Notification-To:asText"`
+	Unsub                      []string `json:"header:List-Unsubscribe:asURLs"`
+	UnsubPost                  *string  `json:"header:List-Unsubscribe-Post:asRaw"`
+	Receipt                    []jaddr  `json:"header:Disposition-Notification-To:asAddresses"`
 	TextBody                   []struct {
 		PartID string `json:"partId"`
 	} `json:"textBody"`
@@ -297,14 +297,18 @@ func (p *Provider) toMessage(e jemail) mailtypes.Message {
 		m.From = f[0]
 	}
 	m.Size = e.Size
-	if e.Unsub != nil {
-		m.ListUnsubscribe = strings.TrimSpace(*e.Unsub)
+	if len(e.Unsub) > 0 {
+		var parts []string
+		for _, u := range e.Unsub {
+			parts = append(parts, "<"+strings.Trim(strings.TrimSpace(u), "<>")+">")
+		}
+		m.ListUnsubscribe = strings.Join(parts, ", ")
 	}
 	if e.UnsubPost != nil {
 		m.ListUnsubscribePost = strings.Contains(strings.ToLower(*e.UnsubPost), "one-click")
 	}
-	if e.Receipt != nil {
-		m.ReceiptTo = strings.TrimSpace(*e.Receipt)
+	if r := conv(e.Receipt); len(r) > 0 {
+		m.ReceiptTo = r[0].Email
 	}
 	if len(e.MessageID) > 0 {
 		m.MessageID = "<" + strings.Trim(e.MessageID[0], "<>") + ">"

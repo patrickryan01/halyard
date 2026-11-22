@@ -114,7 +114,7 @@ func WithVacation(script string, v mailtypes.Vacation) string {
 		b.WriteString(strings.TrimSpace(head) + "\n")
 	}
 	b.WriteString(vacBegin + "\n")
-	b.WriteString(cond + "{ vacation :days 1" + subj + " " + textBlock(v.Body) + "}\n")
+	b.WriteString(cond + "{ vacation :days 1" + subj + " " + textBlock(v.Body) + "; }\n")
 	b.WriteString(vacEnd + "\n")
 	if strings.TrimSpace(rest) != "" {
 		b.WriteString(strings.TrimLeft(rest, "\n") + "\n")
