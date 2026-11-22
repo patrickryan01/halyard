@@ -6,7 +6,7 @@ Halyard is one desktop application, built three ways (Arch, EmberRTOS Desktop wh
 
 1. `main` is the commit you mean to release and the tree is clean.
 2. The version is the same in `release-notes/<version>.md`, the package files (`packaging/arch/PKGBUILD` takes `HALYARD_VERSION`, `packaging/rpm/halyard.spec` takes `hver`, `packaging/windows/halyard.nsi` takes `-DVERSION`), and the build command. `internal/brand.Version` is set by `-ldflags`, never edited.
-3. `release-notes/<version>.md` has a `## Not proven` section listing everything the proof below did not cover.
+3. The release notes are written for customers. What the proof below did not cover is recorded with the release evidence in the maintainer's own records, never in the public notes.
 4. Finished features ship on: read `internal/app/app.go` and the settings defaults in `internal/api/api.go` for any switch that is off.
 5. The sign-in client registrations (`HALYARD_GOOGLE_CLIENT_ID`, `HALYARD_GOOGLE_CLIENT_SECRET`, `HALYARD_MS_CLIENT_ID`) are set for the build when they exist. Without a Google client the add account screen walks through an app password, which works with nothing registered.
 6. `docs/COMPLETENESS.md` is complete: every row that is not dropped has a passing check.
@@ -35,9 +35,9 @@ Install the package in a fresh VM for each platform and prove, with a screenshot
 2. EmberRTOS Desktop (Tumbleweed): the same with the `.rpm`.
 3. Windows 11: run the installer, the app starts from the Start menu, the first run screen appears, an IMAP account is added and mail loads; `mailto:` is registered under Default apps; uninstall removes the program and leaves the person's mail alone.
 
-## 5. Release notes say what was not proven
+## 5. Record what was not proven
 
-Anything above that did not run is listed under `## Not proven` in `release-notes/<version>.md`, such as a sign in that waits on a client registration, or a screenshot nobody reviewed.
+Anything above that did not run, such as a sign in that waits on a client registration or a screenshot nobody reviewed, goes in the evidence kept with the release, not in the public notes.
 
 ## 6. Publish
 

@@ -1,6 +1,6 @@
 # Halyard
 
-A mail client written in Go, for Linux and Windows. It is as easy to use as Gmail on the web, and it works with Google, Microsoft, and any server you run yourself.
+Halyard is a fast, private mail client for Linux and Windows. It is as easy to use as Gmail on the web, and it works with Google, Microsoft, and any server you run yourself.
 
 ## What it does
 
