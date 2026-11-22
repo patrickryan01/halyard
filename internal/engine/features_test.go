@@ -358,3 +358,38 @@ func TestRemoveAndUpdateAccount(t *testing.T) {
 		t.Fatal("the account is still there")
 	}
 }
+
+func TestSendingToAGroupSendsToItsMembers(t *testing.T) {
+	e := testEngine(t)
+	ctx := context.Background()
+	a, _ := e.AddAccount(ctx, mailtypes.Account{ID: "ag", Kind: "imap", Email: "me@x.test"}, []byte("pw"))
+	g, err := e.SaveGroup(ctx, "", mailtypes.ContactGroup{Name: "Plant team", Members: []string{"a@x.test", "b@y.test", "A@x.test"}})
+	if err != nil || len(g.Members) != 2 {
+		t.Fatalf("%+v %v", g, err)
+	}
+	if cs := e.SearchContacts(ctx, "plant"); len(cs) == 0 || len(cs[0].Members) != 2 {
+		t.Fatalf("the group is not suggested: %+v", cs)
+	}
+	id, err := e.SendAt(mailtypes.Outgoing{AccountID: a.ID, To: []mailtypes.Address{{Email: "Plant team"}, {Email: "c@z.test"}}, Subject: "s", BodyText: "b"}, time.Now().Add(time.Hour))
+	if err != nil {
+		t.Fatal(err)
+	}
+	items, _ := e.St.DueOutbox(time.Now().Add(2 * time.Hour))
+	for _, it := range items {
+		if it.ID == id {
+			var o mailtypes.Outgoing
+			_ = json.Unmarshal(it.Payload, &o)
+			if len(o.To) != 3 || o.To[0].Email != "a@x.test" || o.To[2].Email != "c@z.test" {
+				t.Fatalf("recipients: %+v", o.To)
+			}
+			if err := e.DeleteGroup(ctx, "", g.ID); err != nil {
+				t.Fatal(err)
+			}
+			if gs, _ := e.St.Groups(); len(gs) != 0 {
+				t.Fatal("not deleted")
+			}
+			return
+		}
+	}
+	t.Fatal("not queued")
+}

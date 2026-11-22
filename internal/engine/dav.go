@@ -277,6 +277,11 @@ func (e *Engine) syncDAVContacts(ctx context.Context, a mailtypes.Account) {
 			continue
 		}
 		for _, o := range objs {
+			if g, ok := dav.ParseGroupVCard(o.Data); ok {
+				g.ID = "dav:" + o.URL
+				_, _ = e.St.PutGroup(g)
+				continue
+			}
 			ct := dav.ParseVCard(o.Data)
 			if ct.Email == "" {
 				continue
@@ -313,4 +318,76 @@ func (e *Engine) AddressBook(ctx context.Context, accountID string) ([]mailtypes
 		}
 	}
 	return out, nil
+}
+
+// ---- contact groups ----
+
+// SaveGroup saves a group on this computer and, when accountID has a CardDAV address book, there too as a group card, so
+// the group follows the person to every program that reads that address book.
+func (e *Engine) SaveGroup(ctx context.Context, accountID string, g mailtypes.ContactGroup) (mailtypes.ContactGroup, error) {
+	if strings.TrimSpace(g.Name) == "" {
+		return g, errors.New("a group needs a name")
+	}
+	if accountID != "" {
+		if a, err := e.St.Account(accountID); err == nil && a.Settings[SDAVURL] != "" {
+			c, err := e.davFor(a)
+			if err != nil {
+				return g, err
+			}
+			ref := strings.TrimPrefix(g.ID, "dav:")
+			if !strings.HasPrefix(g.ID, "dav:") {
+				books, err := c.Collections(ctx, "addressbook")
+				if err != nil || len(books) == 0 {
+					return g, errors.New("this server has no address book to keep the group in")
+				}
+				uid := newUID()
+				ref = dav.ObjectURL(books[0].URL, uid, ".vcf")
+				if g.ID != "" {
+					_ = e.St.DeleteGroup(g.ID)
+				}
+				g.ID = "dav:" + ref
+			}
+			uid := strings.TrimSuffix(ref[strings.LastIndex(ref, "/")+1:], ".vcf")
+			if _, err := c.Put(ctx, ref, "text/vcard; charset=utf-8", dav.BuildGroupVCard(g, uid), "-"); err != nil {
+				return g, err
+			}
+		}
+	}
+	return e.St.PutGroup(g)
+}
+
+// DeleteGroup removes a group here and on the server it came from or was saved to.
+func (e *Engine) DeleteGroup(ctx context.Context, accountID, id string) error {
+	if strings.HasPrefix(id, "dav:") && accountID != "" {
+		if c, _, err := e.davClient(accountID); err == nil {
+			if err := c.Delete(ctx, strings.TrimPrefix(id, "dav:"), ""); err != nil {
+				return err
+			}
+		}
+	}
+	return e.St.DeleteGroup(id)
+}
+
+// groupMembers replaces an address that is really a group's name (no @) with the group's members.
+func (e *Engine) groupMembers(as []mailtypes.Address) []mailtypes.Address {
+	var out []mailtypes.Address
+	gs, _ := e.St.Groups()
+	for _, a := range as {
+		hit := false
+		if !strings.Contains(a.Email, "@") {
+			for _, g := range gs {
+				if strings.EqualFold(strings.TrimSpace(a.Email), g.Name) || strings.EqualFold(strings.TrimSpace(a.Name), g.Name) && a.Email == "" {
+					for _, m := range g.Members {
+						out = append(out, mailtypes.Address{Email: m})
+					}
+					hit = true
+					break
+				}
+			}
+		}
+		if !hit {
+			out = append(out, a)
+		}
+	}
+	return out
 }

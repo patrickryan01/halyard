@@ -54,7 +54,9 @@ var Commands = []Command{
 	{"verify", "<message id>", "check a signature and decrypt a protected message"},
 	{"calendar", "<set|list|events|add|delete> ...", "calendar server: set --account id --url u --user n --password p; events --account id [--days 30]; add --account id --title t --start t --end t"},
 	{"contacts", "[query]", "search contacts"},
+	{"groups", "[list|save|delete] ...", "contact groups: save --name n --members a@b,c@d [--account id]; send to a group by using its name as the recipient"},
 	{"sieve", "<list|get|put|check|activate|delete> --account id ...", "server side filter scripts: put --name n --file script.sieve [--activate]"},
+	{"update", "", "check for a newer release (Windows); other builds are updated by the package manager"},
 	{"sync", "[account id]", "check for new mail now"},
 	{"settings", "[key value]...", "show or change settings"},
 	{"mcp", "", "show how to connect an MCP client"},
@@ -532,6 +534,52 @@ func (r *runner) run(cmd string) error {
 		})
 	case "sieve":
 		return r.sieve()
+	case "update":
+		o, err := r.call("check_update", nil)
+		if err != nil {
+			return err
+		}
+		r.emit(o, func() {
+			switch {
+			case o["managed"] == true:
+				fmt.Fprintln(r.out, s(o["statement"]))
+			case o["newer"] == true:
+				fmt.Fprintf(r.out, "version %s is out (you have %s): %s\nsha256 %s\n", s(o["latest"]), s(o["current"]), s(o["url"]), s(o["sha256"]))
+			default:
+				fmt.Fprintf(r.out, "you have the newest version (%s)\n", s(o["current"]))
+			}
+		})
+	case "groups":
+		sub := "list"
+		if len(f.pos) > 0 {
+			sub = f.pos[0]
+		}
+		switch sub {
+		case "list":
+			o, err := r.call("list_contact_groups", nil)
+			if err != nil {
+				return err
+			}
+			r.emit(o, func() {
+				for _, g := range list(o["groups"]) {
+					fmt.Fprintf(r.out, "%s  %-20s %s\n", s(g["id"]), s(g["name"]), s(g["members"]))
+				}
+			})
+		case "save":
+			o, err := r.call("save_contact_group", map[string]any{"accountId": f.str("account"), "id": f.str("id"), "name": f.str("name"), "members": strings.Split(f.str("members"), ",")})
+			if err != nil {
+				return err
+			}
+			r.emit(o, func() { fmt.Fprintln(r.out, "saved", s(o["id"])) })
+		case "delete":
+			if len(f.pos) < 2 {
+				return errors.New("usage: groups delete <id>")
+			}
+			_, err := r.call("delete_contact_group", map[string]any{"accountId": f.str("account"), "id": f.pos[1]})
+			return err
+		default:
+			return errors.New("groups: list, save or delete")
+		}
 	case "sync":
 		args := map[string]any{}
 		if len(f.pos) > 0 {

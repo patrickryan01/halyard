@@ -79,5 +79,5 @@ Checks are named by kind: `go:` is a Go test with no server needed, `lab:` is a 
 | G12 | Handles mailto: links as the default mail program | shipped | go:TestPackagesRegisterTheMailtoHandler | |
 | G13 | Installs on Arch, EmberRTOS Desktop and Windows | shipped | build:packages | proved by the package builds in the release run |
 | H1 | RSS and newsgroup (NNTP) reading | dropped | - | not mail: RSS is dropped by decision, and newsgroups are a different protocol with no use in what this client is for |
-| H2 | Check for updates inside the app | dropped | - | one release in its entirety, delivered as a new package or installer; there is no rolling release to check for |
-| H3 | Contact groups | dropped | - | servers differ on groups (vCard group cards are not portable); mailing lists on the server do this job and the client reads and writes them as ordinary addresses |
+| H2 | Check for updates: Windows checks the signed release on patrickryan01/halyard and verifies its SHA-256 before offering the installer; Arch and EmberRTOS Desktop say updates come from the package manager | shipped | go:TestUpdateCheckVerifiesHash; go:TestUpdateOnPackageManagerBuilds | the release job publishes the installer and its .sha256 |
+| H3 | Contact groups: create, edit, send to a group, kept on the CardDAV server as group cards where it supports them | shipped | go:TestSendingToAGroupSendsToItsMembers; go:TestGroupVCardRoundTrip; lab:TestFeatCalDAVCardDAVLab | vCard 4.0 KIND:group with MEMBER (RFC 6350) |

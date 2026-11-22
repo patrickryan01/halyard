@@ -121,12 +121,21 @@ type Thread struct {
 	Snoozed      *time.Time `json:"snoozedUntil,omitempty"`
 }
 
+// ContactGroup is a named list of addresses: writing to the group writes to every member.
+type ContactGroup struct {
+	ID      string   `json:"id,omitempty"`
+	Name    string   `json:"name"`
+	Members []string `json:"members"`
+}
+
 type Contact struct {
-	ID    string `json:"id,omitempty"` // provider ID; empty for contacts learned from mail
-	Name  string `json:"name"`
-	Email string `json:"email"`
-	Phone string `json:"phone,omitempty"`
-	Org   string `json:"org,omitempty"`
+	// Members is set only on a suggestion that stands for a group: the addresses it expands to.
+	Members []string `json:"members,omitempty"`
+	ID      string   `json:"id,omitempty"` // provider ID; empty for contacts learned from mail
+	Name    string   `json:"name"`
+	Email   string   `json:"email"`
+	Phone   string   `json:"phone,omitempty"`
+	Org     string   `json:"org,omitempty"`
 }
 
 // Outgoing is a message to send. Attachments carry their bytes.

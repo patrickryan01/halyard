@@ -103,3 +103,22 @@ jobs:
           name: rpm
           path: halyard-*.rpm
           retention-days: 90
+
+  publish:
+    needs: [windows, arch, rpm]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      # the Windows build checks this release for a newer one, and checks the installer against the .sha256 published here
+      - name: publish the release with every package and the installer hash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          V="${GITHUB_REF_NAME#v}"
+          gh release create "$GITHUB_REF_NAME" --title "Halyard $V" --notes-file "release-notes/$V.md" dist/*

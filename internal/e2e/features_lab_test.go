@@ -583,6 +583,7 @@ func TestFeatCalDAVCardDAVLab(t *testing.T) {
 		t.Fatal(err)
 	}
 	// contacts
+	g0 := g
 	c, err := alice.eng.CreateContact(ctx, alice.acct.ID, mailtypes.Contact{Name: "Dana Lee " + g, Email: "dana" + g + "@y.test", Phone: "555 0101"})
 	if err != nil {
 		t.Fatal(err)
@@ -608,6 +609,27 @@ func TestFeatCalDAVCardDAVLab(t *testing.T) {
 		}
 	}
 	if err := alice.eng.DeleteContact(ctx, alice.acct.ID, c.ID); err != nil {
+		t.Fatal(err)
+	}
+	// a group is kept on the server as a group card, and comes back from there
+	grp, err := alice.eng.SaveGroup(ctx, alice.acct.ID, mailtypes.ContactGroup{Name: "Crew " + g0, Members: []string{"x@y.test", "z@y.test"}})
+	if err != nil || !strings.HasPrefix(grp.ID, "dav:") {
+		t.Fatalf("group: %+v %v", grp, err)
+	}
+	if err := alice.st.DeleteGroup(grp.ID); err != nil {
+		t.Fatal(err)
+	}
+	alice.eng.SyncNow(alice.acct.ID)
+	waitFor(t, 30*time.Second, "the group to come back from the server", func() bool {
+		gs, _ := alice.st.Groups()
+		for _, x := range gs {
+			if x.Name == "Crew "+g0 && len(x.Members) == 2 {
+				return true
+			}
+		}
+		return false
+	})
+	if err := alice.eng.DeleteGroup(ctx, alice.acct.ID, grp.ID); err != nil {
 		t.Fatal(err)
 	}
 }

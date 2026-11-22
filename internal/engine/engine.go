@@ -228,6 +228,7 @@ func (e *Engine) SendAfter(o mailtypes.Outgoing, delay time.Duration) (string, e
 // SendAt queues a message to go out at a given time. Until then it sits in the outbox and can be cancelled; a time in
 // the past sends at once.
 func (e *Engine) SendAt(o mailtypes.Outgoing, at time.Time) (string, error) {
+	o.To, o.Cc, o.Bcc = e.groupMembers(o.To), e.groupMembers(o.Cc), e.groupMembers(o.Bcc)
 	if len(o.To)+len(o.Cc)+len(o.Bcc) == 0 {
 		return "", errors.New("add at least one recipient")
 	}

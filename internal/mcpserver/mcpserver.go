@@ -59,6 +59,7 @@ func New(eng *engine.Engine, a *api.Server, name, version string) *mcp.Server {
 	s.contacts(srv)
 	s.settings(srv)
 	s.features(srv)
+	s.groupTools(srv)
 	return srv
 }
 

@@ -842,7 +842,7 @@ function chipField(root, c, key, save) {
     list.forEach((x, i) => { const d = document.createElement('div'); d.innerHTML = esc(x.name || x.email) + '<small>' + esc(x.name ? x.email : '') + '</small>'; d.onmousedown = e => { e.preventDefault(); pick(i); }; ac.appendChild(d); });
     box.parentElement.appendChild(ac);
   };
-  const pick = i => { const x = acItems[i]; if (x) { c[key].push({ name: x.name || '', email: x.email }); input.value = ''; draw(); save(); } hideAc(); input.focus(); };
+  const pick = i => { const x = acItems[i]; if (x) { if (x.members && x.members.length) x.members.forEach(m => c[key].push({ name: '', email: m })); else c[key].push({ name: x.name || '', email: x.email }); input.value = ''; draw(); save(); } hideAc(); input.focus(); };
   input.oninput = () => {
     clearTimeout(acTimer);
     const v = input.value.trim().replace(/,$/, '');

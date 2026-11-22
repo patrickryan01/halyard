@@ -10,9 +10,11 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
+	"github.com/patrickryan01/halyard/internal/mailtypes"
+	"github.com/patrickryan01/halyard/internal/update"
+
 	"github.com/patrickryan01/halyard/internal/engine"
 	"github.com/patrickryan01/halyard/internal/ical"
-	"github.com/patrickryan01/halyard/internal/mailtypes"
 )
 
 // add registers a tool whose result is any value; a value that is not a JSON object is returned under "result".
@@ -359,5 +361,30 @@ func (s *Server) features(srv *mcp.Server) {
 		Name      string `json:"name"`
 	}) (any, error) {
 		return obj{"ok": true}, e.SieveDelete(ctx, in.AccountID, in.Name)
+	})
+}
+
+func (s *Server) groupTools(srv *mcp.Server) {
+	add(srv, "check_update", "Check the signed release on GitHub for a newer version. On Windows the answer carries the installer's address and its checked hash; on Arch and EmberRTOS Desktop it says the package manager does updates.", func(ctx context.Context, in struct{}) (any, error) {
+		return update.Here(ctx, s.Version)
+	})
+	e := s.Eng
+	add(srv, "list_contact_groups", "List contact groups: a name and the addresses in it. Send to a group by using its name as a recipient.", func(ctx context.Context, in struct{}) (any, error) {
+		g, err := e.St.Groups()
+		return obj{"groups": g}, err
+	})
+	add(srv, "save_contact_group", "Create a contact group (no id) or change one. With accountId of an account that has a CardDAV address book, the group is kept there too.", func(ctx context.Context, in struct {
+		AccountID string   `json:"accountId,omitempty"`
+		ID        string   `json:"id,omitempty"`
+		Name      string   `json:"name"`
+		Members   []string `json:"members"`
+	}) (any, error) {
+		return e.SaveGroup(ctx, in.AccountID, mailtypes.ContactGroup{ID: in.ID, Name: in.Name, Members: in.Members})
+	})
+	add(srv, "delete_contact_group", "Delete a contact group.", func(ctx context.Context, in struct {
+		AccountID string `json:"accountId,omitempty"`
+		ID        string `json:"id"`
+	}) (any, error) {
+		return obj{"ok": true}, e.DeleteGroup(ctx, in.AccountID, in.ID)
 	})
 }

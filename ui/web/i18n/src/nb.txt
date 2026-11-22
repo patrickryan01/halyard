@@ -513,3 +513,15 @@
 515|{n} valgt
 516|{n} uleste meldinger
 517|{x}-konto
+518|(gruppe)
+519|Konto (lagrer gruppen på serveren hvis den har en)
+520|Adresser, én på hver linje
+521|Se etter oppdateringer
+522|Rediger gruppen
+523|Gruppe
+524|Installer den
+525|Ny gruppe
+526|Installasjonsprogrammet er startet.
+527|Oppdateringer for denne versjonen kommer fra pakkebehandleren din (pacman -Syu på EmberArch, zypper dup på EmberRTOS Desktop). Halyard erstatter seg ikke selv.
+528|Versjon {x} er ute. Installasjonsprogrammet er kontrollert mot utgivelsens hash.
+529|Du har den nyeste versjonen ({x}).
