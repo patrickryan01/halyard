@@ -25,7 +25,7 @@ Rules for every step: builds, the lab and the VMs run on The Beast, one heavy jo
 |---|---|---|
 | Arch | `makepkg` in an `archlinux` container from the `git archive` tarball | `halyard-<v>-1-x86_64.pkg.tar.zst` exists; `pacman -Qip` shows version and deps; the file list has `usr/bin/halyard`, `usr/bin/halyardd`, the desktop file and icons |
 | EmberRTOS Desktop (openSUSE Tumbleweed) | `rpmbuild` in a `tumbleweed` container | `halyard-<v>-0.x86_64.rpm` exists; `rpm -qpl` lists the same files; `rpm -qpR` shows the library deps |
-| Windows | `GOOS=windows` Go build plus `makensis` | `halyard-<v>-setup.exe` exists and is a PE file; **it is unsigned** unless `HALYARD_SIGN_PFX` was set, and the release notes say which |
+| Windows | `GOOS=windows` Go build, `makensis`, then `packaging/windows/sign.sh` on `halyard.exe`, `halyardd.exe` and the installer with the house self-signed certificate (`SIGN_CERT_PFX_BASE64`, `SIGN_CERT_PASSWORD`; the copy is in `<codex>/secrets/windows-signing/`) | `halyard-<v>-setup.exe` exists; `packaging/windows/verify-signed.sh` prints `signature ok` for all three files against `packaging/windows/trust/halyard-code-signing.pem`; the build and the tag workflow both **refuse** to produce an unsigned release (`HALYARD_REQUIRE_SIGNING=1`) |
 
 ## 4. Proof in a VM on The Beast (one VM at a time, capped)
 

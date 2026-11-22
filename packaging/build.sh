@@ -27,15 +27,27 @@ rpm)
     rpmbuild -bb --define "_topdir /root/rpmbuild" --define "hver '"$V"'" /root/rpmbuild/SPECS/halyard.spec
     cp /root/rpmbuild/RPMS/*/halyard-*.rpm /out/pkg/' ;;
 windows)
-  podman run --rm $ENVS -v "$OUT:/out:Z" docker.io/library/golang:1.27-bookworm sh -ec '
-    apt-get update -qq >/dev/null && apt-get install -y -qq nsis >/dev/null
+  # Signing: SIGN_CERT_PFX_BASE64 and SIGN_CERT_PASSWORD (the house certificate). HALYARD_REQUIRE_SIGNING=1 refuses to
+  # produce an unsigned installer; every release build sets it. A rehearsal without the certificate says so.
+  podman run --rm $ENVS -e SIGN_TRUST_PEM="${SIGN_TRUST_PEM:-}" -e SIGN_CERT_PFX_BASE64="${SIGN_CERT_PFX_BASE64:-}" -e SIGN_CERT_PASSWORD="${SIGN_CERT_PASSWORD:-}" -e HALYARD_REQUIRE_SIGNING="${HALYARD_REQUIRE_SIGNING:-}" \
+    -v "$OUT:/out:Z" docker.io/library/golang:1.27-bookworm sh -ec '
+    apt-get update -qq >/dev/null && apt-get install -y -qq nsis osslsigncode >/dev/null
     mkdir -p /src && tar -xzf /out/src/halyard-'"$V"'.tar.gz -C /src && cd /src/halyard-'"$V"'
     LDF=$(sh packaging/common/build-flags.sh)
     mkdir -p /bin-win
     GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -tags "desktop,production" -ldflags "$LDF -H windowsgui" -o /bin-win/halyard.exe ./cmd/halyard
     GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "$LDF" -o /bin-win/halyardd.exe ./cmd/halyardd
+    SIGNED=no
+    if [ -n "$SIGN_CERT_PFX_BASE64" ]; then SIGNED=yes; elif [ -n "$HALYARD_REQUIRE_SIGNING" ]; then echo "REFUSING: this is a release build and there is no signing certificate" >&2; exit 3; else echo "NOTE: no signing certificate, the installer will be UNSIGNED" >&2; fi
+    if [ $SIGNED = yes ]; then
+      sh packaging/windows/sign.sh /bin-win/halyard.exe; sh packaging/windows/sign.sh /bin-win/halyardd.exe
+    fi
     cd packaging/windows && makensis -DVERSION='"$V"' -DBINDIR=/bin-win halyard.nsi
-    cp halyard-'"$V"'-setup.exe /out/pkg/' ;;
+    if [ $SIGNED = yes ]; then
+      sh sign.sh halyard-'"$V"'-setup.exe
+      for f in /bin-win/halyard.exe /bin-win/halyardd.exe halyard-'"$V"'-setup.exe; do sh verify-signed.sh "$f"; done
+    fi
+    cp halyard-'"$V"'-setup.exe /out/pkg/; echo "signed=$SIGNED" > /out/pkg/windows-signing.txt' ;;
 *) echo "unknown target $T"; exit 2 ;;
 esac
 ls -la "$OUT/pkg"

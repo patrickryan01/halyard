@@ -1,0 +1,103 @@
+name: release
+
+# A build is created only by a version tag. Plain pushes build and release nothing.
+on:
+  push:
+    tags: ['v*']
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq libgtk-3-dev libwebkit2gtk-4.1-dev
+      - run: go vet ./... && go test ./...
+
+  windows:
+    needs: [test]
+    runs-on: ubuntu-latest
+    env:
+      HALYARD_VERSION: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq nsis osslsigncode
+      # A release is signed or it does not ship. There is no unsigned path in this job.
+      - name: the certificate must exist
+        env:
+          PFX_B64: ${{ secrets.SIGN_CERT_PFX_BASE64 }}
+          PFX_PASSWORD: ${{ secrets.SIGN_CERT_PASSWORD }}
+        run: |
+          if [ -z "$PFX_B64" ] || [ -z "$PFX_PASSWORD" ]; then echo "SIGN_CERT_PFX_BASE64 and SIGN_CERT_PASSWORD are not set: refusing an unsigned release"; exit 1; fi
+      - name: build, sign, and verify the signature
+        env:
+          SIGN_CERT_PFX_BASE64: ${{ secrets.SIGN_CERT_PFX_BASE64 }}
+          SIGN_CERT_PASSWORD: ${{ secrets.SIGN_CERT_PASSWORD }}
+        run: |
+          V="${GITHUB_REF_NAME#v}"
+          export HALYARD_VERSION="$V"
+          LDF=$(sh packaging/common/build-flags.sh)
+          mkdir -p bin-win
+          GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -tags "desktop,production" -ldflags "$LDF -H windowsgui" -o bin-win/halyard.exe ./cmd/halyard
+          GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "$LDF" -o bin-win/halyardd.exe ./cmd/halyardd
+          sh packaging/windows/sign.sh bin-win/halyard.exe
+          sh packaging/windows/sign.sh bin-win/halyardd.exe
+          (cd packaging/windows && makensis -DVERSION="$V" -DBINDIR="$GITHUB_WORKSPACE/bin-win" halyard.nsi && sh sign.sh "halyard-$V-setup.exe")
+          for f in bin-win/halyard.exe bin-win/halyardd.exe "packaging/windows/halyard-$V-setup.exe"; do sh packaging/windows/verify-signed.sh "$f"; done
+          cp "packaging/windows/halyard-$V-setup.exe" .
+          sha256sum "halyard-$V-setup.exe" > "halyard-$V-setup.exe.sha256"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: |
+            halyard-*-setup.exe
+            halyard-*-setup.exe.sha256
+          retention-days: 90
+
+  arch:
+    needs: [test]
+    runs-on: ubuntu-latest
+    container: archlinux:latest
+    steps:
+      - run: pacman -Syu --noconfirm --needed base-devel go gtk3 webkit2gtk-4.1 libsecret xdg-utils git
+      - uses: actions/checkout@v4
+      - name: makepkg
+        run: |
+          V="${GITHUB_REF_NAME#v}"
+          useradd -m builder
+          mkdir -p /home/builder/b && git archive --format=tar.gz --prefix="halyard-$V/" -o "/home/builder/b/halyard-$V.tar.gz" HEAD
+          cp packaging/arch/PKGBUILD /home/builder/b/ && chown -R builder /home/builder/b
+          su builder -c "cd /home/builder/b && HALYARD_VERSION=$V makepkg --noconfirm --nocheck -f"
+          cp /home/builder/b/*.pkg.tar.zst .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: arch
+          path: halyard-*.pkg.tar.zst
+          retention-days: 90
+
+  rpm:
+    needs: [test]
+    runs-on: ubuntu-latest
+    container: registry.opensuse.org/opensuse/tumbleweed:latest
+    steps:
+      - run: zypper -n install --no-recommends rpm-build go gcc pkgconf-pkg-config "pkgconfig(gtk+-3.0)" "pkgconfig(webkit2gtk-4.1)" tar gzip git
+      - uses: actions/checkout@v4
+      - name: rpmbuild
+        run: |
+          V="${GITHUB_REF_NAME#v}"
+          mkdir -p /root/rpmbuild/SOURCES /root/rpmbuild/SPECS
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git archive --format=tar.gz --prefix="halyard-$V/" -o "/root/rpmbuild/SOURCES/halyard-$V.tar.gz" HEAD
+          cp packaging/rpm/halyard.spec /root/rpmbuild/SPECS/
+          rpmbuild -bb --define "_topdir /root/rpmbuild" --define "hver $V" /root/rpmbuild/SPECS/halyard.spec
+          cp /root/rpmbuild/RPMS/*/halyard-*.rpm .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rpm
+          path: halyard-*.rpm
+          retention-days: 90
