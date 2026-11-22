@@ -21,8 +21,8 @@ import (
 
 	"github.com/patrickryan01/halyard/internal/api"
 	"github.com/patrickryan01/halyard/internal/engine"
-	"github.com/patrickryan01/halyard/internal/mcpserver"
 	"github.com/patrickryan01/halyard/internal/mailtypes"
+	"github.com/patrickryan01/halyard/internal/mcpserver"
 	"github.com/patrickryan01/halyard/internal/oauth"
 	"github.com/patrickryan01/halyard/internal/plugin"
 	"github.com/patrickryan01/halyard/internal/providers/google"
@@ -398,9 +398,12 @@ func TestMCPIMAPLab(t *testing.T) {
 }
 
 func TestMCPGoogleLive(t *testing.T) {
-	tok := os.Getenv("HEARTH_LIVE_GOOGLE_TOKEN")
+	tok := os.Getenv("HALYARD_LIVE_GOOGLE_TOKEN")
 	if tok == "" {
-		t.Skip("HEARTH_LIVE_GOOGLE_TOKEN not set")
+		t.Skip("HALYARD_LIVE_GOOGLE_TOKEN not set")
+	}
+	if liveGoogleUser() == "" {
+		t.Skip("HALYARD_LIVE_GOOGLE_USER not set")
 	}
 	r := newRig(t, func(a mailtypes.Account, s plugin.Secrets) (plugin.Provider, error) {
 		return google.NewWithSource(a, oauth.Static(tok)), nil
@@ -412,13 +415,13 @@ func TestMCPGoogleLive(t *testing.T) {
 		t.Fatal(err)
 	}
 	waitFor(t, 120*time.Second, "first sync", func() bool { a, _ := r.st.Account(acct.ID); return !a.LastSync.IsZero() })
-	r.fullFlow(acct.ID, "account@fireballz.ai", mailtypes.KindGoogle)
+	r.fullFlow(acct.ID, liveGoogleUser(), mailtypes.KindGoogle)
 }
 
 func TestMCPMicrosoftLive(t *testing.T) {
-	tok := os.Getenv("HEARTH_LIVE_MS_TOKEN")
+	tok := os.Getenv("HALYARD_LIVE_MS_TOKEN")
 	if tok == "" {
-		t.Skip("HEARTH_LIVE_MS_TOKEN not set")
+		t.Skip("HALYARD_LIVE_MS_TOKEN not set")
 	}
 	r := newRig(t, func(a mailtypes.Account, s plugin.Secrets) (plugin.Provider, error) {
 		return microsoft.NewWithSource(a, oauth.Static(tok)), nil
@@ -428,7 +431,7 @@ func TestMCPMicrosoftLive(t *testing.T) {
 		t.Fatal(err)
 	}
 	waitFor(t, 120*time.Second, "first sync", func() bool { a, _ := r.st.Account(acct.ID); return !a.LastSync.IsZero() && a.LastError == "" })
-	r.fullFlow(acct.ID, os.Getenv("HEARTH_LIVE_MS_USER"), mailtypes.KindMicrosoft)
+	r.fullFlow(acct.ID, os.Getenv("HALYARD_LIVE_MS_USER"), mailtypes.KindMicrosoft)
 }
 
 func TestMCPJMAPLab(t *testing.T) {

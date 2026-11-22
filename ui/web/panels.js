@@ -57,7 +57,7 @@ H.identitiesDialog = async function () {
       return '<div class="card"><div style="display:flex;align-items:center;gap:8px"><b>' + esc(a.email) + '</b><span class="spacer"></span><button class="btn" data-refresh="' + esc(a.id) + '">Get from the server</button><button class="btn" data-add="' + esc(a.id) + '">Add an address</button></div>' +
         ids.map(i => '<div class="idrow" data-id="' + esc(i.id) + '"><div class="grid2" style="grid-template-columns:1fr 1fr">' + lbl('Name', '<input data-f="name" value="' + esc(i.name) + '">') + lbl('Address', '<input data-f="email" value="' + esc(i.email) + '">') + '</div>' +
           lbl('Reply-to address (optional)', '<input data-f="replyTo" value="' + esc(i.replyTo || '') + '">') + lbl('Signature', '<textarea rows="3" data-f="signature">' + esc(i.signature || '') + '</textarea>') +
-          '<div style="display:flex;gap:10px;align-items:center;margin-top:4px"><label><input type="checkbox" data-f="default" style="width:auto" ' + (i.default ? 'checked' : '') + '> Use as the default for ' + esc(a.email) + '</label>' + (i.alias ? '<span class="pill">alias</span>' : '') +
+          '<div style="display:flex;gap:10px;align-items:center;margin-top:4px"><label><input type="checkbox" data-f="default" style="width:auto" ' + (i.default ? 'checked' : '') + '> ' + esc(t('Use as the default for {x}', { x: a.email })) + '</label>' + (i.alias ? '<span class="pill">alias</span>' : '') +
           '<span class="spacer"></span><button class="btn" data-save="' + esc(i.id) + '">Save</button>' + (i.source === 'provider' && i.default ? '' : '<button class="btn danger" data-del="' + esc(i.id) + '">Remove</button>') + '</div></div>').join('') + '</div>';
     }).join('');
     const rowData = id => { const r = $('[data-id="' + id + '"]', el); const g = k => $('[data-f=' + k + ']', r); return { id, name: g('name').value, email: g('email').value.trim(), replyTo: g('replyTo').value.trim(), signature: g('signature').value, default: g('default').checked }; };
@@ -68,7 +68,7 @@ H.identitiesDialog = async function () {
     $$('[data-del]', el).forEach(b => b.onclick = async () => { try { await api('identities/delete', { id: b.dataset.del }); draw(); } catch (e) { errTo(e); } });
     $$('[data-add]', el).forEach(b => b.onclick = async () => {
       const a = acctOf(b.dataset.add);
-      const email = prompt('The address to send from. Your server must allow it.');
+      const email = prompt(t('The address to send from. Your server must allow it.'));
       if (!email) return;
       try { await api('identities', { accountId: a.id, name: a.name, email: email.trim(), signature: '', alias: true, source: 'user' }); draw(); } catch (e) { errTo(e); }
     });
@@ -168,9 +168,9 @@ H.rulesDialog = async function () {
   };
   $('#rlnew', el).onclick = () => edit();
   $('#rlrun', el).onclick = async () => {
-    const a = S.data.accounts.length === 1 ? S.data.accounts[0].id : (S.account || prompt('Account id to run on (' + S.data.accounts.map(a => a.id + ' = ' + a.email).join(', ') + ')'));
+    const a = S.data.accounts.length === 1 ? S.data.accounts[0].id : (S.account || prompt(t('Account id to run on ({x})', { x: S.data.accounts.map(a => a.id + ' = ' + a.email).join(', ') })));
     if (!a) return;
-    try { const r = await api('rules/run', { accountId: a }); toast(r.matched + ' message(s) matched a filter.'); refreshSoon(); } catch (e) { errTo(e); }
+    try { const r = await api('rules/run', { accountId: a }); toast(t('{n} message(s) matched a filter.', { n: r.matched })); refreshSoon(); } catch (e) { errTo(e); }
   };
   draw().catch(errTo);
 };
@@ -217,7 +217,7 @@ H.sieveDialog = async function () {
       $('#svlist', el).innerHTML = ss.length ? ss.map(s => '<div style="display:flex;gap:8px;align-items:center"><button class="btn" data-open="' + esc(s.name) + '">' + esc(s.name) + '</button>' + (s.active ? '<span class="pill">running</span>' : '<button class="btn" data-activate="' + esc(s.name) + '">Run this one</button>') + '<button class="btn danger" data-del="' + esc(s.name) + '">Delete</button></div>').join('') : '<p>No scripts on the server yet.</p>';
       $$('[data-open]', el).forEach(b => b.onclick = async () => { try { const r = await api('sieve/script?account=' + encodeURIComponent(acct()) + '&name=' + encodeURIComponent(b.dataset.open)); $('#sv_text', el).value = r.script; $('#sv_name', el).value = r.name; msg(''); } catch (e) { errTo(e); } });
       $$('[data-activate]', el).forEach(b => b.onclick = async () => { try { await api('sieve/activate', { accountId: acct(), name: b.dataset.activate }); list(); } catch (e) { errTo(e); } });
-      $$('[data-del]', el).forEach(b => b.onclick = async () => { if (confirm('Delete the script "' + b.dataset.del + '" from the server?')) { try { await api('sieve/delete', { accountId: acct(), name: b.dataset.del }); list(); } catch (e) { errTo(e); } } });
+      $$('[data-del]', el).forEach(b => b.onclick = async () => { if (confirm(t('Delete the script "{x}" from the server?', { x: b.dataset.del }))) { try { await api('sieve/delete', { accountId: acct(), name: b.dataset.del }); list(); } catch (e) { errTo(e); } } });
     } catch (e) { $('#svlist', el).innerHTML = '<p>' + esc(e.message) + '</p>'; }
   };
   $('#sv_acct', el).onchange = list;
@@ -238,7 +238,7 @@ H.securityDialog = async function () {
       '<button class="btn" data-exp="' + esc(x.id) + '">Share the public part</button><button class="btn danger" data-rm="' + esc(x.id) + '">Remove</button></div>';
     $('#kybody', el).innerHTML = (k.pgp.length + k.smime.length) ? k.pgp.map(x => row('pgp', x)).join('') + k.smime.map(x => row('smime', x)).join('') : '<p>No keys yet.</p>';
     $$('[data-exp]', el).forEach(b => b.onclick = () => { location.href = '/api/keys/export?id=' + encodeURIComponent(b.dataset.exp) + tokQ(); });
-    $$('[data-rm]', el).forEach(b => b.onclick = async () => { if (confirm('Remove this key? Mail encrypted to it can no longer be read here.')) { try { await api('keys/remove', { id: b.dataset.rm }); draw(); } catch (e) { errTo(e); } } });
+    $$('[data-rm]', el).forEach(b => b.onclick = async () => { if (confirm(t('Remove this key? Mail encrypted to it can no longer be read here.'))) { try { await api('keys/remove', { id: b.dataset.rm }); draw(); } catch (e) { errTo(e); } } });
   };
   $('#ky_make', el).onclick = () => {
     const d2 = dialog('<h2>Make a key</h2><div class="row2">' + lbl('Type', '<select id="mk_kind">' + opt('pgp', 'pgp', 'OpenPGP') + opt('smime', 'pgp', 'S/MIME (a self signed certificate)') + '</select>') + lbl('Your name', '<input id="mk_name">') + lbl('Email address', '<select id="mk_email">' + S.data.accounts.map(a => opt(a.email, '', a.email)).join('') + '</select>') +
@@ -254,7 +254,7 @@ H.securityDialog = async function () {
       $('#im_go', e2).onclick = async () => {
         const fd = new FormData(); fd.append('kind', $('#im_kind', e2).value); fd.append('password', $('#im_pw', e2).value); fd.append('text', $('#im_text', e2).value);
         if ($('#im_file', e2).files[0]) fd.append('file', $('#im_file', e2).files[0]);
-        try { const r = await api('keys/import', fd); toast(r.imported + ' imported.'); e2.remove(); draw(); } catch (e) { errTo(e); }
+        try { const r = await api('keys/import', fd); toast(t('{n} imported.', { n: r.imported })); e2.remove(); draw(); } catch (e) { errTo(e); }
       };
     });
     d2.style.zIndex = 70;
@@ -346,12 +346,12 @@ H.importDialog = function () {
       const f = $('#mb_file', e).files[0]; if (!f) { msg('Choose a file first.', true); return; }
       const fd = new FormData(); fd.append('file', f); fd.append('folder', $('#mb_folder', e).value.trim() || f.name.replace(/\.[^.]*$/, ''));
       msg('Importing...');
-      try { const r = await api('import/mbox', fd); msg(r.imported + ' message(s) imported into "' + r.folder + '"' + (r.skipped ? ', ' + r.skipped + ' were already there.' : '.')); await refreshState(); refreshSoon(); } catch (x) { msg(x.message, true); }
+      try { const r = await api('import/mbox', fd); msg(r.skipped ? t('{n} message(s) imported into "{x}", {s} were already there.', { n: r.imported, x: r.folder, s: r.skipped }) : t('{n} message(s) imported into "{x}".', { n: r.imported, x: r.folder })); await refreshState(); refreshSoon(); } catch (x) { msg(x.message, true); }
     };
     $('#tb_go', e).onclick = async () => {
       const p = $('#tb_path', e).value.trim(); if (!p) { msg('Enter the profile folder.', true); return; }
       msg('Importing...');
-      try { const r = await api('import/thunderbird', { path: p }); msg(r.reduce((n, x) => n + x.imported, 0) + ' message(s) imported from ' + r.length + ' folder(s).'); await refreshState(); refreshSoon(); } catch (x) { msg(x.message, true); }
+      try { const r = await api('import/thunderbird', { path: p }); msg(t('{n} message(s) imported from {f} folder(s).', { n: r.reduce((n, x) => n + x.imported, 0), f: r.length })); await refreshState(); refreshSoon(); } catch (x) { msg(x.message, true); }
     };
   });
   return el;

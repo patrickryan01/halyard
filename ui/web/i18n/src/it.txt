@@ -1,0 +1,515 @@
+1|"{x}" non è un indirizzo valido.
+2|---------- Messaggio inoltrato ----------
+3|1 messaggio non letto
+5|Un profilo di Thunderbird
+6|Una chiave serve a firmare la posta, così si sa che viene da lei, e a leggere la posta che le scrivono in privato. Dia la sua chiave pubblica a chi le scrive. Le chiavi private non lasciano mai questo computer.
+7|Un modello è una risposta che usa spesso. La scelga nell'editor o dalla tavolozza dei comandi.
+8|Account
+9|ID dell'account su cui eseguire ({x})
+10|Account
+11|Aggiungi una condizione
+12|Aggiungi un'etichetta o copia in una cartella
+13|Aggiungi account
+14|Aggiungi un account
+15|Aggiunga prima un account.
+16|Aggiungi un'azione
+17|Aggiungi un indirizzo
+18|Aggiunga almeno un destinatario.
+19|Aggiungi al calendario
+20|Inserisca il suo indirizzo email. Basta meno di un minuto.
+21|Aggiunto al calendario.
+22|Aggiunto {x}
+23|Indirizzo
+24|Indirizzi aggiornati dal server.
+25|Avanzate: app di accesso
+26|Avanzate: usa la mia app di accesso
+27|Tutta la posta
+28|Tutti gli account
+29|Tutto il giorno
+30|Carica sempre le immagini remote (possono avvisare il mittente che ha letto il messaggio)
+31|Invia sempre
+32|Un file mbox
+33|Password per app
+34|Aspetto
+35|Archivia
+36|Archivia (e)
+37|Archivia la conversazione dopo la mia risposta
+38|Chiedi la conferma di lettura
+39|Chiedimelo ogni volta
+40|Allega
+41|Indietro
+42|Indietro (u)
+43|Torna all'elenco
+44|Torna all'elenco
+45|Ccn
+46|Destinatari in Ccn
+47|Comportamento
+48|Grassetto
+49|Elenco puntato
+50|Calendario
+51|Server di calendario e contatti
+52|Annulla
+53|Annullato.
+54|Cc
+55|Destinatari in Cc
+56|Cambia la lingua
+57|Controlla
+58|Controlla la nuova posta
+59|Controlla l'ortografia mentre scrivo
+60|Controllo della posta...
+61|Controllo...
+62|Scelga prima un file.
+63|Rimuovi la formattazione
+64|Cancella la selezione
+65|ID client
+66|Segreto del client
+67|Chiudi
+68|Comoda
+69|Comando
+70|Tavolozza dei comandi
+71|Compatta
+72|Scrivi
+73|Scrivi un nuovo messaggio
+74|Connetti
+75|Connesso.
+76|Contatti
+77|Continua
+78|Conversazione archiviata.
+79|Conversazione eliminata.
+80|Copiato
+81|Copia la configurazione del client
+82|Impossibile allegare {x}
+83|Impossibile controllare questo messaggio: {x}
+84|Non è stato possibile trovare automaticamente questo server. Inserisca il suo indirizzo.
+85|Impossibile avviare
+86|Crei un client OAuth nella console di Google Cloud (tipo "App desktop"), attivi l'API di Gmail e l'API People, poi incolli qui il suo ID client e il segreto.
+87|Crea una nuova cartella...
+88|Crea una nuova etichetta...
+89|Scuro
+90|Data
+91|Data:
+92|Elimina
+93|Elimina (#)
+94|Elimina (tasto Canc)
+95|Eliminare definitivamente tutto lo spam? Non si può annullare.
+96|Eliminare definitivamente tutto il contenuto del cestino? Non si può annullare.
+97|Eliminare la cartella "{x}"? La posta presente solo in questa cartella viene eliminata con essa.
+98|Eliminare lo script "{x}" dal server?
+99|Elimina questa cartella
+100|Eliminato.
+101|Densità
+102|Notifiche sul desktop per la nuova posta
+103|Directory (tenant), predefinita: qualsiasi
+104|Scarta
+105|Fatto
+106|Fatto. Ha chiesto al mittente di smettere. Può volerci qualche giorno.
+107|Bozza
+108|Bozza salvata.
+109|Bozze
+110|Modifica
+111|Modifica il contatto
+112|Modifica l'evento
+113|Modifica il filtro
+114|Modifica il modello
+115|Indirizzo email
+116|Svuota subito lo spam
+117|Svuota la cartella dello spam
+118|Svuota il cestino
+119|Svuota subito il cestino
+120|Cifra
+121|Cifra quando ho una chiave per ogni destinatario
+122|Cifrato, e questa app non può aprirlo: {x}
+123|Cifrato: solo lei e le persone a cui è stato inviato possono leggerlo.
+124|Chiavi di cifratura
+125|Chiavi e certificati di cifratura
+126|Indirizzo del servizio
+127|Termina
+128|Inserisca la cartella del profilo.
+129|Evento
+130|File
+131|File
+132|Filtri
+133|Filtri e regole
+134|I filtri agiscono sulla nuova posta appena arriva, in quest'ordine. Un filtro vale per tutti gli account, salvo che ne scelga uno.
+135|Cerca un contatto
+136|Cerca una scorciatoia
+137|Primo giorno (facoltativo)
+138|Porta fissa (solo se l'app registra indirizzi di reindirizzamento esatti)
+139|Cartella
+140|Nome della cartella
+141|Cartelle
+142|Segui il tema del sistema
+143|Inoltra
+144|Inoltra a
+145|Da
+146|Da:
+147|Schermo intero
+148|Ottieni dal server
+149|Gmail accede anche con un suo client Google: incolli ID e segreto, poi usi il pulsante.
+150|Gmail con una password per app
+151|Vai a Tutta la posta
+152|Vai a Bozze
+153|Vai a Posta in arrivo
+154|Vai a Posta inviata
+155|Vai a Posticipati
+156|Vai a Spam
+157|Vai a Speciali
+158|Vai a Cestino
+159|Vai a {x}
+160|Google
+161|ID client di Google
+162|Segreto client di Google
+163|Raggruppa in conversazioni
+164|Raggruppa i messaggi in conversazioni
+165|Ha un allegato
+166|IMAP (lascia la posta sul server)
+167|Server IMAP
+168|Identità e firme
+169|Importa
+170|Importa una chiave o un certificato
+171|Importa tutte le cartelle
+172|Importa posta
+173|Importa il file
+174|Importati
+175|Importazione...
+176|Tra un'ora
+177|Posta in arrivo
+178|Protocollo in entrata
+179|Sicurezza in entrata
+180|Server in entrata
+181|È una mailing list
+182|Corsivo
+183|Server JMAP
+184|Indirizzo del server JMAP
+185|Mantieni un'icona nell'area di notifica e continua a funzionare quando la finestra è chiusa
+186|Conserva questa chiave
+187|Chiave salvata.
+188|Scorciatoie da tastiera
+189|Etichetta applicata.
+190|Etichetta come
+191|Lingua
+192|Più grande di (byte)
+193|Ultimo giorno (facoltativo)
+194|Più tardi oggi
+195|Chiaro
+196|Collegamento
+197|Indirizzo del collegamento (https://...)
+198|Elenca ogni messaggio da solo
+199|Carica le immagini
+200|Carica altro
+201|Caricamento...
+202|Server MCP
+203|Posta
+204|La posta di altri programmi è conservata nell'account "Su questo computer", in cartelle, e si cerca insieme al resto.
+205|Server di posta
+206|Strumenti di posta
+207|Crea una chiave
+208|Creala
+209|Segna tutto come letto
+210|Segna come letto
+211|Segna come letto (Maiusc+I)
+212|Segna come spam
+213|Segna come da leggere
+214|Segna come da leggere (Maiusc+U)
+215|Segna come letto tutto in questa cartella
+216|Segna letto
+217|Segna come letto o da leggere
+218|Segna da leggere
+219|Segnato come letto.
+220|Segnato come da leggere.
+221|Come il sistema
+222|Forse
+223|Menu
+224|Messaggio
+225|Corpo del messaggio
+226|Messaggio inviato.
+227|Sorgente del messaggio
+228|Microsoft
+229|ID applicazione (client) di Microsoft
+230|Directory (tenant) di Microsoft
+231|Riduci a icona
+232|Lunedì mattina
+233|Altro
+234|Altre impostazioni
+235|La maggior parte dei server offre CalDAV e CardDAV al proprio indirizzo web. I suoi eventi e la sua rubrica compaiono allora qui.
+236|Sposta o etichetta
+237|Sposta in
+238|Sposta in una cartella
+239|Spostato nella posta in arrivo.
+240|Spostato.
+241|Nome
+242|Nome di questa ricerca
+243|Nome sulla posta inviata
+244|Non inviare mai
+245|Nuovo contatto
+246|Nuovo evento
+247|Nuovo filtro
+248|Nome della nuova cartella
+249|Nome della nuova etichetta
+250|Nuovo messaggio
+251|Nuovo messaggio dal modello: {x}
+252|Nuovo nome per "{x}"
+253|Nuovo script
+254|Nuovo modello
+255|Più recente
+256|Più recente (k)
+257|Conversazione successiva
+258|Messaggio successivo della conversazione
+259|La settimana prossima
+260|No
+261|Nessun contatto trovato. Le persone a cui scrive vengono aggiunte qui.
+262|Ancora nessun filtro.
+263|Nessuna cartella per questo account
+264|Ancora nessuna chiave.
+265|Nessun messaggio corrisponde alla ricerca
+266|Ancora nessuno script sul server.
+267|Ancora nessun modello.
+268|Ancora nessun modello. Ne crei in Modelli.
+269|Nessuna posta da leggere
+270|Nessuno
+271|Non disponibile qui.
+272|Non questa volta
+273|Note
+274|Non c'è niente qui
+275|Niente nei prossimi 45 giorni.
+276|Non c'era niente da leggere.
+277|Numerazione
+278|Disattivato
+279|Meno recente
+280|Meno recente (j)
+281|Il {date}, {who} ha scritto:
+282|Un clic. Si apre una scheda del browser per approvare l'accesso; in questa app non si digita nulla.
+283|Solo per un'organizzazione che le ha dato una sua app Google o Microsoft. Lasci vuoto per usare quella inclusa in questa copia dell'app.
+284|Solo se la sua organizzazione le ha dato una sua app.
+285|Rispondi solo alle persone nei miei contatti
+286|Apra prima una cartella.
+287|Apri i contatti
+288|Apri la conversazione
+289|Apra myaccount.google.com/apppasswords, dia alla password il nome {x} e la crei.
+290|Apri le impostazioni
+291|Apri il calendario
+292|Apri la tavolozza dei comandi
+293|Apri la conversazione
+294|Apri la conversazione (Invio)
+295|Riapri la pagina
+296|Chiave OpenPGP
+297|Opzioni
+298|Oppure incolli il testo
+299|Organizzazione
+300|Organizzatore: {x}
+301|POP3 (scarica la posta)
+302|POP3: lascia la posta sul server dopo averla scaricata
+303|Password
+305|Incolli qui sotto la password di 16 lettere, anche senza gli spazi.
+306|Telefono
+307|Scegli data e ora
+308|Luogo
+309|Porta
+310|Premi i nuovi tasti. Per due tasti di seguito, premili uno dopo l'altro. Esc annulla, Canc cancella.
+311|Conversazione precedente
+312|Messaggio precedente della conversazione
+313|Stampa
+314|Stampa il messaggio
+315|Cartella del profilo
+316|Proteggi i messaggi con
+317|Citazione
+318|Conferme di lettura, quando un mittente le chiede
+319|Conferma inviata.
+320|Registri un'app in Microsoft Entra (qualsiasi directory di organizzazione e account personali), aggiunga un reindirizzamento "Mobile e desktop" a http://localhost, le dia Mail.ReadWrite, Mail.Send, Contacts.ReadWrite e offline_access, poi incolli il suo ID applicazione (client).
+321|Le immagini remote sono bloccate per proteggere la sua privacy.
+322|Rimuovi
+323|Rimuovere la ricerca salvata "{x}"?
+324|Rimuovere questo account e la sua posta salvata da questo computer? La posta sul server non viene toccata.
+325|Rimuovere questa chiave? La posta cifrata per essa non si potrà più leggere qui.
+326|Rinomina
+327|Rinomina questa cartella
+328|Rinominata.
+329|Si ripete: {x}
+330|Rispondi
+331|Rispondi a tutti
+332|Indirizzo per le risposte (facoltativo)
+333|Segnala come spam
+334|Segnala come spam (!)
+335|Segnalato come spam.
+336|Ripristina tutto
+337|Riprova
+338|Esegui ora sulla posta in arrivo
+339|Usa questo
+340|S/MIME (un certificato autofirmato)
+341|Sicurezza SMTP
+342|Server SMTP
+343|STARTTLS
+344|Come il sistema
+345|Salva
+346|Salva e attiva
+347|Salva come file
+348|Salva come file
+349|Salva la conversazione (mbox)
+350|Salva il messaggio come file (.eml)
+351|Salva le conversazioni selezionate come file mbox
+352|Salva questa ricerca
+353|Salvato
+354|Salvato e in funzione.
+355|Ricerca salvata
+356|Ricerche salvate
+357|Salvato.
+358|Salvato. L'icona nell'area di notifica cambia al prossimo avvio dell'app.
+359|Programma
+360|Programmato per
+361|Script
+362|Cerca
+363|Cerchi prima qualcosa.
+364|Cerca nella posta
+365|Cerca nella posta (from: to: subject: is:unread has:attachment before: larger:)
+366|Cerca "{x}" nella posta
+367|Risultati della ricerca
+368|Ricerca salvata.
+369|Ricerca: {x}
+370|Seleziona
+371|Seleziona tutto
+372|Selezioni prima alcune conversazioni.
+373|Seleziona la conversazione
+374|Invia
+375|Invia (nell'editor)
+376|Invia una conferma
+377|Invia una risposta automatica
+378|Invia più tardi
+379|Inviare questo messaggio senza oggetto?
+380|Invio annullato.
+381|Invio del messaggio...
+382|Posta inviata
+383|Indirizzo del server
+384|Filtri del server
+385|Filtri del server (Sieve)
+386|I filtri del server richiedono un account IMAP.
+387|Impostazioni del server
+388|Configuri prima un server di calendario.
+389|Impostazioni
+390|Condividi la parte pubblica
+391|Mostra le scorciatoie da tastiera
+392|Mostra solo {x}
+393|Mostra o nascondi la vista a conversazioni
+394|Mostra o nascondi l'elenco delle cartelle
+395|Mostra il contenuto nascosto
+396|Firma
+397|Firma ogni messaggio che invio quando ho una chiave
+398|Accedi con Google
+399|Accedi con {x}
+400|Firma
+401|Firmato da {x}, che non è il mittente di questo messaggio.
+402|Più piccolo di (byte)
+403|Posticipa
+404|Posticipa (b)
+405|Posticipa fino a
+406|Posticipati
+407|Posticipato fino a {x}
+408|Spam
+409|Metti una stella
+410|Metti o togli la stella
+411|Speciali
+412|Stella aggiunta.
+413|Avvia nascosta nell'area di notifica
+414|Inizia con
+415|Fermati qui: i filtri successivi non agiscono su un messaggio già preso da questo
+416|Oggetto
+417|Oggetto (facoltativo)
+418|Oggetto:
+419|Sincronizza ora
+420|Chiedere al mittente di non inviarle più questi messaggi?
+421|Modello
+422|Modelli
+423|Modelli (risposte predefinite)
+424|Testo
+425|Testo del messaggio
+426|Il server MCP non è in esecuzione in questa sessione.
+427|L'indirizzo da cui inviare. Il suo server deve consentirlo.
+428|L'app esegue su questo computer un server MCP in lettura e scrittura, così altri programmi possono usare la sua posta. Accede come lei e raggiunge tutti gli account qui sopra.
+429|Gli allegati pesano {x}. La maggior parte dei server rifiuta messaggi oltre 25 MB. Inviare comunque?
+430|La risposta automatica è disattivata.
+431|La risposta automatica è attivata.
+432|La risposta è conservata sul suo server, quindi risponde anche quando questa app è chiusa.
+433|Il mittente ha chiesto di sapere quando lo legge.
+434|Il mittente vuole che confermi su una pagina web. Aprirla ora?
+435|Il server accetta questo script.
+436|La firma non è risultata attendibile: {x}
+437|Tema
+438|Poi fai
+439|Non c'è una cartella spam.
+440|Non c'è un cestino.
+441|Questi script vengono eseguiti sul suo server di posta, quindi funzionano anche quando questa app è chiusa. Il server controlla ogni script prima di tenerlo.
+442|Questa cartella è vuota.
+443|Questa è una risposta a un invito.
+444|Questo tipo di account non conserva una risposta automatica sul server. Gli account Gmail, Microsoft, JMAP e IMAP con un servizio di filtri sì.
+445|Questo elenco
+446|Questo messaggio arriva da una mailing list.
+447|Questo fine settimana
+448|Thunderbird: Aiuto, Altre informazioni per la risoluzione dei problemi, Cartella del profilo.
+449|Titolo
+450|A
+451|Destinatari in A
+452|A:
+453|Domani
+454|Domani mattina
+455|Troppo tardi, è già stato inviato.
+456|Strumenti
+457|Cestino
+458|Considera attendibile il certificato di questo server anche se è autofirmato
+459|Provi con meno parole o un altro operatore.
+460|Disattiva
+461|Attivi la verifica in due passaggi nel suo account Google (myaccount.google.com/security). Se usa Google Workspace e non è attiva, lo chieda al suo amministratore.
+462|Disattivato.
+463|Tipo
+464|Scriva un comando, una cartella o delle parole da cercare
+465|Sottolineato
+466|Annulla
+467|Annulla l'ultima azione
+468|Tempo per annullare l'invio
+469|Annulla l'ultima azione
+470|Stella rimossa.
+471|Annulla l'iscrizione
+472|Usa come predefinito per {x}
+473|Usa il tema scuro
+474|Usa il tema chiaro
+475|Usa questa
+476|Nome utente (se non è l'indirizzo email)
+477|Risposta di assenza
+478|Mostra sorgente
+479|Mostra la sorgente del messaggio
+480|In attesa che approvi nel browser...
+481|Benvenuto in {x}
+482|Quando
+483|Scrivi
+484|Sì
+485|La sua risposta: {x}
+486|È offline. La sua posta salvata è qui e le modifiche si sincronizzano alla riconnessione.
+487|Ha citato un allegato, ma non ce n'è nessuno. Inviare comunque?
+488|La sua risposta è stata inviata a {x}.
+489|Il suo nome
+490|tutte
+491|almeno una
+492|qualsiasi porta libera
+493|contiene
+494|non contiene
+495|finisce con
+496|https://mail.example.com
+497|è
+498|corrisponde al modello
+499|forse
+500|no
+501|di queste condizioni sono vere
+502|salvato, lasci vuoto per mantenerlo
+503|inizia con
+504|sì
+505|{n} conversazione
+506|{n} conversazioni
+507|{n} importati.
+508|{n} messaggi eliminati definitivamente.
+509|{n} messaggi non inviati: {x}
+510|{n} messaggi importati da {f} cartelle.
+511|{n} messaggi importati in "{x}", {s} c'erano già.
+512|{n} messaggi importati in "{x}".
+513|{n} messaggi segnati come letti.
+514|{n} messaggi corrispondono a un filtro.
+515|{n} selezionati
+516|{n} messaggi da leggere
+517|Account {x}

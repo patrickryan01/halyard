@@ -13,8 +13,8 @@ import (
 	"time"
 
 	"github.com/patrickryan01/halyard/internal/httpx"
-	"github.com/patrickryan01/halyard/internal/mime"
 	"github.com/patrickryan01/halyard/internal/mailtypes"
+	"github.com/patrickryan01/halyard/internal/mime"
 	"github.com/patrickryan01/halyard/internal/oauth"
 	"github.com/patrickryan01/halyard/internal/plugin"
 )

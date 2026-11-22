@@ -224,6 +224,25 @@ func TestFeatInviteRSVPLab(t *testing.T) {
 		if _, err := alice.eng.RespondInvite(ctx, reply.ID, "ACCEPTED"); err == nil {
 			t.Fatal("a reply can be answered")
 		}
+		// the invitation can be saved to a calendar on the server
+		if err := bob.eng.SetDAV(ctx, bob.acct.ID, "https://"+host+":18443", "bob@lab.test", "labpass-bob"); err != nil {
+			t.Fatal(err)
+		}
+		ev, err := bob.eng.AddInviteToCalendar(ctx, m.ID, "")
+		if err != nil || ev.URL == "" {
+			t.Fatalf("add to calendar: %+v %v", ev, err)
+		}
+		evs, err := bob.eng.Events(ctx, bob.acct.ID, time.Date(2026, 12, 1, 0, 0, 0, 0, time.UTC), time.Date(2026, 12, 10, 0, 0, 0, 0, time.UTC))
+		found := false
+		for _, e := range evs {
+			if e.Summary == "Review "+g {
+				found = true
+			}
+		}
+		if err != nil || !found {
+			t.Fatalf("the saved event is not in the calendar: %+v %v", evs, err)
+		}
+		_ = bob.eng.DeleteEvent(ctx, bob.acct.ID, ev.URL, "")
 	})
 }
 

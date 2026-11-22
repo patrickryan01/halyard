@@ -15,8 +15,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/patrickryan01/halyard/internal/mime"
 	"github.com/patrickryan01/halyard/internal/mailtypes"
+	"github.com/patrickryan01/halyard/internal/mime"
 	"github.com/patrickryan01/halyard/internal/plugin"
 	"github.com/patrickryan01/halyard/internal/providers/imap"
 )
@@ -281,7 +281,9 @@ func (p *Provider) Sync(ctx context.Context, state string) (plugin.SyncResult, e
 // Apply does nothing on the server: a POP3 mailbox keeps no flags or folders, so those live in the cache.
 func (p *Provider) Apply(ctx context.Context, a mailtypes.Action) error { return nil }
 
-func (p *Provider) Send(ctx context.Context, o mailtypes.Outgoing) error { return p.smtp.SendSMTP(ctx, o) }
+func (p *Provider) Send(ctx context.Context, o mailtypes.Outgoing) error {
+	return p.smtp.SendSMTP(ctx, o)
+}
 
 // Attachment re-downloads the message and reads the part from it.
 func (p *Provider) Attachment(ctx context.Context, msgID, attID string) ([]byte, string, error) {
@@ -313,7 +315,9 @@ func (p *Provider) Attachment(ctx context.Context, msgID, attID string) ([]byte,
 	return nil, "", errors.New("the message is no longer on the server")
 }
 
-func (p *Provider) Contacts(ctx context.Context, q string) ([]mailtypes.Contact, error) { return nil, nil }
+func (p *Provider) Contacts(ctx context.Context, q string) ([]mailtypes.Contact, error) {
+	return nil, nil
+}
 
 // Watch polls: POP3 has no way for a server to say something arrived.
 func (p *Provider) Watch(ctx context.Context, notify func()) error {

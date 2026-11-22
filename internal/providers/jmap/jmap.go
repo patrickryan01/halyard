@@ -18,8 +18,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/patrickryan01/halyard/internal/mime"
 	"github.com/patrickryan01/halyard/internal/mailtypes"
+	"github.com/patrickryan01/halyard/internal/mime"
 	"github.com/patrickryan01/halyard/internal/plugin"
 )
 
@@ -640,7 +640,9 @@ func (p *Provider) Attachment(ctx context.Context, msgID, blobID string) ([]byte
 	return b, resp.Header.Get("Content-Type"), err
 }
 
-func (p *Provider) Contacts(ctx context.Context, q string) ([]mailtypes.Contact, error) { return nil, nil }
+func (p *Provider) Contacts(ctx context.Context, q string) ([]mailtypes.Contact, error) {
+	return nil, nil
+}
 
 // Watch holds the EventSource stream the server offers and calls notify on
 // each state change.

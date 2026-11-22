@@ -1,7 +1,7 @@
 # Windows proof
 
-Runs on the Beast with the phone app crew's Windows 11 Enterprise evaluation VM harness (`winvm.py`, a guest agent that polls the host on 10.0.2.2:8800
-and runs scripts in the signed-in session). The disk is a private copy under `~/work/MAIL/win`; the original is never touched.
+Runs a Windows 11 Enterprise evaluation VM harness (`winvm.py`, a guest helper that polls the host on 10.0.2.2:8800
+and runs scripts in the signed-in session). The disk is a private copy under `a private path`; the original is never touched.
 `proof.sh` drives the steps below; each `*.ps1` runs in the guest, and screenshots are taken from the host with `winvm.py shot`.
 
 1. `install.ps1`   fetches `halyard-<v>-setup.exe`, installs it silently, reports the WebView2 runtime, the mailto handler, the Start menu entry, the uninstall entry

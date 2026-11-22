@@ -1,5 +1,5 @@
 #!/bin/bash
-# Host side of the Windows proof. Run on the Beast with the lab up (lab/stalwart.sh up) and the installer at $W/files.
+# Host side of the Windows proof. Run on the test host with the lab up (lab/stalwart.sh up) and the installer at $W/files.
 #   proof.sh INSTALLER_EXE OUTDIR
 set -euo pipefail
 W=${PHONEDESK:-$HOME/work/MAIL/win}; export PHONEDESK=$W

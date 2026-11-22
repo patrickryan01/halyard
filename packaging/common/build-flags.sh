@@ -3,7 +3,7 @@
 # they come from the environment of the machine that builds the release.
 #   HALYARD_VERSION, HALYARD_GOOGLE_CLIENT_ID, HALYARD_GOOGLE_CLIENT_SECRET, HALYARD_GOOGLE_PORTS, HALYARD_MS_CLIENT_ID
 M=github.com/patrickryan01/halyard
-# The Microsoft client is the "Halyard" app registration in the Fireball tenant (secrets/access/ms-halyard-app.sh). A client ID is public.
+# The Microsoft client is the "Halyard" multi-tenant app registration (a public client: its ID is not a secret).
 HALYARD_MS_CLIENT_ID=${HALYARD_MS_CLIENT_ID:-5bc58f81-5155-4a3e-aedc-d6692de040c7}
 F="-s -w -X $M/internal/brand.Version=${HALYARD_VERSION:-dev}"
 [ -n "${HALYARD_GOOGLE_CLIENT_ID:-}" ] && F="$F -X $M/internal/providers/google.ClientID=$HALYARD_GOOGLE_CLIENT_ID"

@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/patrickryan01/halyard/internal/api"
 	"github.com/patrickryan01/halyard/internal/brand"
 	"github.com/patrickryan01/halyard/internal/engine"
@@ -17,7 +18,6 @@ import (
 	"github.com/patrickryan01/halyard/internal/secret"
 	"github.com/patrickryan01/halyard/internal/store"
 	"github.com/patrickryan01/halyard/ui"
-	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	// the provider plugins register themselves
 	_ "github.com/patrickryan01/halyard/internal/providers/google"

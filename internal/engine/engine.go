@@ -16,8 +16,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/patrickryan01/halyard/internal/mime"
 	"github.com/patrickryan01/halyard/internal/mailtypes"
+	"github.com/patrickryan01/halyard/internal/mime"
 	"github.com/patrickryan01/halyard/internal/plugin"
 	"github.com/patrickryan01/halyard/internal/providers/local"
 	"github.com/patrickryan01/halyard/internal/secret"
@@ -89,6 +89,7 @@ func (e *Engine) Start(ctx context.Context) error {
 		return err
 	}
 	for _, a := range accts {
+		e.EnsureIdentity(a)
 		e.startRunner(a)
 	}
 	go e.clock()
@@ -149,6 +150,7 @@ func (e *Engine) AddAccount(ctx context.Context, a mailtypes.Account, secretBlob
 	if err := e.St.PutAccount(a); err != nil {
 		return a, err
 	}
+	e.EnsureIdentity(a)
 	e.startRunner(a)
 	e.emit(Event{Type: "accounts"})
 	return a, nil
@@ -241,8 +243,10 @@ func (e *Engine) SendAt(o mailtypes.Outgoing, at time.Time) (string, error) {
 		if o.From.Name == "" {
 			o.From.Name = ident.Name
 		}
-		if ident.Signature != "" || ident.Default {
+		if ident.Signature != "" {
 			sig = ident.Signature
+		} else if !ident.Default {
+			sig = "" // an alias without a signature of its own sends without one
 		}
 		if ident.ReplyTo != "" && len(o.ReplyTo) == 0 {
 			o.ReplyTo = mime.ParseList(ident.ReplyTo)

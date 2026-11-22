@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/patrickryan01/halyard/internal/mime"
 	"github.com/patrickryan01/halyard/internal/mailtypes"
+	"github.com/patrickryan01/halyard/internal/mime"
 )
 
 func base(t *testing.T) []byte {

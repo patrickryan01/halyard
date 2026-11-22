@@ -1,0 +1,515 @@
+1|"{x}" không phải là địa chỉ hợp lệ.
+2|---------- Thư được chuyển tiếp ----------
+3|1 thư chưa đọc
+5|Một hồ sơ Thunderbird
+6|Khóa giúp bạn ký thư để người nhận biết thư đến từ bạn, và đọc thư được gửi riêng cho bạn. Hãy đưa khóa công khai của bạn cho những người viết thư cho bạn. Khóa riêng không bao giờ rời khỏi máy tính này.
+7|Mẫu là một câu trả lời bạn dùng đi dùng lại. Chọn mẫu trong trình soạn thảo hoặc trong bảng lệnh.
+8|Tài khoản
+9|ID của tài khoản cần chạy ({x})
+10|Tài khoản
+11|Thêm một điều kiện
+12|Thêm nhãn hoặc sao chép vào thư mục
+13|Thêm tài khoản
+14|Thêm một tài khoản
+15|Hãy thêm tài khoản trước.
+16|Thêm một hành động
+17|Thêm một địa chỉ
+18|Hãy thêm ít nhất một người nhận.
+19|Thêm vào lịch
+20|Nhập địa chỉ email của bạn. Chỉ mất chưa đến một phút.
+21|Đã thêm vào lịch.
+22|Đã thêm {x}
+23|Địa chỉ
+24|Đã cập nhật địa chỉ từ máy chủ.
+25|Nâng cao: ứng dụng đăng nhập
+26|Nâng cao: dùng ứng dụng đăng nhập của riêng tôi
+27|Tất cả thư
+28|Tất cả tài khoản
+29|Cả ngày
+30|Luôn tải hình ảnh từ xa (chúng có thể báo cho người gửi biết bạn đã đọc thư)
+31|Luôn gửi
+32|Một tệp mbox
+33|Mật khẩu ứng dụng
+34|Giao diện
+35|Lưu trữ
+36|Lưu trữ (e)
+37|Lưu trữ cuộc trò chuyện sau khi tôi trả lời
+38|Yêu cầu xác nhận đã đọc
+39|Hỏi tôi mỗi lần
+40|Đính kèm
+41|Quay lại
+42|Quay lại (u)
+43|Quay lại danh sách
+44|Quay lại danh sách
+45|Bcc
+46|Người nhận trong Bcc
+47|Hành vi
+48|In đậm
+49|Dấu đầu dòng
+50|Lịch
+51|Máy chủ lịch và danh bạ
+52|Hủy
+53|Đã hủy.
+54|Cc
+55|Người nhận trong Cc
+56|Đổi ngôn ngữ
+57|Kiểm tra
+58|Kiểm tra thư mới
+59|Kiểm tra chính tả khi đang viết
+60|Đang kiểm tra thư...
+61|Đang kiểm tra...
+62|Hãy chọn một tệp trước.
+63|Xóa định dạng
+64|Bỏ chọn
+65|ID máy khách
+66|Mã bí mật của máy khách
+67|Đóng
+68|Thoải mái
+69|Lệnh
+70|Bảng lệnh
+71|Gọn
+72|Soạn thư
+73|Soạn thư mới
+74|Kết nối
+75|Đã kết nối.
+76|Danh bạ
+77|Tiếp tục
+78|Đã lưu trữ cuộc trò chuyện.
+79|Đã xóa cuộc trò chuyện.
+80|Đã sao chép
+81|Sao chép cấu hình máy khách
+82|Không thể đính kèm {x}
+83|Không thể kiểm tra thư này: {x}
+84|Không tự tìm thấy máy chủ này. Hãy nhập địa chỉ của nó.
+85|Không thể khởi động
+86|Tạo một máy khách OAuth trong bảng điều khiển Google Cloud (loại "Ứng dụng máy tính"), bật API Gmail và API People, rồi dán ID máy khách và mã bí mật của nó vào đây.
+87|Tạo thư mục mới...
+88|Tạo nhãn mới...
+89|Tối
+90|Ngày
+91|Ngày:
+92|Xóa
+93|Xóa (#)
+94|Xóa (phím Delete)
+95|Xóa vĩnh viễn toàn bộ thư rác? Không thể hoàn tác.
+96|Xóa vĩnh viễn toàn bộ thùng rác? Không thể hoàn tác.
+97|Xóa thư mục "{x}"? Thư chỉ nằm trong thư mục này sẽ bị xóa cùng.
+98|Xóa tập lệnh "{x}" khỏi máy chủ?
+99|Xóa thư mục này
+100|Đã xóa.
+101|Mật độ
+102|Thông báo trên màn hình nền cho thư mới
+103|Thư mục (tenant), mặc định: bất kỳ
+104|Bỏ
+105|Xong
+106|Xong. Bạn đã yêu cầu người gửi dừng lại. Có thể mất vài ngày.
+107|Thư nháp
+108|Đã lưu thư nháp.
+109|Thư nháp
+110|Sửa
+111|Sửa liên hệ
+112|Sửa sự kiện
+113|Sửa bộ lọc
+114|Sửa mẫu
+115|Địa chỉ email
+116|Dọn thư rác ngay
+117|Dọn thư mục thư rác
+118|Dọn thùng rác
+119|Dọn thùng rác ngay
+120|Mã hóa
+121|Mã hóa khi tôi có khóa của mọi người nhận
+122|Đã mã hóa, và ứng dụng này không mở được: {x}
+123|Đã mã hóa: chỉ bạn và những người nhận mới đọc được.
+124|Khóa mã hóa
+125|Khóa và chứng chỉ mã hóa
+126|Địa chỉ dịch vụ
+127|Kết thúc
+128|Hãy nhập thư mục hồ sơ.
+129|Sự kiện
+130|Tệp
+131|Tệp
+132|Bộ lọc
+133|Bộ lọc và quy tắc
+134|Bộ lọc chạy trên thư mới ngay khi thư đến, theo thứ tự này. Bộ lọc áp dụng cho mọi tài khoản trừ khi bạn chọn một tài khoản.
+135|Tìm một liên hệ
+136|Tìm một phím tắt
+137|Ngày đầu (không bắt buộc)
+138|Cổng cố định (chỉ khi ứng dụng đăng ký địa chỉ chuyển hướng chính xác)
+139|Thư mục
+140|Tên thư mục
+141|Thư mục
+142|Theo giao diện của hệ thống
+143|Chuyển tiếp
+144|Chuyển tiếp tới
+145|Từ
+146|Từ:
+147|Toàn màn hình
+148|Lấy từ máy chủ
+149|Gmail cũng đăng nhập bằng máy khách Google của riêng bạn: dán ID và mã bí mật của nó, rồi dùng nút bấm.
+150|Gmail với mật khẩu ứng dụng
+151|Đến Tất cả thư
+152|Đến Thư nháp
+153|Đến Hộp thư đến
+154|Đến Thư đã gửi
+155|Đến Thư hoãn
+156|Đến Thư rác
+157|Đến Có gắn dấu sao
+158|Đến Thùng rác
+159|Đến {x}
+160|Google
+161|ID máy khách Google
+162|Mã bí mật máy khách Google
+163|Nhóm thành cuộc trò chuyện
+164|Nhóm các thư thành cuộc trò chuyện
+165|Có tệp đính kèm
+166|IMAP (giữ thư trên máy chủ)
+167|Máy chủ IMAP
+168|Danh tính và chữ ký
+169|Nhập
+170|Nhập khóa hoặc chứng chỉ
+171|Nhập mọi thư mục
+172|Nhập thư
+173|Nhập tệp
+174|Đã nhập
+175|Đang nhập...
+176|Sau một giờ
+177|Hộp thư đến
+178|Giao thức nhận thư
+179|Bảo mật khi nhận thư
+180|Máy chủ nhận thư
+181|Là danh sách gửi thư
+182|In nghiêng
+183|Máy chủ JMAP
+184|Địa chỉ máy chủ JMAP
+185|Giữ biểu tượng trong khu vực thông báo và tiếp tục chạy khi đóng cửa sổ
+186|Giữ khóa này
+187|Đã lưu khóa.
+188|Phím tắt
+189|Đã gắn nhãn.
+190|Gắn nhãn là
+191|Ngôn ngữ
+192|Lớn hơn (byte)
+193|Ngày cuối (không bắt buộc)
+194|Hôm nay, lúc sau
+195|Sáng
+196|Liên kết
+197|Địa chỉ liên kết (https://...)
+198|Liệt kê từng thư riêng
+199|Tải hình ảnh
+200|Tải thêm
+201|Đang tải...
+202|Máy chủ MCP
+203|Thư
+204|Thư từ các chương trình khác được giữ trong tài khoản "Trên máy tính này", theo thư mục, và được tìm cùng mọi thứ khác.
+205|Máy chủ thư
+206|Công cụ thư
+207|Tạo một khóa
+208|Tạo
+209|Đánh dấu tất cả đã đọc
+210|Đánh dấu đã đọc
+211|Đánh dấu đã đọc (Shift+I)
+212|Đánh dấu là thư rác
+213|Đánh dấu chưa đọc
+214|Đánh dấu chưa đọc (Shift+U)
+215|Đánh dấu mọi thư trong thư mục này là đã đọc
+216|Đánh dấu đã đọc
+217|Đánh dấu đã đọc hoặc chưa đọc
+218|Đánh dấu chưa đọc
+219|Đã đánh dấu đã đọc.
+220|Đã đánh dấu chưa đọc.
+221|Giống hệ thống
+222|Có thể
+223|Menu
+224|Thư
+225|Nội dung thư
+226|Đã gửi thư.
+227|Mã nguồn của thư
+228|Microsoft
+229|ID ứng dụng (máy khách) Microsoft
+230|Thư mục (tenant) Microsoft
+231|Thu nhỏ
+232|Sáng thứ Hai
+233|Thêm
+234|Cài đặt khác
+235|Hầu hết máy chủ dùng CalDAV và CardDAV ngay tại địa chỉ web của chúng. Sự kiện và sổ địa chỉ của bạn sẽ hiện ở đây.
+236|Di chuyển hoặc gắn nhãn
+237|Di chuyển tới
+238|Di chuyển vào thư mục
+239|Đã chuyển vào hộp thư đến.
+240|Đã di chuyển.
+241|Tên
+242|Tên của tìm kiếm này
+243|Tên trên thư đã gửi
+244|Không bao giờ gửi
+245|Liên hệ mới
+246|Sự kiện mới
+247|Bộ lọc mới
+248|Tên thư mục mới
+249|Tên nhãn mới
+250|Thư mới
+251|Thư mới từ mẫu: {x}
+252|Tên mới cho "{x}"
+253|Tập lệnh mới
+254|Mẫu mới
+255|Mới hơn
+256|Mới hơn (k)
+257|Cuộc trò chuyện tiếp theo
+258|Thư tiếp theo trong cuộc trò chuyện
+259|Tuần sau
+260|Không
+261|Không tìm thấy liên hệ. Những người bạn viết thư cho sẽ được thêm vào đây.
+262|Chưa có bộ lọc nào.
+263|Tài khoản này không có thư mục
+264|Chưa có khóa nào.
+265|Không có thư nào khớp với tìm kiếm
+266|Chưa có tập lệnh nào trên máy chủ.
+267|Chưa có mẫu nào.
+268|Chưa có mẫu nào. Hãy tạo trong phần Mẫu.
+269|Không có thư chưa đọc
+270|Không có
+271|Không có ở đây.
+272|Lần này thì không
+273|Ghi chú
+274|Chưa có gì ở đây
+275|Không có gì trong 45 ngày tới.
+276|Không có thư nào chưa đọc.
+277|Đánh số
+278|Tắt
+279|Cũ hơn
+280|Cũ hơn (j)
+281|Vào {date}, {who} đã viết:
+282|Một cú nhấp. Một thẻ trình duyệt mở ra để bạn cho phép truy cập; không cần gõ gì trong ứng dụng này.
+283|Chỉ dành cho tổ chức đã cung cấp ứng dụng Google hoặc Microsoft riêng cho bạn. Để trống để dùng ứng dụng có sẵn trong bản này.
+284|Chỉ khi tổ chức của bạn đã cung cấp ứng dụng riêng cho bạn.
+285|Chỉ trả lời những người trong danh bạ của tôi
+286|Hãy mở một thư mục trước.
+287|Mở danh bạ
+288|Mở cuộc trò chuyện
+289|Mở myaccount.google.com/apppasswords, đặt tên cho mật khẩu là {x}, rồi tạo.
+290|Mở cài đặt
+291|Mở lịch
+292|Mở bảng lệnh
+293|Mở cuộc trò chuyện
+294|Mở cuộc trò chuyện (Enter)
+295|Mở lại trang
+296|Khóa OpenPGP
+297|Tùy chọn
+298|Hoặc dán văn bản
+299|Tổ chức
+300|Người tổ chức: {x}
+301|POP3 (tải thư về)
+302|POP3: giữ thư trên máy chủ sau khi tải về
+303|Mật khẩu
+305|Dán mật khẩu 16 chữ cái vào bên dưới, có thể bỏ khoảng trắng.
+306|Điện thoại
+307|Chọn ngày và giờ
+308|Địa điểm
+309|Cổng
+310|Nhấn các phím mới. Với hai phím liên tiếp, hãy nhấn lần lượt từng phím. Esc để hủy, Delete để xóa.
+311|Cuộc trò chuyện trước
+312|Thư trước trong cuộc trò chuyện
+313|In
+314|In thư
+315|Thư mục hồ sơ
+316|Bảo vệ thư bằng
+317|Trích dẫn
+318|Xác nhận đã đọc, khi người gửi yêu cầu
+319|Đã gửi xác nhận.
+320|Đăng ký một ứng dụng trong Microsoft Entra (bất kỳ thư mục tổ chức nào và tài khoản cá nhân), thêm chuyển hướng "Di động và máy tính" tới http://localhost, cấp cho nó Mail.ReadWrite, Mail.Send, Contacts.ReadWrite và offline_access, rồi dán ID ứng dụng (máy khách) của nó vào đây.
+321|Hình ảnh từ xa bị chặn để bảo vệ quyền riêng tư của bạn.
+322|Gỡ bỏ
+323|Gỡ tìm kiếm đã lưu "{x}"?
+324|Gỡ tài khoản này và thư đã lưu khỏi máy tính này? Thư trên máy chủ không bị đụng tới.
+325|Gỡ khóa này? Thư đã mã hóa cho khóa này sẽ không đọc được ở đây nữa.
+326|Đổi tên
+327|Đổi tên thư mục này
+328|Đã đổi tên.
+329|Lặp lại: {x}
+330|Trả lời
+331|Trả lời tất cả
+332|Địa chỉ nhận trả lời (không bắt buộc)
+333|Báo là thư rác
+334|Báo là thư rác (!)
+335|Đã báo là thư rác.
+336|Đặt lại tất cả
+337|Thử lại
+338|Chạy ngay trên hộp thư đến
+339|Dùng cái này
+340|S/MIME (chứng chỉ tự ký)
+341|Bảo mật SMTP
+342|Máy chủ SMTP
+343|STARTTLS
+344|Giống hệ thống
+345|Lưu
+346|Lưu và chạy
+347|Lưu thành tệp
+348|Lưu thành tệp
+349|Lưu cuộc trò chuyện (mbox)
+350|Lưu thư thành tệp (.eml)
+351|Lưu các cuộc trò chuyện đã chọn thành tệp mbox
+352|Lưu tìm kiếm này
+353|Đã lưu
+354|Đã lưu và đang chạy.
+355|Tìm kiếm đã lưu
+356|Các tìm kiếm đã lưu
+357|Đã lưu.
+358|Đã lưu. Biểu tượng khu vực thông báo đổi vào lần khởi động ứng dụng tiếp theo.
+359|Lên lịch
+360|Lên lịch cho
+361|Tập lệnh
+362|Tìm kiếm
+363|Hãy tìm gì đó trước.
+364|Tìm trong thư
+365|Tìm trong thư (from: to: subject: is:unread has:attachment before: larger:)
+366|Tìm "{x}" trong thư
+367|Kết quả tìm kiếm
+368|Đã lưu tìm kiếm.
+369|Tìm kiếm: {x}
+370|Chọn
+371|Chọn tất cả
+372|Hãy chọn vài cuộc trò chuyện trước.
+373|Chọn cuộc trò chuyện
+374|Gửi
+375|Gửi (trong trình soạn thảo)
+376|Gửi xác nhận
+377|Gửi trả lời tự động
+378|Gửi sau
+379|Gửi thư này mà không có tiêu đề?
+380|Đã hủy việc gửi.
+381|Đang gửi thư...
+382|Đã gửi
+383|Địa chỉ máy chủ
+384|Bộ lọc máy chủ
+385|Bộ lọc máy chủ (Sieve)
+386|Bộ lọc máy chủ cần một tài khoản IMAP.
+387|Cài đặt máy chủ
+388|Hãy thiết lập máy chủ lịch trước.
+389|Cài đặt
+390|Chia sẻ phần công khai
+391|Hiện phím tắt
+392|Chỉ hiện {x}
+393|Hiện hoặc ẩn chế độ xem theo cuộc trò chuyện
+394|Hiện hoặc ẩn danh sách thư mục
+395|Hiện phần nội dung đã rút gọn
+396|Ký
+397|Ký mọi thư tôi gửi khi tôi có khóa
+398|Đăng nhập bằng Google
+399|Đăng nhập bằng {x}
+400|Chữ ký
+401|Được ký bởi {x}, người này không phải người gửi thư này.
+402|Nhỏ hơn (byte)
+403|Hoãn
+404|Hoãn (b)
+405|Hoãn đến
+406|Thư hoãn
+407|Hoãn đến {x}
+408|Thư rác
+409|Gắn dấu sao
+410|Gắn hoặc bỏ dấu sao
+411|Có gắn dấu sao
+412|Đã gắn dấu sao.
+413|Khởi động ẩn trong khu vực thông báo
+414|Bắt đầu bằng
+415|Dừng tại đây: các bộ lọc sau không chạy trên thư mà bộ lọc này đã xử lý
+416|Tiêu đề
+417|Tiêu đề (không bắt buộc)
+418|Tiêu đề:
+419|Đồng bộ ngay
+420|Yêu cầu người gửi ngừng gửi những thư này cho bạn?
+421|Mẫu
+422|Mẫu
+423|Mẫu (câu trả lời soạn sẵn)
+424|Văn bản
+425|Nội dung của thư
+426|Máy chủ MCP không chạy trong phiên này.
+427|Địa chỉ dùng để gửi. Máy chủ của bạn phải cho phép.
+428|Ứng dụng chạy một máy chủ MCP đọc và ghi trên máy tính này để các chương trình khác dùng được thư của bạn. Nó đăng nhập thay bạn và truy cập mọi tài khoản ở trên.
+429|Các tệp đính kèm nặng {x}. Hầu hết máy chủ thư từ chối thư trên 25 MB. Vẫn gửi?
+430|Trả lời tự động đang tắt.
+431|Trả lời tự động đang bật.
+432|Trả lời được giữ trên máy chủ của bạn, nên nó vẫn trả lời khi ứng dụng này đóng.
+433|Người gửi muốn biết khi nào bạn đọc thư này.
+434|Người gửi muốn bạn xác nhận trên một trang web. Mở ngay bây giờ?
+435|Máy chủ chấp nhận tập lệnh này.
+436|Không thể tin cậy chữ ký: {x}
+437|Giao diện
+438|Sau đó làm
+439|Không có thư mục thư rác.
+440|Không có thùng rác.
+441|Các tập lệnh này chạy trên máy chủ thư của bạn, nên chúng hoạt động cả khi ứng dụng này đóng. Máy chủ kiểm tra từng tập lệnh trước khi giữ lại.
+442|Thư mục này trống.
+443|Đây là câu trả lời cho một lời mời.
+444|Loại tài khoản này không giữ trả lời tự động trên máy chủ. Tài khoản Gmail, Microsoft, JMAP và IMAP có dịch vụ bộ lọc thì có.
+445|Danh sách này
+446|Thư này đến từ một danh sách gửi thư.
+447|Cuối tuần này
+448|Thunderbird: Trợ giúp, Thêm thông tin khắc phục sự cố, Thư mục hồ sơ.
+449|Tiêu đề
+450|Đến
+451|Người nhận trong Đến
+452|Đến:
+453|Ngày mai
+454|Sáng mai
+455|Đã muộn, thư đã được gửi.
+456|Công cụ
+457|Thùng rác
+458|Tin cậy chứng chỉ của máy chủ này dù nó tự ký
+459|Hãy thử ít từ hơn hoặc một toán tử khác.
+460|Tắt
+461|Bật xác minh hai bước trong tài khoản Google của bạn (myaccount.google.com/security). Nếu bạn dùng Google Workspace và nó đang tắt, hãy nhờ quản trị viên.
+462|Đã tắt.
+463|Loại
+464|Gõ một lệnh, một thư mục hoặc từ cần tìm
+465|Gạch chân
+466|Hoàn tác
+467|Hoàn tác thao tác cuối
+468|Thời gian hoàn tác việc gửi
+469|Hoàn tác thao tác cuối
+470|Đã bỏ dấu sao.
+471|Hủy đăng ký
+472|Dùng làm mặc định cho {x}
+473|Dùng giao diện tối
+474|Dùng giao diện sáng
+475|Dùng cái này
+476|Tên người dùng (nếu không phải địa chỉ email)
+477|Trả lời vắng mặt
+478|Xem mã nguồn
+479|Xem mã nguồn của thư
+480|Đang chờ bạn cho phép trong trình duyệt...
+481|Chào mừng đến với {x}
+482|Khi
+483|Viết
+484|Có
+485|Câu trả lời của bạn: {x}
+486|Bạn đang ngoại tuyến. Thư đã lưu của bạn ở đây, và thay đổi sẽ đồng bộ khi bạn kết nối lại.
+487|Bạn có nhắc đến tệp đính kèm nhưng chưa đính kèm gì. Vẫn gửi?
+488|Câu trả lời của bạn đã được gửi tới {x}.
+489|Tên của bạn
+490|tất cả
+491|ít nhất một
+492|bất kỳ cổng trống nào
+493|chứa
+494|không chứa
+495|kết thúc bằng
+496|https://mail.example.com
+497|là
+498|khớp với mẫu
+499|có thể
+500|không
+501|điều kiện này đúng
+502|đã lưu, để trống để giữ nguyên
+503|bắt đầu bằng
+504|có
+505|{n} cuộc trò chuyện
+506|{n} cuộc trò chuyện
+507|Đã nhập {n}.
+508|Đã xóa vĩnh viễn {n} thư.
+509|{n} thư không gửi được: {x}
+510|Đã nhập {n} thư từ {f} thư mục.
+511|Đã nhập {n} thư vào "{x}", {s} thư đã có từ trước.
+512|Đã nhập {n} thư vào "{x}".
+513|Đã đánh dấu {n} thư là đã đọc.
+514|{n} thư khớp với một bộ lọc.
+515|Đã chọn {n}
+516|{n} thư chưa đọc
+517|Tài khoản {x}

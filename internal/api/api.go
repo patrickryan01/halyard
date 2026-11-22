@@ -20,8 +20,8 @@ import (
 
 	"github.com/patrickryan01/halyard/internal/discover"
 	"github.com/patrickryan01/halyard/internal/engine"
-	mimeb "github.com/patrickryan01/halyard/internal/mime"
 	"github.com/patrickryan01/halyard/internal/mailtypes"
+	mimeb "github.com/patrickryan01/halyard/internal/mime"
 	"github.com/patrickryan01/halyard/internal/oauth"
 	"github.com/patrickryan01/halyard/internal/platform"
 	"github.com/patrickryan01/halyard/internal/plugin"

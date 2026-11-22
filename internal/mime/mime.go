@@ -292,7 +292,15 @@ func Parse(raw []byte) (Parsed, error) {
 				idx++
 			default:
 				name := ct
-				p.Attach = append(p.Attach, mailtypes.Attachment{ID: fmt.Sprint(idx), Filename: name, ContentType: ct, Size: int64(len(b)), Inline: true})
+				_, cparams, _ := ph.ContentType()
+				if n := cparams["name"]; n != "" {
+					name = n
+				}
+				if _, dparams, err := ph.ContentDisposition(); err == nil && dparams["filename"] != "" {
+					name = dparams["filename"]
+				}
+				cid := strings.Trim(ph.Get("Content-ID"), "<> ")
+				p.Attach = append(p.Attach, mailtypes.Attachment{ID: fmt.Sprint(idx), Filename: name, ContentType: ct, Size: int64(len(b)), Inline: true, ContentID: cid})
 				p.Parts = append(p.Parts, b)
 				idx++
 			}

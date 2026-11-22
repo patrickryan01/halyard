@@ -8,7 +8,7 @@ import path from 'node:path';
 
 const [bin, out] = process.argv.slice(2);
 mkdirSync(out, { recursive: true });
-const user = 'account@fireballindustries.onmicrosoft.com';
+const user = process.env.HALYARD_LIVE_MS_USER || '';
 const pw = readFileSync(path.join(homedir(), '.config/house/pw'), 'utf8').trim();
 const p = spawn(bin, ['microsoft']);
 let log = '';

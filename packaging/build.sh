@@ -1,5 +1,5 @@
 #!/bin/sh
-# Builds a package in a container, on the machine that has Podman (the Beast), one at a time.
+# Builds a package in a container, on a machine that has Podman, one at a time.
 #   packaging/build.sh VERSION arch|rpm|windows OUTDIR
 # Run from the repo root. The version tarball is made from HEAD. Sign-in client IDs come from the
 # environment (see packaging/common/build-flags.sh).
@@ -37,15 +37,16 @@ windows)
     mkdir -p /bin-win
     GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -tags "desktop,production" -ldflags "$LDF -H windowsgui" -o /bin-win/halyard.exe ./cmd/halyard
     GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "$LDF" -o /bin-win/halyardd.exe ./cmd/halyardd
+    GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "$LDF" -o /bin-win/halyardctl.exe ./cmd/halyardctl
     SIGNED=no
     if [ -n "$SIGN_CERT_PFX_BASE64" ]; then SIGNED=yes; elif [ -n "$HALYARD_REQUIRE_SIGNING" ]; then echo "REFUSING: this is a release build and there is no signing certificate" >&2; exit 3; else echo "NOTE: no signing certificate, the installer will be UNSIGNED" >&2; fi
     if [ $SIGNED = yes ]; then
-      sh packaging/windows/sign.sh /bin-win/halyard.exe; sh packaging/windows/sign.sh /bin-win/halyardd.exe
+      sh packaging/windows/sign.sh /bin-win/halyard.exe; sh packaging/windows/sign.sh /bin-win/halyardd.exe; sh packaging/windows/sign.sh /bin-win/halyardctl.exe
     fi
     cd packaging/windows && makensis -DVERSION='"$V"' -DBINDIR=/bin-win halyard.nsi
     if [ $SIGNED = yes ]; then
       sh sign.sh halyard-'"$V"'-setup.exe
-      for f in /bin-win/halyard.exe /bin-win/halyardd.exe halyard-'"$V"'-setup.exe; do sh verify-signed.sh "$f"; done
+      for f in /bin-win/halyard.exe /bin-win/halyardd.exe /bin-win/halyardctl.exe halyard-'"$V"'-setup.exe; do sh verify-signed.sh "$f"; done
     fi
     cp halyard-'"$V"'-setup.exe /out/pkg/; echo "signed=$SIGNED" > /out/pkg/windows-signing.txt' ;;
 *) echo "unknown target $T"; exit 2 ;;

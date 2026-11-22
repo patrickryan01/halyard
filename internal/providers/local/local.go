@@ -6,13 +6,15 @@ import (
 	"context"
 	"errors"
 
-	"github.com/patrickryan01/halyard/internal/mime"
 	"github.com/patrickryan01/halyard/internal/mailtypes"
+	"github.com/patrickryan01/halyard/internal/mime"
 	"github.com/patrickryan01/halyard/internal/plugin"
 )
 
 func init() {
-	plugin.Register(mailtypes.KindLocal, func(a mailtypes.Account, s plugin.Secrets) (plugin.Provider, error) { return &Provider{acct: a.ID}, nil })
+	plugin.Register(mailtypes.KindLocal, func(a mailtypes.Account, s plugin.Secrets) (plugin.Provider, error) {
+		return &Provider{acct: a.ID}, nil
+	})
 }
 
 // Raw returns the stored message for an imported one; the engine sets it.
@@ -52,7 +54,7 @@ func (p *Provider) Attachment(_ context.Context, remoteID, attID string) ([]byte
 	return nil, "", errors.New("attachment not found")
 }
 func (*Provider) Contacts(context.Context, string) ([]mailtypes.Contact, error) { return nil, nil }
-func (*Provider) Watch(ctx context.Context, _ func()) error                 { <-ctx.Done(); return nil }
+func (*Provider) Watch(ctx context.Context, _ func()) error                     { <-ctx.Done(); return nil }
 
 // Raw returns the stored original.
 func (p *Provider) Raw(_ context.Context, remoteID string) ([]byte, error) {

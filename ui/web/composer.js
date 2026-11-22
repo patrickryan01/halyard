@@ -36,7 +36,7 @@ H.composer = function (root, c, ctl) {
   const putSignature = () => {
     const id = identityFor(c);
     const old = $('[' + SIGMARK + ']', ed); if (old) old.remove();
-    const sig = id ? id.signature : (acctOf(c.accountId) || {}).signature;
+    const sig = (id && id.signature) || (!id || id.default ? (acctOf(c.accountId) || {}).signature : '');
     if (!sig) return;
     const q = $('blockquote', ed);
     const holder = document.createElement('div'); holder.innerHTML = sigHtml(sig);
@@ -90,7 +90,7 @@ H.composer = function (root, c, ctl) {
   rc.checked = c.receipt; sg.checked = c.sign; en.checked = c.encrypt; pr.value = c.protect;
   const hint = () => {
     const need = (sg.checked || en.checked);
-    $('[data-keyhint]', panel).textContent = need && !(pr.value === 'pgp' ? H.keyring.pgp.length : H.keyring.smime.length) ? 'You have no ' + (pr.value === 'pgp' ? 'OpenPGP key' : 'S/MIME certificate') + ' yet: make or import one under Encryption keys.' : '';
+    $('[data-keyhint]', panel).textContent = need && !(pr.value === 'pgp' ? H.keyring.pgp.length : H.keyring.smime.length) ? t(pr.value === 'pgp' ? 'You have no OpenPGP key yet: make or import one under Encryption keys.' : 'You have no S/MIME certificate yet: make or import one under Encryption keys.') : '';
   };
   const sync = () => { c.receipt = rc.checked; c.sign = sg.checked; c.encrypt = en.checked; c.protect = pr.value; hint(); ctl.save(); obtn.classList.toggle('primary', c.receipt || c.sign || c.encrypt); };
   [rc, sg, en, pr].forEach(x => x.onchange = sync);
@@ -115,7 +115,7 @@ H.draftExtras = function (c) {
 // a message that is too big for most servers, or too many recipients without a subject, is questioned before it leaves
 H.checkSend = function (c) {
   const total = c.files.reduce((n, f) => n + f.size, 0);
-  if (total > 25 * 1048576 && !confirm('The attachments are ' + fmtSize(total) + '. Most mail servers refuse messages over 25 MB. Send anyway?')) return false;
+  if (total > 25 * 1048576 && !confirm(t('The attachments are {x}. Most mail servers refuse messages over 25 MB. Send anyway?', { x: fmtSize(total) }))) return false;
   c.maybeEncrypt && c.maybeEncrypt();
   return true;
 };

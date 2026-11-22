@@ -3,10 +3,12 @@ package engine
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	_ "github.com/patrickryan01/halyard/internal/providers/local"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -197,5 +199,162 @@ func TestTemporaryFailuresAreRetried(t *testing.T) {
 	items, _ := e.St.Outbox()
 	if len(items) != 1 || items[0].State != "queued" || !items[0].SendAt.After(time.Now()) {
 		t.Fatalf("%+v", items)
+	}
+}
+
+// flaky is a provider whose server is unreachable until up is set.
+type flaky struct {
+	*scripted
+	mu  sync.Mutex
+	up  bool
+	saw []mailtypes.Action
+}
+
+func (f *flaky) Apply(_ context.Context, a mailtypes.Action) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if !f.up {
+		return errors.New("dial tcp: connection refused")
+	}
+	f.saw = append(f.saw, a)
+	return nil
+}
+
+func (f *flaky) Sync(ctx context.Context, state string) (plugin.SyncResult, error) {
+	f.mu.Lock()
+	up := f.up
+	f.mu.Unlock()
+	if !up {
+		return plugin.SyncResult{}, errors.New("dial tcp: connection refused")
+	}
+	return f.scripted.Sync(ctx, state)
+}
+
+// Offline, an action takes effect in the cache at once and waits in a queue; when the server is back it is replayed once.
+func TestOfflineQueueReplays(t *testing.T) {
+	st, err := store.Open(filepath.Join(t.TempDir(), "m.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer st.Close()
+	prov := &flaky{scripted: &scripted{}}
+	prov.add(msg("m1", "bob@x.test", time.Minute, false))
+	e := New(st, &secret.Store{Dir: t.TempDir(), NoKeyring: true})
+	e.Factory = func(mailtypes.Account, plugin.Secrets) (plugin.Provider, error) { return prov, nil }
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	if err := e.Start(ctx); err != nil {
+		t.Fatal(err)
+	}
+	defer e.Stop()
+	prov.mu.Lock()
+	prov.up = true
+	prov.mu.Unlock()
+	if _, err := e.AddAccount(ctx, mailtypes.Account{ID: "a1", Kind: "imap", Email: "me@x.test"}, []byte("pw")); err != nil {
+		t.Fatal(err)
+	}
+	deadline := time.Now().Add(10 * time.Second)
+	for time.Now().Before(deadline) {
+		if ts, _ := st.ListThreads(store.ListQuery{AccountID: "a1"}); len(ts) == 1 {
+			break
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	prov.mu.Lock()
+	prov.up = false // the network goes away
+	prov.mu.Unlock()
+	if err := e.Act("a1", mailtypes.Action{Kind: mailtypes.ActRead, IDs: []string{"m1"}}); err != nil {
+		t.Fatal(err)
+	}
+	th, _ := st.ListThreads(store.ListQuery{AccountID: "a1"})
+	ms, _ := st.Thread(th[0].ID)
+	if !ms[0].Read {
+		t.Fatal("the change did not show in the cache while offline")
+	}
+	time.Sleep(1500 * time.Millisecond)
+	if ops, _ := st.PendingOps("a1"); len(ops) != 1 {
+		t.Fatalf("the change was not kept for later: %d queued", len(ops))
+	}
+	prov.mu.Lock()
+	prov.up = true // and comes back
+	prov.mu.Unlock()
+	e.SyncNow("a1")
+	deadline = time.Now().Add(15 * time.Second)
+	for time.Now().Before(deadline) {
+		if ops, _ := st.PendingOps("a1"); len(ops) == 0 {
+			break
+		}
+		e.SyncNow("a1")
+		time.Sleep(300 * time.Millisecond)
+	}
+	prov.mu.Lock()
+	defer prov.mu.Unlock()
+	if ops, _ := st.PendingOps("a1"); len(ops) != 0 || len(prov.saw) != 1 || prov.saw[0].Kind != mailtypes.ActRead {
+		t.Fatalf("the queued change was not replayed exactly once: queued %v, server saw %+v", ops, prov.saw)
+	}
+}
+
+// A message sent from an address uses that identity's signature and reply-to; an alias with no signature of its own
+// sends without one, and the account's own address falls back to the account signature.
+func TestIdentitySignatureAndReplyTo(t *testing.T) {
+	e := testEngine(t)
+	ctx := context.Background()
+	a, err := e.AddAccount(ctx, mailtypes.Account{ID: "a2", Kind: "imap", Email: "me@x.test", Name: "Me", Signature: "Account signature"}, []byte("pw"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := e.St.PutIdentity(mailtypes.Identity{AccountID: a.ID, Name: "Sales", Email: "sales@x.test", Signature: "The sales team", ReplyTo: "reply@x.test", Alias: true}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := e.St.PutIdentity(mailtypes.Identity{AccountID: a.ID, Name: "Quiet", Email: "quiet@x.test", Alias: true}); err != nil {
+		t.Fatal(err)
+	}
+	send := func(from string) mailtypes.Outgoing {
+		id, err := e.SendAt(mailtypes.Outgoing{AccountID: a.ID, From: mailtypes.Address{Email: from}, To: []mailtypes.Address{{Email: "z@y.test"}}, Subject: from, BodyText: "hello"}, time.Now().Add(time.Hour))
+		if err != nil {
+			t.Fatal(err)
+		}
+		items, _ := e.St.DueOutbox(time.Now().Add(2 * time.Hour))
+		for _, it := range items {
+			if it.ID == id {
+				var o mailtypes.Outgoing
+				_ = json.Unmarshal(it.Payload, &o)
+				return o
+			}
+		}
+		t.Fatal("not queued")
+		return mailtypes.Outgoing{}
+	}
+	if o := send("sales@x.test"); !strings.Contains(o.BodyText, "The sales team") || strings.Contains(o.BodyText, "Account signature") || len(o.ReplyTo) != 1 || o.ReplyTo[0].Email != "reply@x.test" || o.From.Name != "Sales" {
+		t.Fatalf("alias with a signature: %+v", o)
+	}
+	if o := send("quiet@x.test"); strings.Contains(o.BodyText, "signature") || strings.Contains(o.BodyText, "--") {
+		t.Fatalf("alias without a signature: %q", o.BodyText)
+	}
+	if o := send("me@x.test"); !strings.Contains(o.BodyText, "Account signature") {
+		t.Fatalf("own address: %q", o.BodyText)
+	}
+}
+
+func TestRemoveAndUpdateAccount(t *testing.T) {
+	e := testEngine(t)
+	ctx := context.Background()
+	a, err := e.AddAccount(ctx, mailtypes.Account{ID: "a3", Kind: "imap", Email: "me@x.test"}, []byte("pw"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	a.Name, a.Signature = "New Name", "Regards"
+	if err := e.St.PutAccount(a); err != nil {
+		t.Fatal(err)
+	}
+	got, _ := e.St.Account(a.ID)
+	if got.Name != "New Name" || got.Signature != "Regards" {
+		t.Fatalf("%+v", got)
+	}
+	if err := e.RemoveAccount(a.ID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := e.St.Account(a.ID); err == nil {
+		t.Fatal("the account is still there")
 	}
 }

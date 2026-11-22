@@ -157,7 +157,7 @@ function render() {
   if (queued.length) banner += '<div class="banner err">' + queued.length + ' message(s) did not send: ' + esc(queued[0].error) + ' <button class="btn" data-retry="' + esc(queued[0].id) + '">Retry</button></div>';
   app.innerHTML =
     '<div class="top"><button class="icon" id="menu" aria-label="Menu">' + IC.menu + '</button><div class="brand"><i></i><span>' + esc(BRAND) + '</span></div>' +
-    '<div class="search">' + IC.search + '<input id="q" placeholder="Search mail   (from:  to:  subject:  is:unread  has:attachment  before:  larger:)" value="' + esc(S.q) + '" aria-label="Search mail"></div>' +
+    '<div class="search">' + IC.search + '<input id="q" placeholder="Search mail (from: to: subject: is:unread has:attachment before: larger:)" value="' + esc(S.q) + '" aria-label="Search mail"></div>' +
     '<div class="spacer"></div><button class="icon" id="syncbtn" title="Sync now" aria-label="Sync now"><svg viewBox="0 0 24 24"><path d="M17.650 6.350A8 8 0 1 0 19.730 14h-2.080A6 6 0 1 1 12 6c1.660 0 3.140.69 4.220 1.780L13 11h7V4l-2.350 2.350z"/></svg></button>' +
     '<button class="icon" id="settings" aria-label="Settings">' + IC.gear + '</button></div>' +
     '<div class="main"><nav class="side ' + (S.side ? '' : 'closed') + '" aria-label="Folders">' + side + '</nav><section class="content">' + banner + (S.open ? convoHtml() : listHtml()) + '</section></div><button class="fab" id="fab" aria-label="Compose">' + IC.plus + '</button>';
@@ -344,7 +344,7 @@ function snoozeMenu(ev, ids) {
   popup(ev, opts.map(([l, d]) => '<button data-until="' + Math.floor(d / 1000) + '">' + l + '<small>' + d.toLocaleString([], { weekday: 'short', hour: 'numeric', minute: '2-digit' }) + '</small></button>').join('') +
     '<div style="padding:6px"><label class="pill">Pick date and time</label><input type="datetime-local" id="snoozeat" style="width:100%"><button class="btn primary" id="snoozego" style="margin-top:6px;justify-content:center">Snooze</button></div>',
     pop => {
-      const go = async until => { closePop(); await api('snooze', { threadIds: ids, until }); S.open = null; await loadThreads(false); S.sel.clear(); render(); toast('Snoozed until ' + new Date(until * 1000).toLocaleString([], { weekday: 'short', hour: 'numeric', minute: '2-digit' }), { action: { label: 'Undo', fn: async () => { await api('snooze', { threadIds: ids, until: 0 }); refreshSoon(); } } }); };
+      const go = async until => { closePop(); await api('snooze', { threadIds: ids, until }); S.open = null; await loadThreads(false); S.sel.clear(); render(); toast(t('Snoozed until {x}', { x: new Date(until * 1000).toLocaleString([], { weekday: 'short', hour: 'numeric', minute: '2-digit' }) }), { action: { label: 'Undo', fn: async () => { await api('snooze', { threadIds: ids, until: 0 }); refreshSoon(); } } }); };
       $$('[data-until]', pop).forEach(b => b.onclick = () => go(+b.dataset.until));
       $('#snoozego', pop).onclick = () => { const v = $('#snoozeat', pop).value; if (v) go(Math.floor(new Date(v) / 1000)); };
     });
@@ -358,7 +358,7 @@ function moveMenu(ev, ids) {
   popup(ev, '<div class="pill" style="padding:4px 10px">' + (isLabel ? 'Label as' : 'Move to') + '</div>' + fs.map(f => '<button data-f="' + esc(f.remoteId) + '">' + esc(f.name) + '</button>').join('') + '<button data-newf>' + (isLabel ? 'Create new label...' : 'Create new folder...') + '</button>', pop => {
     $('[data-newf]', pop).onclick = async () => {
       closePop();
-      const n = prompt(isLabel ? 'New label name' : 'New folder name');
+      const n = prompt(t(isLabel ? 'New label name' : 'New folder name'));
       if (!n) return;
       try {
         const r = await api('folders/create', { accountId: acct, name: n });
@@ -378,7 +378,8 @@ function popup(ev, html, bind) {
   const r = (ev && ev.currentTarget && ev.currentTarget.getBoundingClientRect) ? ev.currentTarget.getBoundingClientRect() : { left: 200, bottom: 120 };
   el.style.left = Math.min(r.left, innerWidth - 250) + 'px'; el.style.top = Math.min(r.bottom + 4, innerHeight - el.offsetHeight - 8) + 'px';
   popEl = el; bind(el);
-  setTimeout(() => document.addEventListener('click', function h(e) { if (popEl && !popEl.contains(e.target)) { closePop(); document.removeEventListener('click', h); } }), 0);
+  // each menu closes only itself: an older menu's listener must not close the one that replaced it
+  setTimeout(() => document.addEventListener('click', function h(e) { if (popEl !== el) { document.removeEventListener('click', h); return; } if (!el.contains(e.target)) { closePop(); document.removeEventListener('click', h); } }), 0);
 }
 
 function bindMain() {
@@ -502,7 +503,7 @@ function dialog(html, bind, sticky) {
 
 // ---------- welcome and add account ----------
 function welcomeHtml() {
-  return '<div class="welcome"><h1>Welcome to ' + esc(BRAND) + '</h1><p>Add your email address. It takes under a minute.</p><div id="addhost"></div></div>';
+  return '<div class="welcome"><h1>' + esc(t('Welcome to {x}', { x: BRAND })) + '</h1><p>Add your email address. It takes under a minute.</p><div id="addhost"></div></div>';
 }
 function bindWelcome() { addAccountFlow($('#addhost'), () => { refreshState().then(() => go('role:inbox')); }); }
 function addAccountDialog() {
@@ -526,7 +527,7 @@ function addAccountFlow(host, done) {
 // the sign-in app fields live under Advanced: a normal add never needs them
 function advancedApp(r, saved, help) {
   const g = r.kind === 'google';
-  return '<details id="adv"><summary class="pill">Advanced: use my own sign-in app</summary><div class="pill" style="margin:6px 0">Only if your organization gave you its own app. ' + help + '</div>' +
+  return '<details id="adv"><summary class="pill">Advanced: use my own sign-in app</summary><div class="pill" style="margin:6px 0">Only if your organization gave you its own app.</div><div class="pill" style="margin:6px 0">' + esc(help) + '</div>' +
     '<label class="l">Client ID</label><input id="cid" value="' + esc(saved.clientId || '') + '" autocomplete="off">' +
     (g ? '<label class="l">Client secret ' + (saved.hasSecret ? '(saved, leave empty to keep it)' : '') + '</label><input id="csec" type="password" autocomplete="off">' : '<label class="l">Directory (tenant), default: any</label><input id="ten" value="' + esc(saved.tenant || '') + '" placeholder="common">') +
     '<label class="l">Fixed port (only if the app registers exact redirect addresses)</label><input id="prt" value="' + esc(saved.ports || '') + '" placeholder="any free port"></details>';
@@ -554,7 +555,7 @@ function oauthButton(host, step, r, done) {
       while (live) {
         const res = await api('accounts/oauth/wait?id=' + st.id);
         if (res.pending) continue;
-        toast('Added ' + res.email); done(); return;
+        toast(t('Added {x}', { x: res.email })); done(); return;
       }
     } catch (e) { w.innerHTML = ''; toast(e.message, { err: true }); }
   };
@@ -566,11 +567,11 @@ function stepFor(host, r, email, done) {
   if (r.kind === 'microsoft' || (r.kind === 'google' && (builtIn || saved.clientId))) {
     const g = r.kind === 'google', name = g ? 'Google' : 'Microsoft';
     const help = g
-      ? 'Create an OAuth client in the Google Cloud console (type <b>Desktop app</b>), turn on the Gmail API and the People API, then paste its client ID and secret.'
-      : 'Register an app in Microsoft Entra (any organizational directory and personal accounts), add a <b>Mobile and desktop</b> redirect of <span class="kbd">http://localhost</span>, give it Mail.ReadWrite, Mail.Send, Contacts.ReadWrite and offline_access, then paste its application (client) ID.';
-    step.innerHTML = '<div class="row2" style="text-align:left"><b>' + esc(r.provider || name) + ' account</b>' +
+      ? t('Create an OAuth client in the Google Cloud console (type "Desktop app"), turn on the Gmail API and the People API, then paste its client ID and secret.')
+      : t('Register an app in Microsoft Entra (any organizational directory and personal accounts), add a "Mobile and desktop" redirect of http://localhost, give it Mail.ReadWrite, Mail.Send, Contacts.ReadWrite and offline_access, then paste its application (client) ID.');
+    step.innerHTML = '<div class="row2" style="text-align:left"><b>' + esc(t('{x} account', { x: r.provider || name })) + '</b>' +
       '<div class="pill">One click. A browser tab opens so you can approve access; nothing is typed in this app.</div>' +
-      '<div class="btns"><button class="btn primary" id="oauth">Sign in with ' + name + '</button></div><div id="wait"></div>' + advancedApp(r, saved, help) + '</div>';
+      '<div class="btns"><button class="btn primary" id="oauth">' + esc(t('Sign in with {x}', { x: name })) + '</button></div><div id="wait"></div>' + advancedApp(r, saved, help) + '</div>';
     oauthButton(host, step, r, done);
     return;
   }
@@ -578,7 +579,7 @@ function stepFor(host, r, email, done) {
   const proto = (r.kind === 'pop3') ? 'pop3' : r.kind;
   const j = proto === 'jmap';
   const steps = g
-    ? '<div class="pill" style="margin:6px 0"><b>Gmail with an app password</b><ol style="margin:6px 0 6px 18px;padding:0"><li>Turn on 2-Step Verification at <span class="kbd">myaccount.google.com/security</span> (Workspace: ask your admin if it is off).</li><li>Open <span class="kbd">myaccount.google.com/apppasswords</span>, name it ' + esc(BRAND) + ', and create it.</li><li>Paste the 16 letter password below, without the spaces if you like.</li></ol></div>'
+    ? '<div class="pill" style="margin:6px 0"><b>' + esc(t('Gmail with an app password')) + '</b><ol style="margin:6px 0 6px 18px;padding:0"><li>' + esc(t('Turn on 2-Step Verification in your Google account (myaccount.google.com/security). If you use Google Workspace and it is off, ask your administrator.')) + '</li><li>' + esc(t('Open myaccount.google.com/apppasswords, give the password the name {x}, and create it.', { x: BRAND })) + '</li><li>' + esc(t('Paste the 16 letter password below, without the spaces if you like.')) + '</li></ol></div>'
     : '';
   const o = (v, cur, t) => '<option value="' + v + '"' + (cur === v ? ' selected' : '') + '>' + t + '</option>';
   step.innerHTML = '<div class="row2" style="text-align:left"><b>' + esc(r.provider || (j ? 'JMAP server' : 'Mail server')) + '</b>' + (r.note && !g ? '<div class="pill">' + esc(r.note) + '</div>' : '') + steps +
@@ -592,7 +593,7 @@ function stepFor(host, r, email, done) {
         '<label class="l">SMTP security</label><select id="ss">' + o('starttls', r.smtpSecurity || 'starttls', 'STARTTLS') + o('ssl', r.smtpSecurity, 'SSL/TLS') + o('none', r.smtpSecurity, 'None') + '</select>' +
         '<label style="display:block;margin-top:8px"><input type="checkbox" id="lv" checked style="width:auto"> POP3: leave mail on the server after downloading</label>') +
     '<label class="l">Username (if not the email address)</label><input id="un" value="' + esc(r.username && r.username !== email ? r.username : '') + '"><label style="display:block;margin-top:8px"><input type="checkbox" id="sk" style="width:auto"> Trust this server\'s certificate even if it is self-signed</label></details>' +
-    (g ? advancedApp({ kind: 'google' }, saved, 'Gmail also signs in with your own Google client: paste its ID and secret, then use the button.') + '<div class="btns"><button class="btn" id="oauth" style="display:none">Sign in with Google</button></div><div id="wait"></div>' : '') +
+    (g ? advancedApp({ kind: 'google' }, saved, t('Gmail also signs in with your own Google client: paste its ID and secret, then use the button.')) + '<div class="btns"><button class="btn" id="oauth" style="display:none">Sign in with Google</button></div><div id="wait"></div>' : '') +
     '<div class="btns"><button class="btn primary" id="add">Add account</button></div></div>';
   const emailEl = $('#em', host);
   if (g) {
@@ -610,7 +611,7 @@ function stepFor(host, r, email, done) {
       if (p === 'pop3') { body.pop3Host = $('#ih', step).value; body.pop3Port = +$('#ip', step).value; body.pop3Security = $('#is', step).value; body.leaveOnServer = $('#lv', step).checked; }
       else { body.imapHost = $('#ih', step).value; body.imapPort = +$('#ip', step).value; body.imapSecurity = $('#is', step).value; }
     }
-    try { const a = await api('accounts/password', body); toast('Added ' + a.email); done(); }
+    try { const a = await api('accounts/password', body); toast(t('Added {x}', { x: a.email })); done(); }
     catch (e) { toast(e.message, { err: true }); btn.textContent = 'Add account'; }
   };
 }
@@ -644,7 +645,7 @@ function settingsDialog() {
   $('#sg_id', el).value = (sia.google || {}).clientId || ''; $('#sm_id', el).value = (sia.microsoft || {}).clientId || ''; $('#sm_ten', el).value = (sia.microsoft || {}).tenant || '';
   $('#addacct', el).onclick = () => { el.remove(); addAccountDialog(); };
   $('#keys', el).onclick = () => { el.remove(); helpDialog(); };
-  $$('[data-rm]', el).forEach(b => b.onclick = async () => { if (confirm('Remove this account and its saved mail from this computer? Mail on the server is not touched.')) { await api('accounts/remove', { id: b.dataset.rm }); el.remove(); await refreshState(); go('role:inbox'); } });
+  $$('[data-rm]', el).forEach(b => b.onclick = async () => { if (confirm(t('Remove this account and its saved mail from this computer? Mail on the server is not touched.'))) { await api('accounts/remove', { id: b.dataset.rm }); el.remove(); await refreshState(); go('role:inbox'); } });
   $('#save', el).onclick = async () => {
     for (const a of d.accounts) await api('accounts/update', { id: a.id, name: $('[data-name="' + a.id + '"]', el).value, signature: $('[data-sig="' + a.id + '"]', el).value });
     const apps = { oauth_google_client_id: $('#sg_id', el).value.trim(), oauth_microsoft_client_id: $('#sm_id', el).value.trim(), oauth_microsoft_tenant: $('#sm_ten', el).value.trim() };
@@ -687,7 +688,7 @@ function quoteHtml(m) {
     $$('*', d).forEach(n => { for (const a of [...n.attributes]) if (/^on/i.test(a.name) || (a.name === 'src' && !/^data:/i.test(a.value)) || a.name === 'srcset') n.removeAttribute(a.name); });
     inner = d.body.innerHTML;
   } else inner = '<div>' + esc(m.bodyText || '').replace(/\n/g, '<br>') + '</div>';
-  return '<br><div>On ' + esc(fmtFull(m.date)) + ', ' + esc(addrStr(m.from)) + ' wrote:</div><blockquote>' + inner + '</blockquote>';
+  return '<br><div>' + esc(t('On {date}, {who} wrote:', { date: fmtFull(m.date), who: addrStr(m.from) })) + '</div><blockquote>' + inner + '</blockquote>';
 }
 async function replyTo(i, mode) {
   const m = S.open.msgs[i];
@@ -696,10 +697,10 @@ async function replyTo(i, mode) {
   const re = /^re:\s*/i, fw = /^fwd?:\s*/i;
   if (mode === 'forward') {
     c.subject = (fw.test(m.subject) ? '' : 'Fwd: ') + m.subject; c.inReplyTo = ''; c.refs = [];
-    c.html = '<br><div>---------- Forwarded message ----------<br>From: ' + esc(addrStr(m.from)) + '<br>Date: ' + esc(fmtFull(m.date)) + '<br>Subject: ' + esc(m.subject) + '<br>To: ' + esc(m.to.map(addrStr).join(', ')) + '</div>' + quoteHtml(m).replace(/^<br><div>On .*? wrote:<\/div>/, '');
+    c.html = '<br><div>' + esc(t('---------- Forwarded message ----------')) + '<br>' + esc(t('From:')) + ' ' + esc(addrStr(m.from)) + '<br>' + esc(t('Date:')) + ' ' + esc(fmtFull(m.date)) + '<br>' + esc(t('Subject:')) + ' ' + esc(m.subject) + '<br>' + esc(t('To:')) + ' ' + esc(m.to.map(addrStr).join(', ')) + '</div>' + quoteHtml(m).replace(/^<br><div>[^<]*<\/div>/, '');
     c.files = [];
     for (const a of (m.attachments || []).filter(a => !a.inline)) {
-      try { const r = await fetch(attUrl(m, a)); const b = await r.blob(); c.files.push(new File([b], a.filename, { type: a.contentType || b.type })); } catch (e) { toast('Could not attach ' + a.filename, { err: true }); }
+      try { const r = await fetch(attUrl(m, a)); const b = await r.blob(); c.files.push(new File([b], a.filename, { type: a.contentType || b.type })); } catch (e) { toast(t('Could not attach {x}', { x: a.filename }), { err: true }); }
     }
   } else {
     c.subject = (re.test(m.subject) ? '' : 'Re: ') + m.subject;
@@ -752,7 +753,7 @@ function openComposer(init) {
   $('[data-discard]', root).onclick = () => close(true);
   // formatting
   $$('[data-cmd]', root).forEach(b => b.onmousedown = e => { e.preventDefault(); document.execCommand(b.dataset.cmd, false, b.dataset.arg || null); save(); });
-  $('[data-link]', root).onmousedown = e => { e.preventDefault(); const u = prompt('Link address (https://...)'); if (u) document.execCommand('createLink', false, u); };
+  $('[data-link]', root).onmousedown = e => { e.preventDefault(); const u = prompt(t('Link address (https://...)')); if (u) document.execCommand('createLink', false, u); };
   // attachments
   const files = $('.cfiles', root);
   const drawFiles = () => { files.innerHTML = ''; c.files.forEach((f, i) => { const s = document.createElement('span'); s.className = 'att'; s.innerHTML = esc(f.name) + ' <small>' + fmtSize(f.size) + '</small> <button data-rm aria-label="Remove">&#10005;</button>'; s.querySelector('button').onclick = () => { c.files.splice(i, 1); drawFiles(); save(); }; files.appendChild(s); }); };
@@ -801,12 +802,12 @@ function openComposer(init) {
   async function send() {
     flushChips(root);
     const bad = [...c.to, ...c.cc, ...c.bcc].find(a => !okMail(a.email));
-    if (bad) { toast('"' + bad.email + '" is not a valid address.', { err: true }); return; }
+    if (bad) { toast(t('"{x}" is not a valid address.', { x: bad.email }), { err: true }); return; }
     if (!c.to.length && !c.cc.length && !c.bcc.length) { toast('Add at least one recipient.', { err: true }); return; }
-    if (!c.subject.trim() && !confirm('Send this message without a subject?')) return;
+    if (!c.subject.trim() && !confirm(t('Send this message without a subject?'))) return;
     if (window.H && H.checkSend && !H.checkSend(c)) return;
     const html = ed.innerHTML, text = ed.innerText;
-    if (/attach|attached|enclosed/i.test(text.replace(/\n>.*/g, '')) && !c.files.length && !confirm('You mentioned an attachment but none is attached. Send anyway?')) return;
+    if (/attach|attached|enclosed/i.test(text.replace(/\n>.*/g, '')) && !c.files.length && !confirm(t('You mentioned an attachment but none is attached. Send anyway?'))) return;
     const fd = new FormData();
     fd.append('json', JSON.stringify({ accountId: c.accountId, to: c.to.map(addrFmt).join(', '), cc: c.cc.map(addrFmt).join(', '), bcc: c.bcc.map(addrFmt).join(', '), subject: c.subject, bodyText: text, bodyHtml: '<div>' + html + '</div>', inReplyTo: c.inReplyTo, references: (c.refs || []).join(' '), threadHint: c.threadHint, sendAt: c.sendAt || '', ...(window.H ? H.extras(c) : {}) }));
     c.files.forEach(f => fd.append('file', f, f.name));
@@ -827,7 +828,7 @@ function stackComposers() { let right = 24; S.composers.slice().reverse().forEac
 function flushChips(root) { $$('.chips input', root).forEach(i => { i.dispatchEvent(new Event('flush')); }); }
 function chipField(root, c, key, save) {
   const box = $('[data-f=' + key + '] .chips', root);
-  const input = document.createElement('input'); input.setAttribute('aria-label', key.toUpperCase() + ' recipients');
+  const input = document.createElement('input'); input.setAttribute('aria-label', t({ to: 'To recipients', cc: 'Cc recipients', bcc: 'Bcc recipients' }[key]));
   let ac = null, acItems = [], acIdx = -1, acTimer = null;
   const draw = () => {
     $$('.chip', box).forEach(n => n.remove());

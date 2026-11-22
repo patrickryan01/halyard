@@ -35,10 +35,10 @@ H.decorate = function (slot, m, i) {
   if (m.listUnsubscribe) {
     const b = bar('', 'This message came from a mailing list. <button class="btn" data-unsub>Unsubscribe</button>');
     $('[data-unsub]', b).onclick = async () => {
-      if (!confirm('Tell the sender to stop sending you these messages?')) return;
+      if (!confirm(t('Tell the sender to stop sending you these messages?'))) return;
       try {
         const r = await api('unsubscribe', { id: m.id });
-        if (r.openUrl) { if (confirm('The sender wants you to confirm on a web page. Open it now?')) api('open', { url: r.openUrl }).catch(H.err); }
+        if (r.openUrl) { if (confirm(t('The sender wants you to confirm on a web page. Open it now?'))) api('open', { url: r.openUrl }).catch(H.err); }
         else toast('Done. You asked the sender to stop. It can take a few days.');
       } catch (e) { H.err(e); }
     };
@@ -86,13 +86,13 @@ H.invite = function (slot, m) {
     const cancel = inv.method === 'CANCEL', reply = inv.method === 'REPLY';
     const att = (ev.attendees || []).map(a => '<span class="chip" title="' + esc(a.email) + '">' + esc(a.name || a.email) + (a.partStat && a.partStat !== 'NEEDS-ACTION' ? ' &middot; ' + esc(a.partStat.toLowerCase()) : '') + '</span>').join(' ');
     host.innerHTML = '<div class="invtitle">' + esc(cancel ? 'Cancelled: ' : '') + esc(ev.summary || 'Event') + '</div><div>' + esc(when(ev)) + '</div>' + (ev.location ? '<div class="pill">' + esc(ev.location) + '</div>' : '') +
-      (ev.organizer && ev.organizer.email ? '<div class="pill">Organizer: ' + esc(ev.organizer.name || ev.organizer.email) + '</div>' : '') + (ev.recurrence ? '<div class="pill">Repeats: ' + esc(ev.recurrence) + '</div>' : '') + (att ? '<div style="margin-top:4px">' + att + '</div>' : '') +
+      (ev.organizer && ev.organizer.email ? '<div class="pill">' + esc(t('Organizer: {x}', { x: ev.organizer.name || ev.organizer.email })) + '</div>' : '') + (ev.recurrence ? '<div class="pill">' + esc(t('Repeats: {x}', { x: ev.recurrence })) + '</div>' : '') + (att ? '<div style="margin-top:4px">' + att + '</div>' : '') +
       (reply ? '<div class="pill">This is an answer to an invitation.</div>' : cancel ? '' :
         '<div class="invbtns">' + [['ACCEPTED', 'Yes'], ['TENTATIVE', 'Maybe'], ['DECLINED', 'No']].map(([s, l]) => '<button class="btn ' + (me === s ? 'primary' : '') + '" data-rsvp="' + s + '">' + l + '</button>').join('') +
-          (davAccountsFor(m) ? '<button class="btn" data-addcal>Add to calendar</button>' : '') + '</div>' + (me && me !== 'NEEDS-ACTION' ? '<div class="pill">You answered: ' + esc(me.toLowerCase()) + '</div>' : ''));
+          (davAccountsFor(m) ? '<button class="btn" data-addcal>Add to calendar</button>' : '') + '</div>' + (me && me !== 'NEEDS-ACTION' ? '<div class="pill">' + esc(t('You answered: {x}', { x: t(({ ACCEPTED: 'yes', DECLINED: 'no', TENTATIVE: 'maybe' })[me] || me.toLowerCase()) })) + '</div>' : ''));
     $$('[data-rsvp]', host).forEach(b => b.onclick = async () => {
       b.disabled = true;
-      try { await api('invite/respond', { id: m.id, status: b.dataset.rsvp }); delete H.cache['inv:' + m.id]; H.cache['inv:' + m.id] = Promise.resolve(Object.assign({}, inv, { me: Object.assign({}, inv.me || {}, { partStat: b.dataset.rsvp }) })); toast('Your answer was sent to ' + (ev.organizer.name || ev.organizer.email) + '.'); render(); } catch (e) { b.disabled = false; H.err(e); }
+      try { await api('invite/respond', { id: m.id, status: b.dataset.rsvp }); delete H.cache['inv:' + m.id]; H.cache['inv:' + m.id] = Promise.resolve(Object.assign({}, inv, { me: Object.assign({}, inv.me || {}, { partStat: b.dataset.rsvp }) })); toast(t('Your answer was sent to {x}.', { x: ev.organizer.name || ev.organizer.email })); render(); } catch (e) { b.disabled = false; H.err(e); }
     });
     const ac = $('[data-addcal]', host);
     if (ac) ac.onclick = async () => { try { await api('invite/add', { id: m.id, accountId: davAccountsFor(m) }); toast('Added to your calendar.'); } catch (e) { H.err(e); } };
@@ -110,15 +110,15 @@ H.secure = function (slot, m) {
   const host = bar('', '<span class="spin"></span> Checking...');
   slot.appendChild(host);
   cacheGet('sec:' + m.id, () => api('security?id=' + encodeURIComponent(m.id)).catch(e => ({ problem: e.message, failed: true }))).then(v => {
-    if (v.failed) { host.className = 'mxbar warn'; host.textContent = 'Could not check this message: ' + v.problem; return; }
+    if (v.failed) { host.className = 'mxbar warn'; host.textContent = t('Could not check this message: {x}', { x: v.problem }); return; }
     const parts = [];
     let cls = 'ok';
-    if (v.encrypted) parts.push(v.decrypted ? 'Encrypted: only you and the people it was sent to can read it.' : 'Encrypted, and this app cannot open it: ' + (v.problem || 'no key'));
+    if (v.encrypted) parts.push(v.decrypted ? t('Encrypted: only you and the people it was sent to can read it.') : t('Encrypted, and this app cannot open it: {x}', { x: v.problem || t('no key') }));
     if (!v.encrypted || v.decrypted) {
       if (v.signed) {
-        if (v.valid && v.signerMatchesFrom) parts.push('Signed by ' + (v.signer.name || v.signer.email) + ' &lt;' + esc(v.signer.email) + '&gt;. The message has not been changed.' + (v.trusted ? '' : ' You have not saved this key yet.'));
-        else if (v.valid) { parts.push('Signed by ' + esc(v.signer.email) + ', who is not the sender of this message.'); cls = 'warn'; }
-        else { parts.push('The signature could not be trusted: ' + esc(v.problem || 'it does not match')); cls = 'warn'; }
+        if (v.valid && v.signerMatchesFrom) parts.push(esc(t(v.trusted ? 'Signed by {x}. The message has not been changed.' : 'Signed by {x}. The message has not been changed. You have not saved this key yet.', { x: (v.signer.name ? v.signer.name + ' ' : '') + '<' + v.signer.email + '>' })));
+        else if (v.valid) { parts.push(esc(t('Signed by {x}, who is not the sender of this message.', { x: v.signer.email }))); cls = 'warn'; }
+        else { parts.push(esc(t('The signature could not be trusted: {x}', { x: v.problem || t('it does not match') }))); cls = 'warn'; }
         if (v.valid && !v.trusted) parts.push('<button class="btn" data-keep>Keep this key</button>');
       }
     }
@@ -176,17 +176,17 @@ H.markAllRead = async function () {
   const fs = currentFolders();
   if (!fs.length) { toast('Open a folder first.'); return; }
   let n = 0;
-  try { for (const f of fs) { const r = await api('folders/markread', { accountId: f.accountId, remoteId: f.remoteId }); n += r.count; } toast(n ? n + ' message(s) marked as read.' : 'Nothing was unread.'); refreshSoon(); } catch (e) { H.err(e); }
+  try { for (const f of fs) { const r = await api('folders/markread', { accountId: f.accountId, remoteId: f.remoteId }); n += r.count; } toast(n ? t('{n} message(s) marked as read.', { n }) : t('Nothing was unread.')); refreshSoon(); } catch (e) { H.err(e); }
 };
 H.emptyFolder = async function (role) {
   const fs = S.data.folders.filter(f => f.role === role);
-  if (!fs.length) { toast('There is no ' + role + ' folder.'); return; }
-  if (!confirm('Delete everything in ' + (role === 'trash' ? 'the trash' : 'spam') + ' for good? This cannot be undone.')) return;
+  if (!fs.length) { toast(t(role === 'trash' ? 'There is no trash folder.' : 'There is no spam folder.')); return; }
+  if (!confirm(t(role === 'trash' ? 'Delete everything in the trash for good? This cannot be undone.' : 'Delete everything in spam for good? This cannot be undone.'))) return;
   let n = 0;
-  try { for (const f of fs) { const r = await api('folders/empty', { accountId: f.accountId, role }); n += r.count; } toast(n + ' message(s) deleted for good.'); refreshSoon(); } catch (e) { H.err(e); }
+  try { for (const f of fs) { const r = await api('folders/empty', { accountId: f.accountId, role }); n += r.count; } toast(t('{n} message(s) deleted for good.', { n })); refreshSoon(); } catch (e) { H.err(e); }
 };
-H.renameFolder = async function (f) { const n = prompt('New name for "' + f.name + '"', f.name); if (!n || n === f.name) return; try { await api('folders/rename', { accountId: f.accountId, remoteId: f.remoteId, name: n }); toast('Renamed.'); setTimeout(refreshSoon, 1200); } catch (e) { H.err(e); } };
-H.deleteFolder = async function (f) { if (!confirm('Delete the folder "' + f.name + '"? Mail only in this folder is deleted with it.')) return; try { await api('folders/delete', { accountId: f.accountId, remoteId: f.remoteId }); if (S.folder === f.id) S.folder = 'role:inbox'; toast('Deleted.'); setTimeout(refreshSoon, 1200); } catch (e) { H.err(e); } };
+H.renameFolder = async function (f) { const n = prompt(t('New name for "{x}"', { x: f.name }), f.name); if (!n || n === f.name) return; try { await api('folders/rename', { accountId: f.accountId, remoteId: f.remoteId, name: n }); toast('Renamed.'); setTimeout(refreshSoon, 1200); } catch (e) { H.err(e); } };
+H.deleteFolder = async function (f) { if (!confirm(t('Delete the folder "{x}"? Mail only in this folder is deleted with it.', { x: f.name }))) return; try { await api('folders/delete', { accountId: f.accountId, remoteId: f.remoteId }); if (S.folder === f.id) S.folder = 'role:inbox'; toast('Deleted.'); setTimeout(refreshSoon, 1200); } catch (e) { H.err(e); } };
 
 // ---------- the sidebar and the toolbar ----------
 H.searches = [];
@@ -203,7 +203,7 @@ H.decorateSide = function () {
   $$('[data-ss]', side).forEach(b => {
     const s = H.searches.find(x => x.id === b.dataset.ss);
     b.onclick = () => search(s.query);
-    b.oncontextmenu = e => { e.preventDefault(); if (confirm('Remove the saved search "' + s.name + '"?')) api('searches/delete', { id: s.id }).then(() => H.loadSearches()).then(render); };
+    b.oncontextmenu = e => { e.preventDefault(); if (confirm(t('Remove the saved search "{x}"?', { x: s.name }))) api('searches/delete', { id: s.id }).then(() => H.loadSearches()).then(render); };
   });
   $$('[data-tool]', side).forEach(b => b.onclick = () => (b.dataset.tool === 'contacts' ? H.contactsDialog() : H.calendarDialog()));
   $$('.nav[data-nav]', side).forEach(b => {
@@ -241,6 +241,6 @@ H.decorateToolbar = function () {
 };
 H.saveCurrentSearch = async function () {
   if (!S.q) { toast('Search for something first.'); return; }
-  const name = prompt('Name for this search', S.q); if (!name) return;
+  const name = prompt(t('Name for this search'), S.q); if (!name) return;
   try { await api('searches', { name, query: S.q }); await H.loadSearches(); render(); toast('Search saved.'); } catch (e) { H.err(e); }
 };

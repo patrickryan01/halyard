@@ -39,3 +39,11 @@ func TestBuildParseRoundTrip(t *testing.T) {
 		t.Fatalf("threading or envelope")
 	}
 }
+
+func TestInlineImageKeepsItsContentID(t *testing.T) {
+	raw := "From: a@x.test\r\nTo: b@y.test\r\nSubject: pic\r\nMIME-Version: 1.0\r\nContent-Type: multipart/related; boundary=r\r\n\r\n--r\r\nContent-Type: text/html\r\n\r\n<p>hi <img src=\"cid:logo@x\"></p>\r\n--r\r\nContent-Type: image/png; name=logo.png\r\nContent-Disposition: inline; filename=logo.png\r\nContent-ID: <logo@x>\r\nContent-Transfer-Encoding: base64\r\n\r\niVBORw0KGgo=\r\n--r--\r\n"
+	pm, err := Parse([]byte(raw))
+	if err != nil || len(pm.Attach) != 1 || pm.Attach[0].ContentID != "logo@x" || !pm.Attach[0].Inline || !strings.Contains(pm.HTML, "cid:logo@x") {
+		t.Fatalf("%+v %v", pm.Attach, err)
+	}
+}

@@ -12,7 +12,9 @@ func TestMatch(t *testing.T) {
 	r := func(match string, cs ...mailtypes.RuleCondition) mailtypes.Rule {
 		return mailtypes.Rule{Enabled: true, Match: match, Conditions: cs}
 	}
-	cc := func(f, op, v string) mailtypes.RuleCondition { return mailtypes.RuleCondition{Field: f, Op: op, Value: v} }
+	cc := func(f, op, v string) mailtypes.RuleCondition {
+		return mailtypes.RuleCondition{Field: f, Op: op, Value: v}
+	}
 	cases := []struct {
 		name string
 		r    mailtypes.Rule

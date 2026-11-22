@@ -62,7 +62,7 @@ must((await pg.locator('#oauth').innerText()).includes('Microsoft') && !(await p
 await pg.keyboard.press('Escape'); await pg.waitForSelector('#addacct', { state: 'detached' }).catch(() => {});
 await pg.click('#settings').catch(() => {}); await pg.waitForSelector('.dialog'); await sleep(300);
 // a customer's own Google sign-in app is set up in the app and kept
-await pg.fill('#sg_id', 'smoke-id.apps.googleusercontent.com'); await pg.fill('#sg_sec', 'smoke-secret');
+await pg.click('#signinapps summary'); await pg.fill('#sg_id', 'smoke-id.apps.googleusercontent.com'); await pg.fill('#sg_sec', 'smoke-secret');
 await pg.click('#save'); await sleep(700);
 const st = await (await fetch(url.replace(/\/\?.*/, '/api/state'), { headers: { 'X-Token': new URL(url).searchParams.get('token') } })).json();
 must(st.signInApps.google.clientId === 'smoke-id.apps.googleusercontent.com' && st.signInApps.google.hasSecret === true, 'the Google sign-in app is saved from Settings');
@@ -76,7 +76,9 @@ const tk = new URL(url).searchParams.get('token');
 await fetch(url.replace(/\/\?.*/, '/api/settings'), { method: 'POST', headers: { 'X-Token': tk, 'Content-Type': 'application/json' }, body: JSON.stringify({ theme: 'dark' }) });
 await pg.waitForFunction(() => document.documentElement.dataset.theme === 'dark', null, { timeout: 8000 }).catch(() => errors.push('FAILED: the window did not follow a theme change'));
 // shortcuts help
-await pg.keyboard.press('?'); await pg.waitForSelector('.dialog .help');
+await pg.keyboard.press('?'); await pg.waitForSelector('.dialog .kmap');
+must((await pg.locator('.kmap').innerText()).includes('Compose a new message'), 'the shortcut list shows the commands');
+await pg.keyboard.press('Escape');
 await b.close(); p.kill();
 if (errors.length) { console.log(errors.join('\n')); process.exit(1); }
 console.log('ui smoke ok');

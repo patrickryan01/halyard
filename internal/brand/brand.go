@@ -5,7 +5,7 @@ package brand
 const (
 	Name = "Halyard"
 	Slug = "halyard"
-	ID   = "ai.embernet.halyard"
+	ID   = "io.github.patrickryan01.halyard"
 )
 
 // Version is set at build time with -ldflags "-X .../internal/brand.Version=1.0.0".

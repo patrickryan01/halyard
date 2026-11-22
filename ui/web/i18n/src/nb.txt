@@ -1,0 +1,515 @@
+1|«{x}» er ikke en gyldig adresse.
+2|---------- Videresendt melding ----------
+3|1 ulest melding
+5|En Thunderbird-profil
+6|En nøkkel lar deg signere e-posten, slik at folk vet at den kommer fra deg, og lese e-post som skrives til deg privat. Gi den offentlige nøkkelen din til dem som skriver til deg. Private nøkler forlater aldri denne datamaskinen.
+7|En mal er et svar du bruker om og om igjen. Velg den i skriveren eller i kommandopaletten.
+8|Konto
+9|ID-en til kontoen det skal kjøres på ({x})
+10|Kontoer
+11|Legg til en betingelse
+12|Legg til en etikett eller kopier til en mappe
+13|Legg til konto
+14|Legg til en konto
+15|Legg til en konto først.
+16|Legg til en handling
+17|Legg til en adresse
+18|Legg til minst én mottaker.
+19|Legg til i kalenderen
+20|Skriv inn e-postadressen din. Det tar under ett minutt.
+21|Lagt til i kalenderen.
+22|La til {x}
+23|Adresse
+24|Adresser oppdatert fra serveren.
+25|Avansert: påloggingsapper
+26|Avansert: bruk min egen påloggingsapp
+27|All e-post
+28|Alle kontoer
+29|Hele dagen
+30|Last alltid eksterne bilder (de kan fortelle avsenderen at du har lest meldingen)
+31|Send alltid
+32|En mbox-fil
+33|App-passord
+34|Utseende
+35|Arkiver
+36|Arkiver (e)
+37|Arkiver samtalen etter at jeg har svart
+38|Be om lesebekreftelse
+39|Spør meg hver gang
+40|Legg ved
+41|Tilbake
+42|Tilbake (u)
+43|Tilbake til listen
+44|Tilbake til listen
+45|Bcc
+46|Mottakere i Bcc
+47|Oppførsel
+48|Fet
+49|Punktliste
+50|Kalender
+51|Server for kalender og kontakter
+52|Avbryt
+53|Avbrutt.
+54|Cc
+55|Mottakere i Cc
+56|Bytt språk
+57|Kontroller
+58|Se etter ny e-post
+59|Stavekontroll mens jeg skriver
+60|Ser etter e-post ...
+61|Kontrollerer ...
+62|Velg en fil først.
+63|Fjern formatering
+64|Fjern utvalget
+65|Klient-ID
+66|Klienthemmelighet
+67|Lukk
+68|Romslig
+69|Kommando
+70|Kommandopalett
+71|Kompakt
+72|Skriv ny
+73|Skriv en ny melding
+74|Koble til
+75|Tilkoblet.
+76|Kontakter
+77|Fortsett
+78|Samtalen er arkivert.
+79|Samtalen er slettet.
+80|Kopiert
+81|Kopier klientoppsettet
+82|Kunne ikke legge ved {x}
+83|Kunne ikke kontrollere denne meldingen: {x}
+84|Fant ikke serveren automatisk. Skriv inn adressen.
+85|Kunne ikke starte
+86|Lag en OAuth-klient i Google Cloud-konsollen (type «Skrivebordsapp»), slå på Gmail-API-et og People-API-et, og lim inn klient-ID-en og hemmeligheten her.
+87|Opprett ny mappe ...
+88|Opprett ny etikett ...
+89|Mørk
+90|Dato
+91|Dato:
+92|Slett
+93|Slett (#)
+94|Slett (Delete-tasten)
+95|Slette all søppelpost for godt? Dette kan ikke angres.
+96|Slette alt i papirkurven for godt? Dette kan ikke angres.
+97|Slette mappen «{x}»? E-post som bare ligger i denne mappen, slettes sammen med den.
+98|Slette skriptet «{x}» fra serveren?
+99|Slett denne mappen
+100|Slettet.
+101|Tetthet
+102|Skrivebordsvarsler for ny e-post
+103|Katalog (leietaker), standard: alle
+104|Forkast
+105|Ferdig
+106|Ferdig. Du ba avsenderen slutte. Det kan ta noen dager.
+107|Utkast
+108|Utkast lagret.
+109|Utkast
+110|Rediger
+111|Rediger kontakten
+112|Rediger hendelsen
+113|Rediger filteret
+114|Rediger malen
+115|E-postadresse
+116|Tøm søppelpost nå
+117|Tøm søppelpostmappen
+118|Tøm papirkurven
+119|Tøm papirkurven nå
+120|Krypter
+121|Krypter når jeg har nøkkel for alle mottakerne
+122|Kryptert, og denne appen kan ikke åpne den: {x}
+123|Kryptert: bare du og de den ble sendt til, kan lese den.
+124|Krypteringsnøkler
+125|Krypteringsnøkler og sertifikater
+126|Adresse til tjenesten
+127|Slutter
+128|Skriv inn profilmappen.
+129|Hendelse
+130|Fil
+131|Filer
+132|Filtre
+133|Filtre og regler
+134|Filtre kjøres på ny e-post idet den kommer, i denne rekkefølgen. Et filter gjelder alle kontoer med mindre du velger én.
+135|Finn en kontakt
+136|Finn en hurtigtast
+137|Første dag (valgfritt)
+138|Fast port (bare hvis appen registrerer nøyaktige omdirigeringsadresser)
+139|Mappe
+140|Mappenavn
+141|Mapper
+142|Følg systemets tema
+143|Videresend
+144|Videresend til
+145|Fra
+146|Fra:
+147|Fullskjerm
+148|Hent fra serveren
+149|Gmail logger også på med din egen Google-klient: lim inn ID og hemmelighet, og bruk så knappen.
+150|Gmail med et app-passord
+151|Gå til All e-post
+152|Gå til Utkast
+153|Gå til Innboks
+154|Gå til Sendt
+155|Gå til Utsatt
+156|Gå til Søppelpost
+157|Gå til Stjernemerkede
+158|Gå til Papirkurv
+159|Gå til {x}
+160|Google
+161|Google klient-ID
+162|Google klienthemmelighet
+163|Grupper i samtaler
+164|Grupper meldinger i samtaler
+165|Har et vedlegg
+166|IMAP (lar e-posten ligge på serveren)
+167|IMAP-server
+168|Identiteter og signaturer
+169|Importer
+170|Importer en nøkkel eller et sertifikat
+171|Importer alle mapper
+172|Importer e-post
+173|Importer filen
+174|Importert
+175|Importerer ...
+176|Om en time
+177|Innboks
+178|Innkommende protokoll
+179|Innkommende sikkerhet
+180|Innkommende server
+181|Er en e-postliste
+182|Kursiv
+183|JMAP-server
+184|Adresse til JMAP-serveren
+185|Behold et ikon i varslingsfeltet og fortsett å kjøre når vinduet lukkes
+186|Behold denne nøkkelen
+187|Nøkkelen er lagret.
+188|Hurtigtaster
+189|Etikett satt.
+190|Merk som
+191|Språk
+192|Større enn (byte)
+193|Siste dag (valgfritt)
+194|Senere i dag
+195|Lys
+196|Lenke
+197|Adressen til lenken (https://...)
+198|List hver melding for seg
+199|Last bilder
+200|Last mer
+201|Laster ...
+202|MCP-server
+203|E-post
+204|E-post fra andre programmer ligger i kontoen «På denne datamaskinen», i mapper, og søkes sammen med alt annet.
+205|E-postserver
+206|E-postverktøy
+207|Lag en nøkkel
+208|Lag den
+209|Merk alt som lest
+210|Merk som lest
+211|Merk som lest (Shift+I)
+212|Merk som søppelpost
+213|Merk som ulest
+214|Merk som ulest (Shift+U)
+215|Merk alt i denne mappen som lest
+216|Merk lest
+217|Merk som lest eller ulest
+218|Merk ulest
+219|Merket som lest.
+220|Merket som ulest.
+221|Som systemet
+222|Kanskje
+223|Meny
+224|Melding
+225|Meldingsteksten
+226|Melding sendt.
+227|Kilden til meldingen
+228|Microsoft
+229|Microsoft applikasjons-ID (klient)
+230|Microsoft-katalog (leietaker)
+231|Minimer
+232|Mandag morgen
+233|Mer
+234|Flere innstillinger
+235|De fleste servere bruker CalDAV og CardDAV på nettadressen sin. Hendelsene og adresseboken din vises da her.
+236|Flytt eller merk
+237|Flytt til
+238|Flytt til en mappe
+239|Flyttet til innboksen.
+240|Flyttet.
+241|Navn
+242|Navn på dette søket
+243|Navn på sendt e-post
+244|Aldri send
+245|Ny kontakt
+246|Ny hendelse
+247|Nytt filter
+248|Navn på den nye mappen
+249|Navn på den nye etiketten
+250|Ny melding
+251|Ny melding fra mal: {x}
+252|Nytt navn på «{x}»
+253|Nytt skript
+254|Ny mal
+255|Nyere
+256|Nyere (k)
+257|Neste samtale
+258|Neste melding i samtalen
+259|Neste uke
+260|Nei
+261|Fant ingen kontakter. Folk du skriver til, legges til her.
+262|Ingen filtre ennå.
+263|Ingen mapper for denne kontoen
+264|Ingen nøkler ennå.
+265|Ingen meldinger passer til søket
+266|Ingen skript på serveren ennå.
+267|Ingen maler ennå.
+268|Ingen maler ennå. Lag noen under Maler.
+269|Ingen uleste
+270|Ingen
+271|Ikke tilgjengelig her.
+272|Ikke denne gangen
+273|Notater
+274|Ingenting her
+275|Ingenting de neste 45 dagene.
+276|Ingenting var ulest.
+277|Nummerering
+278|Av
+279|Eldre
+280|Eldre (j)
+281|{date} skrev {who}:
+282|Ett klikk. En fane i nettleseren åpnes slik at du kan godkjenne tilgangen; ingenting skrives inn i denne appen.
+283|Bare for en organisasjon som har gitt deg sin egen Google- eller Microsoft-app. La stå tomt for å bruke den som følger med denne kopien av appen.
+284|Bare hvis organisasjonen din har gitt deg sin egen app.
+285|Svar bare til personer i kontaktene mine
+286|Åpne en mappe først.
+287|Åpne kontakter
+288|Åpne samtalen
+289|Åpne myaccount.google.com/apppasswords, gi passordet navnet {x}, og lag det.
+290|Åpne innstillinger
+291|Åpne kalenderen
+292|Åpne kommandopaletten
+293|Åpne samtalen
+294|Åpne samtalen (Enter)
+295|Åpne siden igjen
+296|OpenPGP-nøkkel
+297|Valg
+298|Eller lim inn teksten
+299|Organisasjon
+300|Arrangør: {x}
+301|POP3 (laster ned e-posten)
+302|POP3: la e-posten ligge på serveren etter nedlasting
+303|Passord
+305|Lim inn passordet på 16 bokstaver under, gjerne uten mellomrom.
+306|Telefon
+307|Velg dato og klokkeslett
+308|Sted
+309|Port
+310|Trykk de nye tastene. For to taster på rad trykker du dem etter hverandre. Esc avbryter, Delete fjerner.
+311|Forrige samtale
+312|Forrige melding i samtalen
+313|Skriv ut
+314|Skriv ut meldingen
+315|Profilmappe
+316|Beskytt meldinger med
+317|Sitat
+318|Lesebekreftelser, når en avsender ber om det
+319|Bekreftelse sendt.
+320|Registrer en app i Microsoft Entra (en hvilken som helst organisasjonskatalog og personlige kontoer), legg til en omdirigering for «Mobil og skrivebord» til http://localhost, gi den Mail.ReadWrite, Mail.Send, Contacts.ReadWrite og offline_access, og lim inn applikasjons-ID-en (klient) her.
+321|Eksterne bilder er blokkert for å beskytte personvernet ditt.
+322|Fjern
+323|Fjerne det lagrede søket «{x}»?
+324|Fjerne denne kontoen og den lagrede e-posten fra denne datamaskinen? E-post på serveren røres ikke.
+325|Fjerne denne nøkkelen? E-post kryptert til den kan ikke lenger leses her.
+326|Gi nytt navn
+327|Gi denne mappen nytt navn
+328|Navnet er endret.
+329|Gjentas: {x}
+330|Svar
+331|Svar alle
+332|Svaradresse (valgfritt)
+333|Meld som søppelpost
+334|Meld som søppelpost (!)
+335|Meldt som søppelpost.
+336|Nullstill alt
+337|Prøv igjen
+338|Kjør på innboksen nå
+339|Bruk denne
+340|S/MIME (et selvsignert sertifikat)
+341|SMTP-sikkerhet
+342|SMTP-server
+343|STARTTLS
+344|Som systemet
+345|Lagre
+346|Lagre og kjør
+347|Lagre som fil
+348|Lagre som fil
+349|Lagre samtalen (mbox)
+350|Lagre meldingen som fil (.eml)
+351|Lagre de valgte samtalene som en mbox-fil
+352|Lagre dette søket
+353|Lagret
+354|Lagret og kjører.
+355|Lagret søk
+356|Lagrede søk
+357|Lagret.
+358|Lagret. Ikonet i varslingsfeltet endres neste gang appen starter.
+359|Planlegg
+360|Planlagt til
+361|Skript
+362|Søk
+363|Søk etter noe først.
+364|Søk i e-post
+365|Søk i e-post (from: to: subject: is:unread has:attachment before: larger:)
+366|Søk i e-post etter «{x}»
+367|Søkeresultater
+368|Søket er lagret.
+369|Søk: {x}
+370|Velg
+371|Velg alle
+372|Velg noen samtaler først.
+373|Velg samtalen
+374|Send
+375|Send (i skriveren)
+376|Send en bekreftelse
+377|Send et automatisk svar
+378|Send senere
+379|Sende denne meldingen uten emne?
+380|Sendingen er angret.
+381|Sender meldingen ...
+382|Sendt
+383|Serveradresse
+384|Serverfiltre
+385|Serverfiltre (Sieve)
+386|Serverfiltre krever en IMAP-konto.
+387|Serverinnstillinger
+388|Sett opp en kalenderserver først.
+389|Innstillinger
+390|Del den offentlige delen
+391|Vis hurtigtaster
+392|Vis bare {x}
+393|Vis eller skjul samtalevisning
+394|Vis eller skjul mappelisten
+395|Vis det avkortede innholdet
+396|Signer
+397|Signer hver melding jeg sender når jeg har en nøkkel
+398|Logg på med Google
+399|Logg på med {x}
+400|Signatur
+401|Signert av {x}, som ikke er avsenderen av denne meldingen.
+402|Mindre enn (byte)
+403|Utsett
+404|Utsett (b)
+405|Utsett til
+406|Utsatt
+407|Utsatt til {x}
+408|Søppelpost
+409|Stjernemerk
+410|Stjernemerk eller fjern stjerne
+411|Stjernemerkede
+412|Stjernemerket.
+413|Start skjult i varslingsfeltet
+414|Begynner med
+415|Stopp her: senere filtre kjøres ikke på en melding dette har fanget
+416|Emne
+417|Emne (valgfritt)
+418|Emne:
+419|Synkroniser nå
+420|Be avsenderen slutte å sende deg disse meldingene?
+421|Mal
+422|Maler
+423|Maler (ferdige svar)
+424|Tekst
+425|Teksten i meldingen
+426|MCP-serveren kjører ikke i denne økten.
+427|Adressen det skal sendes fra. Serveren din må tillate den.
+428|Appen kjører en MCP-server med lese- og skrivetilgang på denne datamaskinen, slik at andre programmer kan bruke e-posten din. Den logger på som deg og når alle kontoene over.
+429|Vedleggene er {x}. De fleste e-postservere avviser meldinger over 25 MB. Sende likevel?
+430|Det automatiske svaret er av.
+431|Det automatiske svaret er på.
+432|Svaret ligger på serveren din, så det svarer også når denne appen er lukket.
+433|Avsenderen ba om å få vite når du leser dette.
+434|Avsenderen vil at du bekrefter på en nettside. Åpne den nå?
+435|Serveren godtar dette skriptet.
+436|Signaturen kunne ikke stoles på: {x}
+437|Tema
+438|Gjør så
+439|Det finnes ingen søppelpostmappe.
+440|Det finnes ingen papirkurv.
+441|Disse skriptene kjører på e-postserveren din, så de virker også når denne appen er lukket. Serveren kontrollerer hvert skript før den beholder det.
+442|Denne mappen er tom.
+443|Dette er et svar på en invitasjon.
+444|Denne typen konto lagrer ikke et automatisk svar på serveren. Gmail-, Microsoft-, JMAP- og IMAP-kontoer med filtertjeneste gjør det.
+445|Denne listen
+446|Denne meldingen kom fra en e-postliste.
+447|Denne helgen
+448|Thunderbird: Hjelp, Mer feilsøkingsinformasjon, Profilmappe.
+449|Tittel
+450|Til
+451|Mottakere i Til
+452|Til:
+453|I morgen
+454|I morgen tidlig
+455|For sent, den er allerede sendt.
+456|Verktøy
+457|Papirkurv
+458|Stol på sertifikatet til denne serveren selv om det er selvsignert
+459|Prøv færre ord eller en annen operator.
+460|Slå av
+461|Slå på bekreftelse i to trinn i Google-kontoen din (myaccount.google.com/security). Bruker du Google Workspace og den er av, spør administratoren din.
+462|Slått av.
+463|Type
+464|Skriv en kommando, en mappe eller ord å søke etter
+465|Understreket
+466|Angre
+467|Angre siste handling
+468|Tid til å angre sending
+469|Angre siste handling
+470|Stjerne fjernet.
+471|Avslutt abonnement
+472|Bruk som standard for {x}
+473|Bruk det mørke temaet
+474|Bruk det lyse temaet
+475|Bruk denne
+476|Brukernavn (hvis ikke e-postadressen)
+477|Fraværssvar
+478|Vis kilden
+479|Vis kilden til meldingen
+480|Venter på at du godkjenner i nettleseren ...
+481|Velkommen til {x}
+482|Når
+483|Skriv
+484|Ja
+485|Svaret ditt: {x}
+486|Du er frakoblet. Den lagrede e-posten din er her, og endringer synkroniseres når du kobler til igjen.
+487|Du nevnte et vedlegg, men det er ikke lagt ved noe. Sende likevel?
+488|Svaret ditt ble sendt til {x}.
+489|Navnet ditt
+490|alle
+491|minst én
+492|en hvilken som helst ledig port
+493|inneholder
+494|inneholder ikke
+495|slutter med
+496|https://mail.example.com
+497|er
+498|passer til mønsteret
+499|kanskje
+500|nei
+501|av disse betingelsene er sanne
+502|lagret, la stå tomt for å beholde den
+503|begynner med
+504|ja
+505|{n} samtale
+506|{n} samtaler
+507|{n} importert.
+508|{n} melding(er) slettet for godt.
+509|{n} melding(er) ble ikke sendt: {x}
+510|{n} melding(er) importert fra {f} mappe(r).
+511|{n} melding(er) importert til «{x}», {s} fantes fra før.
+512|{n} melding(er) importert til «{x}».
+513|{n} melding(er) merket som lest.
+514|{n} melding(er) passet til et filter.
+515|{n} valgt
+516|{n} uleste meldinger
+517|{x}-konto

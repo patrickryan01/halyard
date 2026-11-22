@@ -1,0 +1,515 @@
+1|« {x} » n'est pas une adresse valide.
+2|---------- Message transféré ----------
+3|1 message non lu
+5|Un profil Thunderbird
+6|Une clé permet de signer vos messages, pour qu'on sache qu'ils viennent de vous, et de lire ceux qu'on vous écrit en privé. Donnez votre clé publique à ceux qui vous écrivent. Les clés privées ne quittent jamais cet ordinateur.
+7|Un modèle est une réponse que vous utilisez souvent. Choisissez-le dans l'éditeur ou dans la palette de commandes.
+8|Compte
+9|Identifiant du compte à utiliser ({x})
+10|Comptes
+11|Ajouter une condition
+12|Ajouter une étiquette ou copier dans un dossier
+13|Ajouter le compte
+14|Ajouter un compte
+15|Ajoutez d'abord un compte.
+16|Ajouter une action
+17|Ajouter une adresse
+18|Ajoutez au moins un destinataire.
+19|Ajouter à l'agenda
+20|Saisissez votre adresse e-mail. Cela prend moins d'une minute.
+21|Ajouté à l'agenda.
+22|{x} ajouté
+23|Adresse
+24|Adresses mises à jour depuis le serveur.
+25|Avancé : applications de connexion
+26|Avancé : utiliser ma propre application de connexion
+27|Tous les messages
+28|Tous les comptes
+29|Toute la journée
+30|Toujours charger les images distantes (elles peuvent signaler à l'expéditeur que vous avez lu le message)
+31|Toujours envoyer
+32|Un fichier mbox
+33|Mot de passe d'application
+34|Apparence
+35|Archiver
+36|Archiver (e)
+37|Archiver la conversation après ma réponse
+38|Demander un accusé de lecture
+39|Me demander à chaque fois
+40|Joindre
+41|Retour
+42|Retour (u)
+43|Retour à la liste
+44|Retour à la liste
+45|Cci
+46|Destinataires en Cci
+47|Comportement
+48|Gras
+49|Puces
+50|Agenda
+51|Serveur d'agenda et de contacts
+52|Annuler
+53|Annulé.
+54|Cc
+55|Destinataires en Cc
+56|Changer la langue
+57|Vérifier
+58|Vérifier les nouveaux messages
+59|Vérifier l'orthographe pendant la saisie
+60|Recherche de nouveaux messages...
+61|Vérification...
+62|Choisissez d'abord un fichier.
+63|Effacer la mise en forme
+64|Effacer la sélection
+65|Identifiant client
+66|Secret client
+67|Fermer
+68|Confortable
+69|Commande
+70|Palette de commandes
+71|Compact
+72|Écrire
+73|Écrire un nouveau message
+74|Connecter
+75|Connecté.
+76|Contacts
+77|Continuer
+78|Conversation archivée.
+79|Conversation supprimée.
+80|Copié
+81|Copier la configuration du client
+82|Impossible de joindre {x}
+83|Impossible de vérifier ce message : {x}
+84|Ce serveur n'a pas été trouvé automatiquement. Saisissez son adresse.
+85|Impossible de démarrer
+86|Créez un client OAuth dans la console Google Cloud (type « Application de bureau »), activez l'API Gmail et l'API People, puis collez ici son identifiant client et son secret.
+87|Créer un nouveau dossier...
+88|Créer une nouvelle étiquette...
+89|Sombre
+90|Date
+91|Date :
+92|Supprimer
+93|Supprimer (#)
+94|Supprimer (touche Suppr)
+95|Supprimer définitivement tout le courrier indésirable ? Cette action est irréversible.
+96|Supprimer définitivement tout le contenu de la corbeille ? Cette action est irréversible.
+97|Supprimer le dossier « {x} » ? Les messages qui ne sont que dans ce dossier sont supprimés avec lui.
+98|Supprimer le script « {x} » du serveur ?
+99|Supprimer ce dossier
+100|Supprimé.
+101|Densité
+102|Notifications de bureau pour les nouveaux messages
+103|Annuaire (locataire), par défaut : tous
+104|Abandonner
+105|Terminé
+106|C'est fait. Vous avez demandé à l'expéditeur d'arrêter. Cela peut prendre quelques jours.
+107|Brouillon
+108|Brouillon enregistré.
+109|Brouillons
+110|Modifier
+111|Modifier le contact
+112|Modifier l'événement
+113|Modifier le filtre
+114|Modifier le modèle
+115|Adresse e-mail
+116|Vider le courrier indésirable maintenant
+117|Vider le dossier du courrier indésirable
+118|Vider la corbeille
+119|Vider la corbeille maintenant
+120|Chiffrer
+121|Chiffrer quand j'ai une clé pour tous les destinataires
+122|Chiffré, et cette application ne peut pas l'ouvrir : {x}
+123|Chiffré : seuls vous et les destinataires pouvez le lire.
+124|Clés de chiffrement
+125|Clés et certificats de chiffrement
+126|Adresse du service
+127|Fin
+128|Saisissez le dossier du profil.
+129|Événement
+130|Fichier
+131|Fichiers
+132|Filtres
+133|Filtres et règles
+134|Les filtres s'appliquent aux nouveaux messages dès leur arrivée, dans cet ordre. Un filtre agit sur tous les comptes, sauf si vous en choisissez un.
+135|Rechercher un contact
+136|Rechercher un raccourci
+137|Premier jour (facultatif)
+138|Port fixe (seulement si l'application enregistre des adresses de redirection exactes)
+139|Dossier
+140|Nom du dossier
+141|Dossiers
+142|Suivre le thème du système
+143|Transférer
+144|Transférer à
+145|De
+146|De :
+147|Plein écran
+148|Récupérer depuis le serveur
+149|Gmail accepte aussi votre propre client Google : collez son identifiant et son secret, puis utilisez le bouton.
+150|Gmail avec un mot de passe d'application
+151|Aller à Tous les messages
+152|Aller à Brouillons
+153|Aller à Boîte de réception
+154|Aller à Envoyés
+155|Aller à Reportés
+156|Aller à Courrier indésirable
+157|Aller à Suivis
+158|Aller à Corbeille
+159|Aller à {x}
+160|Google
+161|Identifiant client Google
+162|Secret client Google
+163|Regrouper en conversations
+164|Regrouper les messages en conversations
+165|A une pièce jointe
+166|IMAP (garde le courrier sur le serveur)
+167|Serveur IMAP
+168|Identités et signatures
+169|Importer
+170|Importer une clé ou un certificat
+171|Importer tous les dossiers
+172|Importer du courrier
+173|Importer le fichier
+174|Importés
+175|Importation...
+176|Dans une heure
+177|Boîte de réception
+178|Protocole de réception
+179|Sécurité de la réception
+180|Serveur de réception
+181|Est une liste de diffusion
+182|Italique
+183|Serveur JMAP
+184|Adresse du serveur JMAP
+185|Garder une icône dans la zone de notification et continuer à fonctionner quand la fenêtre est fermée
+186|Garder cette clé
+187|Clé enregistrée.
+188|Raccourcis clavier
+189|Étiquette appliquée.
+190|Étiqueter comme
+191|Langue
+192|Plus grand que (octets)
+193|Dernier jour (facultatif)
+194|Plus tard aujourd'hui
+195|Clair
+196|Lien
+197|Adresse du lien (https://...)
+198|Lister chaque message séparément
+199|Charger les images
+200|Charger plus
+201|Chargement...
+202|Serveur MCP
+203|Courrier
+204|Le courrier d'autres programmes est conservé dans le compte « Sur cet ordinateur », dans des dossiers, et se recherche avec le reste.
+205|Serveur de messagerie
+206|Outils de messagerie
+207|Créer une clé
+208|La créer
+209|Tout marquer comme lu
+210|Marquer comme lu
+211|Marquer comme lu (Maj+I)
+212|Marquer comme indésirable
+213|Marquer comme non lu
+214|Marquer comme non lu (Maj+U)
+215|Marquer tout le contenu de ce dossier comme lu
+216|Marquer lu
+217|Marquer comme lu ou non lu
+218|Marquer non lu
+219|Marqué comme lu.
+220|Marqué comme non lu.
+221|Comme le système
+222|Peut-être
+223|Menu
+224|Message
+225|Corps du message
+226|Message envoyé.
+227|Source du message
+228|Microsoft
+229|Identifiant d'application (client) Microsoft
+230|Annuaire (locataire) Microsoft
+231|Réduire
+232|Lundi matin
+233|Plus
+234|Autres réglages
+235|La plupart des serveurs proposent CalDAV et CardDAV à leur adresse web. Vos événements et votre carnet d'adresses apparaissent alors ici.
+236|Déplacer ou étiqueter
+237|Déplacer vers
+238|Déplacer vers un dossier
+239|Déplacé dans la boîte de réception.
+240|Déplacé.
+241|Nom
+242|Nom de cette recherche
+243|Nom sur les messages envoyés
+244|Ne jamais envoyer
+245|Nouveau contact
+246|Nouvel événement
+247|Nouveau filtre
+248|Nom du nouveau dossier
+249|Nom de la nouvelle étiquette
+250|Nouveau message
+251|Nouveau message à partir du modèle : {x}
+252|Nouveau nom pour « {x} »
+253|Nouveau script
+254|Nouveau modèle
+255|Plus récent
+256|Plus récent (k)
+257|Conversation suivante
+258|Message suivant de la conversation
+259|La semaine prochaine
+260|Non
+261|Aucun contact trouvé. Les personnes à qui vous écrivez sont ajoutées ici.
+262|Aucun filtre pour l'instant.
+263|Aucun dossier pour ce compte
+264|Aucune clé pour l'instant.
+265|Aucun message ne correspond à votre recherche
+266|Aucun script sur le serveur pour l'instant.
+267|Aucun modèle pour l'instant.
+268|Aucun modèle pour l'instant. Créez-en dans Modèles.
+269|Aucun message non lu
+270|Aucun
+271|Indisponible ici.
+272|Pas cette fois
+273|Notes
+274|Rien ici
+275|Rien dans les 45 prochains jours.
+276|Rien n'était non lu.
+277|Numérotation
+278|Désactivé
+279|Plus ancien
+280|Plus ancien (j)
+281|Le {date}, {who} a écrit :
+282|Un clic. Un onglet du navigateur s'ouvre pour que vous autorisiez l'accès ; rien ne se tape dans cette application.
+283|Seulement pour une organisation qui vous a donné sa propre application Google ou Microsoft. Laissez vide pour utiliser celle intégrée à cette copie de l'application.
+284|Seulement si votre organisation vous a donné sa propre application.
+285|Répondre seulement aux personnes de mes contacts
+286|Ouvrez d'abord un dossier.
+287|Ouvrir les contacts
+288|Ouvrir la conversation
+289|Ouvrez myaccount.google.com/apppasswords, donnez au mot de passe le nom {x}, puis créez-le.
+290|Ouvrir les réglages
+291|Ouvrir l'agenda
+292|Ouvrir la palette de commandes
+293|Ouvrir la conversation
+294|Ouvrir la conversation (Entrée)
+295|Rouvrir la page
+296|Clé OpenPGP
+297|Options
+298|Ou collez le texte
+299|Organisation
+300|Organisateur : {x}
+301|POP3 (télécharge le courrier)
+302|POP3 : laisser le courrier sur le serveur après le téléchargement
+303|Mot de passe
+305|Collez ci-dessous le mot de passe de 16 lettres, sans les espaces si vous voulez.
+306|Téléphone
+307|Choisir la date et l'heure
+308|Lieu
+309|Port
+310|Appuyez sur les nouvelles touches. Pour deux touches à la suite, appuyez l'une après l'autre. Échap annule, Suppr efface.
+311|Conversation précédente
+312|Message précédent de la conversation
+313|Imprimer
+314|Imprimer le message
+315|Dossier du profil
+316|Protéger les messages avec
+317|Citation
+318|Accusés de lecture, quand un expéditeur en demande un
+319|Accusé envoyé.
+320|Enregistrez une application dans Microsoft Entra (tout annuaire d'organisation et comptes personnels), ajoutez une redirection « Mobile et ordinateur » vers http://localhost, donnez-lui Mail.ReadWrite, Mail.Send, Contacts.ReadWrite et offline_access, puis collez son identifiant d'application (client).
+321|Les images distantes sont bloquées pour protéger votre vie privée.
+322|Retirer
+323|Retirer la recherche enregistrée « {x} » ?
+324|Retirer ce compte et son courrier enregistré de cet ordinateur ? Le courrier sur le serveur n'est pas touché.
+325|Retirer cette clé ? Le courrier chiffré pour elle ne pourra plus être lu ici.
+326|Renommer
+327|Renommer ce dossier
+328|Renommé.
+329|Se répète : {x}
+330|Répondre
+331|Répondre à tous
+332|Adresse de réponse (facultatif)
+333|Signaler comme indésirable
+334|Signaler comme indésirable (!)
+335|Signalé comme indésirable.
+336|Tout réinitialiser
+337|Réessayer
+338|Appliquer maintenant à la boîte de réception
+339|Utiliser celui-ci
+340|S/MIME (un certificat auto-signé)
+341|Sécurité SMTP
+342|Serveur SMTP
+343|STARTTLS
+344|Comme le système
+345|Enregistrer
+346|Enregistrer et activer
+347|Enregistrer comme fichier
+348|Enregistrer comme fichier
+349|Enregistrer la conversation (mbox)
+350|Enregistrer le message comme fichier (.eml)
+351|Enregistrer les conversations sélectionnées dans un fichier mbox
+352|Enregistrer cette recherche
+353|Enregistré
+354|Enregistré et actif.
+355|Recherche enregistrée
+356|Recherches enregistrées
+357|Enregistré.
+358|Enregistré. L'icône de la zone de notification change au prochain démarrage de l'application.
+359|Programmer
+360|Programmé pour
+361|Script
+362|Rechercher
+363|Cherchez d'abord quelque chose.
+364|Rechercher dans le courrier
+365|Rechercher dans le courrier (from: to: subject: is:unread has:attachment before: larger:)
+366|Rechercher « {x} » dans le courrier
+367|Résultats de la recherche
+368|Recherche enregistrée.
+369|Recherche : {x}
+370|Sélectionner
+371|Tout sélectionner
+372|Sélectionnez d'abord des conversations.
+373|Sélectionner la conversation
+374|Envoyer
+375|Envoyer (dans l'éditeur)
+376|Envoyer un accusé
+377|Envoyer une réponse automatique
+378|Envoyer plus tard
+379|Envoyer ce message sans objet ?
+380|Envoi annulé.
+381|Envoi du message...
+382|Envoyés
+383|Adresse du serveur
+384|Filtres du serveur
+385|Filtres du serveur (Sieve)
+386|Les filtres du serveur nécessitent un compte IMAP.
+387|Réglages du serveur
+388|Configurez d'abord un serveur d'agenda.
+389|Réglages
+390|Partager la partie publique
+391|Afficher les raccourcis clavier
+392|Afficher seulement {x}
+393|Afficher ou masquer la vue par conversations
+394|Afficher ou masquer la liste des dossiers
+395|Afficher le contenu masqué
+396|Signer
+397|Signer tous les messages que j'envoie quand j'ai une clé
+398|Se connecter avec Google
+399|Se connecter avec {x}
+400|Signature
+401|Signé par {x}, qui n'est pas l'expéditeur de ce message.
+402|Plus petit que (octets)
+403|Reporter
+404|Reporter (b)
+405|Reporter jusqu'à
+406|Reportés
+407|Reporté jusqu'à {x}
+408|Courrier indésirable
+409|Suivre
+410|Suivre ou ne plus suivre
+411|Suivis
+412|Suivi.
+413|Démarrer masquée dans la zone de notification
+414|Commence par
+415|S'arrêter ici : les filtres suivants ne s'appliquent pas à un message que celui-ci a déjà traité
+416|Objet
+417|Objet (facultatif)
+418|Objet :
+419|Synchroniser maintenant
+420|Demander à l'expéditeur de ne plus vous envoyer ces messages ?
+421|Modèle
+422|Modèles
+423|Modèles (réponses toutes faites)
+424|Texte
+425|Texte du message
+426|Le serveur MCP ne fonctionne pas dans cette session.
+427|L'adresse depuis laquelle envoyer. Votre serveur doit l'autoriser.
+428|L'application fait tourner sur cet ordinateur un serveur MCP en lecture et écriture pour que d'autres programmes utilisent votre courrier. Il se connecte en votre nom et atteint tous les comptes ci-dessus.
+429|Les pièces jointes pèsent {x}. La plupart des serveurs refusent les messages de plus de 25 Mo. Envoyer quand même ?
+430|La réponse automatique est désactivée.
+431|La réponse automatique est activée.
+432|La réponse est conservée sur votre serveur : elle répond même quand cette application est fermée.
+433|L'expéditeur a demandé à savoir quand vous le lisez.
+434|L'expéditeur veut que vous confirmiez sur une page web. L'ouvrir maintenant ?
+435|Le serveur accepte ce script.
+436|La signature n'a pas pu être approuvée : {x}
+437|Thème
+438|Alors faire
+439|Il n'y a pas de dossier de courrier indésirable.
+440|Il n'y a pas de corbeille.
+441|Ces scripts s'exécutent sur votre serveur de messagerie : ils fonctionnent même quand cette application est fermée. Le serveur vérifie chaque script avant de le garder.
+442|Ce dossier est vide.
+443|Ceci est une réponse à une invitation.
+444|Ce type de compte ne garde aucune réponse automatique sur son serveur. Les comptes Gmail, Microsoft, JMAP et IMAP avec un service de filtres, si.
+445|Cette liste
+446|Ce message vient d'une liste de diffusion.
+447|Ce week-end
+448|Thunderbird : Aide, Plus d'informations de dépannage, Dossier du profil.
+449|Titre
+450|À
+451|Destinataires en À
+452|À :
+453|Demain
+454|Demain matin
+455|Trop tard, il est déjà parti.
+456|Outils
+457|Corbeille
+458|Faire confiance au certificat de ce serveur même s'il est auto-signé
+459|Essayez moins de mots ou un autre opérateur.
+460|Désactiver
+461|Activez la validation en deux étapes dans votre compte Google (myaccount.google.com/security). Si vous utilisez Google Workspace et qu'elle est désactivée, demandez à votre administrateur.
+462|Désactivé.
+463|Type
+464|Saisissez une commande, un dossier ou des mots à rechercher
+465|Souligné
+466|Annuler
+467|Annuler la dernière action
+468|Délai pour annuler l'envoi
+469|Annuler la dernière action
+470|Suivi retiré.
+471|Se désabonner
+472|Utiliser par défaut pour {x}
+473|Utiliser le thème sombre
+474|Utiliser le thème clair
+475|Utiliser celle-ci
+476|Nom d'utilisateur (si ce n'est pas l'adresse e-mail)
+477|Réponse d'absence
+478|Afficher la source
+479|Afficher la source du message
+480|En attente de votre autorisation dans le navigateur...
+481|Bienvenue dans {x}
+482|Quand
+483|Écrire
+484|Oui
+485|Votre réponse : {x}
+486|Vous êtes hors ligne. Votre courrier enregistré est ici, et les changements se synchronisent à la reconnexion.
+487|Vous avez parlé d'une pièce jointe, mais il n'y en a pas. Envoyer quand même ?
+488|Votre réponse a été envoyée à {x}.
+489|Votre nom
+490|toutes
+491|une seule
+492|n'importe quel port libre
+493|contient
+494|ne contient pas
+495|se termine par
+496|https://mail.example.com
+497|est
+498|correspond au motif
+499|peut-être
+500|non
+501|de ces conditions sont vraies
+502|enregistré, laissez vide pour le garder
+503|commence par
+504|oui
+505|{n} conversation
+506|{n} conversations
+507|{n} importés.
+508|{n} message(s) supprimés définitivement.
+509|{n} message(s) non envoyés : {x}
+510|{n} message(s) importés depuis {f} dossier(s).
+511|{n} message(s) importés dans « {x} », {s} étaient déjà là.
+512|{n} message(s) importés dans « {x} ».
+513|{n} message(s) marqués comme lus.
+514|{n} message(s) correspondent à un filtre.
+515|{n} sélectionnés
+516|{n} messages non lus
+517|Compte {x}

@@ -74,3 +74,19 @@ func TestSearchOperators(t *testing.T) {
 		}
 	}
 }
+
+func TestFlatListShowsEveryMessage(t *testing.T) {
+	s := open(t)
+	if err := s.UpsertMessages([]mailtypes.Message{
+		msg("1", "t1", "Plan", "first", 3*time.Hour, "INBOX"),
+		msg("2", "t1", "Re: Plan", "second", 2*time.Hour, "INBOX"),
+		msg("3", "t2", "Lunch", "tacos", time.Hour, "INBOX"),
+	}); err != nil {
+		t.Fatal(err)
+	}
+	grouped, _ := s.ListThreads(ListQuery{Folder: "role:inbox"})
+	flat, _ := s.ListThreads(ListQuery{Folder: "role:inbox", Flat: true})
+	if len(grouped) != 2 || len(flat) != 3 {
+		t.Fatalf("conversation view lists %d, one message per line lists %d", len(grouped), len(flat))
+	}
+}

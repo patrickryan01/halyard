@@ -1,10 +1,10 @@
 package e2e
 
 // Live test against a real Gmail mailbox through the Gmail API and People API.
-// It needs a token in HEARTH_LIVE_GOOGLE_TOKEN with the full mail and contacts
-// scopes; the codex's google-dwd-mint.py mints one for account@fireballz.ai:
+// It needs a token in HALYARD_LIVE_GOOGLE_TOKEN with the full mail and contacts
+// scopes; a domain-wide delegation helper mints one for the test account (HALYARD_LIVE_GOOGLE_USER):
 //
-//   google-dwd-mint.py --sub account@fireballz.ai --scope "https://mail.google.com/ https://www.googleapis.com/auth/contacts" -- go test ./internal/e2e -run Google -v
+//   your-token-minting-helper --sub $HALYARD_LIVE_GOOGLE_USER --scope "https://mail.google.com/ https://www.googleapis.com/auth/contacts" -- go test ./internal/e2e -run Google -v
 
 import (
 	"context"
@@ -25,9 +25,12 @@ import (
 )
 
 func TestGoogleLive(t *testing.T) {
-	tok := os.Getenv("HEARTH_LIVE_GOOGLE_TOKEN")
+	tok := os.Getenv("HALYARD_LIVE_GOOGLE_TOKEN")
 	if tok == "" {
-		t.Skip("HEARTH_LIVE_GOOGLE_TOKEN not set")
+		t.Skip("HALYARD_LIVE_GOOGLE_TOKEN not set")
+	}
+	if liveGoogleUser() == "" {
+		t.Skip("HALYARD_LIVE_GOOGLE_USER not set")
 	}
 	dir := t.TempDir()
 	st, err := store.Open(filepath.Join(dir, "m.db"))
@@ -50,7 +53,7 @@ func TestGoogleLive(t *testing.T) {
 	if err != nil {
 		t.Fatalf("add: %v", err)
 	}
-	if acct.Email != "account@fireballz.ai" {
+	if acct.Email != liveGoogleUser() {
 		t.Fatalf("signed in as %q", acct.Email)
 	}
 	waitFor(t, 180*time.Second, "first sync", func() bool { a, _ := st.Account(acct.ID); return !a.LastSync.IsZero() })
@@ -69,7 +72,7 @@ func TestGoogleLive(t *testing.T) {
 	// send to self with an attachment
 	tag := fmt.Sprintf("%d", time.Now().UnixNano()%1e9)
 	subj := "halyard live test " + tag
-	if _, err := e.Send(mailtypes.Outgoing{AccountID: acct.ID, To: []mailtypes.Address{{Email: "account@fireballz.ai"}}, Subject: subj,
+	if _, err := e.Send(mailtypes.Outgoing{AccountID: acct.ID, To: []mailtypes.Address{{Email: liveGoogleUser()}}, Subject: subj,
 		BodyText: "live proof invoice 4200 " + tag, BodyHTML: "<p>live proof <b>invoice</b> 4200 " + tag + "</p>",
 		Attachments: []mailtypes.OutAttachment{{Filename: "proof.txt", ContentType: "text/plain", Data: []byte("payload " + tag)}}}); err != nil {
 		t.Fatal(err)
@@ -174,3 +177,6 @@ func waitOpsFor(t *testing.T, st *store.Store, id string) {
 	t.Helper()
 	waitFor(t, 60*time.Second, "queued actions", func() bool { ops, _ := st.PendingOps(id); return len(ops) == 0 })
 }
+
+// liveGoogleUser is the mailbox the live Google tests use; set HALYARD_LIVE_GOOGLE_USER to run them.
+func liveGoogleUser() string { return os.Getenv("HALYARD_LIVE_GOOGLE_USER") }

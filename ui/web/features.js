@@ -168,14 +168,14 @@ function subseq(q, s) {
 }
 H.paletteItems = function () {
   const items = H.commands.filter(c => c.ctx === 'any' || (c.ctx === 'list' && inList()) || (c.ctx === 'open' && inConvo()))
-    .map(c => ({ title: c.title, keys: H.keyOf(c.id), run: c.run, group: 'Command' }));
+    .map(c => ({ title: t(c.title), keys: H.keyOf(c.id), run: c.run, group: t('Command') }));
   for (const f of S.data.folders.filter(f => f.role === 'custom')) {
     const a = acctOf(f.accountId);
-    items.push({ title: 'Go to ' + f.name + (S.data.accounts.length > 1 && a ? ' (' + a.email + ')' : ''), keys: '', run: () => go(f.id), group: 'Folder' });
+    items.push({ title: t('Go to {x}', { x: f.name + (S.data.accounts.length > 1 && a ? ' (' + a.email + ')' : '') }), keys: '', run: () => go(f.id), group: t('Folder') });
   }
-  for (const a of S.data.accounts) items.push({ title: 'Show only ' + a.email, keys: '', run: () => go('role:inbox', a.id), group: 'Account' });
-  for (const s of (H.searches || [])) items.push({ title: 'Search: ' + s.name, keys: '', run: () => { S.q = s.query; search(s.query); }, group: 'Saved search' });
-  for (const t of (H.templatesList || [])) items.push({ title: 'New message from template: ' + t.name, keys: '', run: () => H.composeFromTemplate(t), group: 'Template' });
+  for (const a of S.data.accounts) items.push({ title: t('Show only {x}', { x: a.email }), keys: '', run: () => go('role:inbox', a.id), group: t('Account') });
+  for (const s of (H.searches || [])) items.push({ title: t('Search: {x}', { x: s.name }), keys: '', run: () => { S.q = s.query; search(s.query); }, group: t('Saved search') });
+  for (const tp of (H.templatesList || [])) items.push({ title: t('New message from template: {x}', { x: tp.name }), keys: '', run: () => H.composeFromTemplate(tp), group: t('Template') });
   return items;
 };
 H.palette = function () {
@@ -190,7 +190,7 @@ H.palette = function () {
     let all = H.paletteItems();
     if (q) {
       all = all.map(i => ({ i, s: subseq(q, i.title) })).filter(x => x.s >= 0).sort((a, b) => b.s - a.s).map(x => x.i);
-      all.push({ title: 'Search mail for "' + q + '"', keys: '', run: () => search(q), group: 'Search' });
+      all.push({ title: t('Search mail for "{x}"', { x: q }), keys: '', run: () => search(q), group: t('Search') });
     }
     items = all.slice(0, 40); idx = Math.min(idx, Math.max(0, items.length - 1));
     list.innerHTML = items.map((it, n) => '<div class="pi' + (n === idx ? ' on' : '') + '" role="option" data-n="' + n + '"><span>' + esc(it.title) + '</span><small>' + esc(it.keys ? it.keys.replace(/ /g, ' then ') : it.group) + '</small></div>').join('');
@@ -215,9 +215,9 @@ H.shortcutsDialog = function () {
     const body = $('.kmap', el);
     const draw = () => {
       const f = $('#kf', el).value.toLowerCase();
-      body.innerHTML = H.commands.filter(c => !f || c.title.toLowerCase().includes(f)).map(c => {
+      body.innerHTML = H.commands.filter(c => !f || t(c.title).toLowerCase().includes(f)).map(c => {
         const k = H.keyOf(c.id);
-        return '<div class="krow"><span>' + esc(c.title) + '</span><button class="kbd kchg" data-id="' + c.id + '" title="Change">' + esc(k ? k.replace(/ /g, ' then ') : 'none') + '</button></div>';
+        return '<div class="krow"><span>' + esc(t(c.title)) + '</span><button class="kbd kchg" data-id="' + c.id + '" title="Change">' + esc(k ? k.replace(/ /g, ' then ') : 'none') + '</button></div>';
       }).join('');
       $$('.kchg', body).forEach(b => b.onclick = () => capture(b.dataset.id));
     };

@@ -33,8 +33,8 @@ func (demoProv) Attachment(context.Context, string, string) ([]byte, string, err
 	return []byte("demo"), "text/plain", nil
 }
 func (demoProv) Contacts(context.Context, string) ([]mailtypes.Contact, error) { return nil, nil }
-func (demoProv) Watch(ctx context.Context, n func()) error                 { <-ctx.Done(); return nil }
-func (demoProv) Close() error                                              { return nil }
+func (demoProv) Watch(ctx context.Context, n func()) error                     { <-ctx.Done(); return nil }
+func (demoProv) Close() error                                                  { return nil }
 
 type m struct {
 	acct, folder string

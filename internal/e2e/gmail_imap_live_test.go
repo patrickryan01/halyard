@@ -1,7 +1,7 @@
 package e2e
 
 // The Gmail path every IMAP client has: imap.gmail.com and smtp.gmail.com with a credential. The credential here is a
-// Gmail access token over XOAUTH2 (a real app password for account@fireballz.ai is not in the codex); the servers,
+// Gmail access token over XOAUTH2 (a real app password was not made for the test account); the servers,
 // folders, threading and sending are the real Gmail ones.
 
 import (
@@ -17,16 +17,19 @@ import (
 )
 
 func TestGmailOverIMAPLive(t *testing.T) {
-	tok := os.Getenv("HEARTH_LIVE_GOOGLE_TOKEN")
+	tok := os.Getenv("HALYARD_LIVE_GOOGLE_TOKEN")
 	if tok == "" {
-		t.Skip("HEARTH_LIVE_GOOGLE_TOKEN not set")
+		t.Skip("HALYARD_LIVE_GOOGLE_TOKEN not set")
+	}
+	if liveGoogleUser() == "" {
+		t.Skip("HALYARD_LIVE_GOOGLE_USER not set")
 	}
 	e, st := newEngine(t)
 	set := map[string]string{"imap_host": "imap.gmail.com", "imap_port": "993", "imap_security": "ssl", "smtp_host": "smtp.gmail.com", "smtp_port": "465",
-		"smtp_security": "ssl", "auth": "xoauth2", "save_sent": "false", "sync_limit": "40", "username": "account@fireballz.ai"}
+		"smtp_security": "ssl", "auth": "xoauth2", "save_sent": "false", "sync_limit": "40", "username": liveGoogleUser()}
 	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
 	defer cancel()
-	a, err := e.AddAccount(ctx, mailtypes.Account{Kind: mailtypes.KindIMAP, Email: "account@fireballz.ai", Settings: set}, []byte(tok))
+	a, err := e.AddAccount(ctx, mailtypes.Account{Kind: mailtypes.KindIMAP, Email: liveGoogleUser(), Settings: set}, []byte(tok))
 	if err != nil {
 		t.Fatalf("add: %v", err)
 	}
@@ -43,7 +46,7 @@ func TestGmailOverIMAPLive(t *testing.T) {
 	}
 	tag := fmt.Sprintf("%d", time.Now().UnixNano()%1e9)
 	e.UndoDelay = 500 * time.Millisecond
-	if _, err := e.Send(mailtypes.Outgoing{AccountID: a.ID, To: []mailtypes.Address{{Email: "account@fireballz.ai"}}, Subject: "imap gmail " + tag, BodyText: "sent through smtp.gmail.com " + tag,
+	if _, err := e.Send(mailtypes.Outgoing{AccountID: a.ID, To: []mailtypes.Address{{Email: liveGoogleUser()}}, Subject: "imap gmail " + tag, BodyText: "sent through smtp.gmail.com " + tag,
 		Attachments: []mailtypes.OutAttachment{{Filename: "g.txt", ContentType: "text/plain", Data: []byte("payload " + tag)}}}); err != nil {
 		t.Fatal(err)
 	}

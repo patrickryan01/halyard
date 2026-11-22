@@ -1,7 +1,7 @@
 #!/bin/bash
 # Boots a cloud image in QEMU/KVM, installs the built package in it, starts the app in a kiosk compositor,
 # adds an account from the Podman lab through the app's own MCP endpoint, and takes screenshots.
-#   run-vm.sh arch|suse PKGFILE OUTDIR      (run on the Beast, one VM at a time; the lab must be up: lab/stalwart.sh up)
+#   run-vm.sh arch|suse PKGFILE OUTDIR      (run on the test host, one VM at a time; the lab must be up: lab/stalwart.sh up)
 set -euo pipefail
 KIND=${1:?arch|suse}; PKG=${2:?package file}; OUT=${3:?outdir}
 W=${VMDIR:-$HOME/halyard-build/vm}; mkdir -p "$W" "$OUT"

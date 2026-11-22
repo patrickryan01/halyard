@@ -6,8 +6,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/patrickryan01/halyard/internal/mime"
 	"github.com/patrickryan01/halyard/internal/mailtypes"
+	"github.com/patrickryan01/halyard/internal/mime"
 	"github.com/patrickryan01/halyard/internal/plugin"
 	"github.com/patrickryan01/halyard/internal/secure"
 )
@@ -189,9 +189,9 @@ func (e *Engine) RawMessage(ctx context.Context, messageID string) ([]byte, mail
 type SecurityView struct {
 	secure.Result
 	// SignerMatchesFrom is false when the signature is good but made by someone other than the sender.
-	SignerMatchesFrom bool               `json:"signerMatchesFrom"`
-	Text              string             `json:"text,omitempty"`
-	HTML              string             `json:"html,omitempty"`
+	SignerMatchesFrom bool                   `json:"signerMatchesFrom"`
+	Text              string                 `json:"text,omitempty"`
+	HTML              string                 `json:"html,omitempty"`
 	Attachments       []mailtypes.Attachment `json:"attachments,omitempty"`
 }
 

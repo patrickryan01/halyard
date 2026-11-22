@@ -31,13 +31,16 @@ export CGO_ENABLED=1
 LDF=$(HALYARD_VERSION=%{version} sh packaging/common/build-flags.sh)
 go build -trimpath -tags "desktop,production,webkit2_41" -ldflags "$LDF" -o halyard ./cmd/halyard
 CGO_ENABLED=0 go build -trimpath -ldflags "$LDF" -o halyardd ./cmd/halyardd
+CGO_ENABLED=0 go build -trimpath -ldflags "$LDF" -o halyardctl ./cmd/halyardctl
 
 %check
-go test ./internal/store ./internal/mime ./internal/discover
+go test ./internal/store ./internal/mime ./internal/discover ./internal/ical ./internal/rules ./internal/secure ./internal/sieve ./internal/dav ./internal/cli
 
 %install
 install -Dm755 halyard %{buildroot}%{_bindir}/halyard
 install -Dm755 halyardd %{buildroot}%{_bindir}/halyardd
+%{_bindir}/halyardctl
+install -Dm755 halyardctl %{buildroot}%{_bindir}/halyardctl
 install -Dm644 packaging/common/halyard.desktop %{buildroot}%{_datadir}/applications/halyard.desktop
 install -Dm644 packaging/common/halyard.svg %{buildroot}%{_datadir}/icons/hicolor/scalable/apps/halyard.svg
 install -Dm644 packaging/common/halyard-512.png %{buildroot}%{_datadir}/icons/hicolor/512x512/apps/halyard.png

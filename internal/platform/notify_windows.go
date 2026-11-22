@@ -14,7 +14,7 @@ import (
 	"golang.org/x/sys/windows/registry"
 )
 
-const aumid = "ai.embernet.halyard"
+const aumid = "io.github.patrickryan01.halyard"
 
 // registerAppID tells Windows who the toasts come from, so they carry the app's name and are not dropped as coming from an unknown app.
 func registerAppID() {

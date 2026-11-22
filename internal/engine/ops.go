@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/patrickryan01/halyard/internal/mime"
 	"github.com/patrickryan01/halyard/internal/mailtypes"
+	"github.com/patrickryan01/halyard/internal/mime"
 	"github.com/patrickryan01/halyard/internal/plugin"
 	"github.com/patrickryan01/halyard/internal/store"
 )

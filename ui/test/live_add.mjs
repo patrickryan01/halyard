@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 const { chromium } = await import(process.env.PLAYWRIGHT);
 const msPw = readFileSync(0, 'utf8').trim();
+const msUser = process.env.HALYARD_LIVE_MS_USER || '';
 const dir = mkdtempSync(path.join(tmpdir(), 'live-add-'));
 const p = spawn(process.argv[2], ['--data', dir], { env: { ...process.env, HALYARD_NO_KEYRING: '1', HALYARD_NO_BROWSER: '1', HALYARD_MCP_ADDR: '127.0.0.1:0' } });
 let buf = '';
@@ -55,16 +56,16 @@ const q = await (await fetch(base + '/api/threads?q=' + encodeURIComponent('pop3
 must(JSON.stringify(q).includes('pop3 proof'), 'the mail was downloaded over POP3');
 
 // 4. Microsoft: one click, a real sign-in on login.microsoftonline.com, the page is driven here because no browser is opened
-if (msPw) {
+if (msPw && msUser) {
   await pg.keyboard.press('Escape'); await openAdd().catch(() => {});
   const started = pg.waitForResponse(r => r.url().includes('/api/accounts/oauth/start'));
-  await pg.fill('#em', 'account@fireballindustries.onmicrosoft.com'); await pg.click('#go'); await pg.waitForSelector('#oauth');
+  await pg.fill('#em', msUser); await pg.click('#go'); await pg.waitForSelector('#oauth');
   must(!(await pg.locator('#cid').isVisible()), 'Microsoft shows one button and no client fields');
   await pg.click('#oauth');
   const { url: authUrl } = await (await started).json();
   const mp = await b.newPage();
   await mp.goto(authUrl);
-  await mp.fill('input[name=loginfmt]', 'account@fireballindustries.onmicrosoft.com'); await mp.click('#idSIButton9');
+  await mp.fill('input[name=loginfmt]', msUser); await mp.click('#idSIButton9');
   await mp.waitForSelector('input[name=passwd]', { state: 'visible' }); await sleep(800);
   await mp.fill('input[name=passwd]', msPw); await mp.click('#idSIButton9');
   for (let i = 0; i < 20 && !/localhost|127\.0\.0\.1/.test(mp.url()); i++) {
@@ -72,7 +73,7 @@ if (msPw) {
     for (const sel of ['#idSIButton9', '#idBtn_Back']) { if (/localhost|127\.0\.0\.1/.test(mp.url())) break; const l = mp.locator(sel); if (await l.count() && await l.first().isVisible().catch(() => false)) { await l.first().click().catch(() => {}); break; } }
   }
   await sleep(6000); st = await state();
-  must(st.accounts.some(a => a.kind === 'microsoft' && /onmicrosoft/.test(a.email)), 'Microsoft account added with one click and a real sign-in');
+  must(st.accounts.some(a => a.kind === 'microsoft' && a.email.toLowerCase() === msUser.toLowerCase()), 'Microsoft account added with one click and a real sign-in');
 }
 await b.close(); p.kill();
 console.log(errors.length ? 'LIVE ADD FAILED' : 'live add ok');
