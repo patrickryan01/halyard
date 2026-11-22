@@ -140,7 +140,11 @@ function folderCount(key, acct) {
 function render() {
   const d = S.data;
   const app = $('#app');
-  if (!d.accounts || d.accounts.length === 0) { app.innerHTML = welcomeHtml(); bindWelcome(); return; }
+  if (!d.accounts || d.accounts.length === 0) {
+    // the add-account form is a screen the person is typing into: a refresh must not rebuild it and wipe what they entered
+    if ($('#addhost') && app.contains($('#addhost'))) return;
+    app.innerHTML = welcomeHtml(); bindWelcome(); return;
+  }
   const multi = d.accounts.length > 1;
   const roles = new Set(d.folders.map(f => 'role:' + f.role));
   const nav = (key, label, icon, count, extra) => '<button class="nav ' + (S.folder === key && !S.q && S.account === (extra || '') ? 'active' : '') + '" data-nav="' + esc(key) + '" data-acct="' + esc(extra || '') + '">' + IC[icon] + '<span>' + esc(label) + '</span>' + (count ? '<span class="n">' + count + '</span>' : '') + '</button>';
@@ -414,10 +418,11 @@ function paintSync() {
 let syncTimer = null;
 async function pollSync() {
   clearTimeout(syncTimer);
+  const was = !!(S.sync && S.sync.running);
   try { S.sync = await api('syncstatus'); } catch (e) { return; }
   paintSync();
   if (S.sync.running) syncTimer = setTimeout(pollSync, 400);
-  else refreshSoon();
+  else if (was) refreshSoon(); // only when a sync has just ended, never on a quiet start
 }
 async function syncNow() {
   try { S.sync = await api('sync', {}); } catch (e) { toast(e.message, { err: true }); return; }
