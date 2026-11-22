@@ -73,6 +73,9 @@ func (s *Server) accounts(srv *mcp.Server) {
 	mcp.AddTool(srv, &mcp.Tool{Name: "list_accounts", Description: "List the mail accounts signed in to the app: id, kind (google, microsoft, imap, jmap), email, name, signature, last sync and any sync error."},
 		func(ctx context.Context, _ *mcp.CallToolRequest, _ none) (*mcp.CallToolResult, obj, error) {
 			as, err := s.Eng.St.Accounts()
+			if as == nil {
+				as = []mailtypes.Account{}
+			}
 			return nil, obj{"accounts": as}, err
 		})
 	mcp.AddTool(srv, &mcp.Tool{Name: "add_account_password", Description: "Add an IMAP or JMAP account that signs in with a password or app password. kind is imap or jmap. For imap give imapHost (and optional ports and security ssl, starttls or none, smtpHost). For jmap give jmapUrl."},
@@ -143,6 +146,9 @@ func (s *Server) folders(srv *mcp.Server) {
 			AccountID string `json:"accountId,omitempty"`
 		}) (*mcp.CallToolResult, obj, error) {
 			fs, err := s.Eng.St.Folders(in.AccountID)
+			if fs == nil {
+				fs = []mailtypes.Folder{}
+			}
 			return nil, obj{"folders": fs}, err
 		})
 	mcp.AddTool(srv, &mcp.Tool{Name: "create_folder", Description: "Create a label (Gmail) or folder (Microsoft, IMAP, JMAP) on an account's server."},
