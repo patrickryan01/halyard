@@ -1,0 +1,25 @@
+name: ci
+
+# Every pull request, and every push to main, is checked. A change merges only when this is green.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq libgtk-3-dev libwebkit2gtk-4.1-dev
+      - run: gofmt -l . | tee /dev/stderr | (! read)
+      - run: go vet ./...
+      - run: go test ./...
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: for f in ui/web/*.js ui/test/*.mjs tools/*.mjs; do node --check "$f"; done
+      - run: GOOS=windows CGO_ENABLED=0 go vet ./cmd/halyardctl ./cmd/halyardd ./internal/...

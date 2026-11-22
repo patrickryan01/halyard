@@ -45,10 +45,12 @@ jobs:
           mkdir -p bin-win
           GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -tags "desktop,production" -ldflags "$LDF -H windowsgui" -o bin-win/halyard.exe ./cmd/halyard
           GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "$LDF" -o bin-win/halyardd.exe ./cmd/halyardd
+          GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "$LDF" -o bin-win/halyardctl.exe ./cmd/halyardctl
           sh packaging/windows/sign.sh bin-win/halyard.exe
           sh packaging/windows/sign.sh bin-win/halyardd.exe
+          sh packaging/windows/sign.sh bin-win/halyardctl.exe
           (cd packaging/windows && makensis -DVERSION="$V" -DBINDIR="$GITHUB_WORKSPACE/bin-win" halyard.nsi && sh sign.sh "halyard-$V-setup.exe")
-          for f in bin-win/halyard.exe bin-win/halyardd.exe "packaging/windows/halyard-$V-setup.exe"; do sh packaging/windows/verify-signed.sh "$f"; done
+          for f in bin-win/halyard.exe bin-win/halyardd.exe bin-win/halyardctl.exe "packaging/windows/halyard-$V-setup.exe"; do sh packaging/windows/verify-signed.sh "$f"; done
           cp "packaging/windows/halyard-$V-setup.exe" .
           sha256sum "halyard-$V-setup.exe" > "halyard-$V-setup.exe.sha256"
       - uses: actions/upload-artifact@v4
