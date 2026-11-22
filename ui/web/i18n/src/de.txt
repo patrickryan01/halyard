@@ -525,3 +525,7 @@
 527|Updates für diese Version kommen über Ihre Paketverwaltung (pacman -Syu unter EmberArch, zypper dup unter EmberRTOS Desktop). Halyard ersetzt sich nicht selbst.
 528|Version {x} ist erschienen. Das Installationsprogramm wurde anhand des Hashs der Version geprüft.
 529|Sie haben die neueste Version ({x}).
+530|Zuletzt synchronisiert {time}
+531|Noch nicht synchronisiert
+532|Synchronisiere {done} von {total}
+533|Synchronisiere...

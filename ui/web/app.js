@@ -165,7 +165,7 @@ function render() {
   app.innerHTML =
     '<div class="top"><button class="icon" id="menu" aria-label="Menu">' + IC.menu + '</button><div class="brand"><i></i><span>' + esc(BRAND) + '</span></div>' +
     '<div class="search">' + IC.search + '<input id="q" placeholder="Search mail (from: to: subject: is:unread has:attachment before: larger:)" value="' + esc(S.q) + '" aria-label="Search mail"></div>' +
-    '<div class="spacer"></div><button class="icon" id="syncbtn" title="Sync now" aria-label="Sync now"><svg viewBox="0 0 24 24"><path d="M17.650 6.350A8 8 0 1 0 19.730 14h-2.080A6 6 0 1 1 12 6c1.660 0 3.140.69 4.220 1.780L13 11h7V4l-2.350 2.350z"/></svg></button>' +
+    '<div class="spacer"></div><span class="synclbl" id="synclbl" role="status" aria-live="polite"></span><button class="icon" id="syncbtn" title="Sync now" aria-label="Sync now"><svg viewBox="0 0 24 24"><path d="M17.650 6.350A8 8 0 1 0 19.730 14h-2.080A6 6 0 1 1 12 6c1.660 0 3.140.69 4.220 1.780L13 11h7V4l-2.350 2.350z"/></svg></button>' +
     '<button class="icon" id="settings" aria-label="Settings">' + IC.gear + '</button></div>' +
     '<div class="main"><nav class="side ' + (S.side ? '' : 'closed') + '" aria-label="Folders">' + side + '</nav><section class="content">' + banner + (S.open ? convoHtml() : listHtml()) + '</section></div><button class="fab" id="fab" aria-label="Compose">' + IC.plus + '</button>';
   bindMain();
@@ -389,10 +389,47 @@ function popup(ev, html, bind) {
   setTimeout(() => document.addEventListener('click', function h(e) { if (popEl !== el) { document.removeEventListener('click', h); return; } if (!el.contains(e.target)) { closePop(); document.removeEventListener('click', h); } }), 0);
 }
 
+
+// ---------- Sync now ----------
+// The button refreshes every account at once. While it runs the label counts the accounts that have finished; when it is done
+// the label says when every account was last brought up to date.
+function syncTime(iso) {
+  const d = new Date(iso);
+  if (!iso || isNaN(d) || d.getFullYear() < 2000) return '';
+  const today = new Date().toDateString() === d.toDateString();
+  return d.toLocaleString([], today ? { hour: 'numeric', minute: '2-digit' } : { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+}
+function paintSync() {
+  const b = $('#syncbtn'), l = $('#synclbl'), s = S.sync;
+  if (!b || !l) return;
+  const run = !!(s && s.running);
+  b.classList.toggle('spin', run);
+  b.setAttribute('aria-busy', run ? 'true' : 'false');
+  let text = '';
+  if (run) text = s.total > 0 ? t('Syncing {done} of {total}', { done: Math.min(s.done + 1, s.total), total: s.total }) : t('Syncing...');
+  else if (s) text = syncTime(s.lastSync) ? t('Last synced {time}', { time: syncTime(s.lastSync) }) : t('Not synced yet');
+  l.textContent = text;
+  l.title = s && s.accounts ? s.accounts.map(a => a.email + ': ' + (a.syncing ? t('Syncing...') : (syncTime(a.lastSync) || t('Not synced yet')))).join('\n') : '';
+}
+let syncTimer = null;
+async function pollSync() {
+  clearTimeout(syncTimer);
+  try { S.sync = await api('syncstatus'); } catch (e) { return; }
+  paintSync();
+  if (S.sync.running) syncTimer = setTimeout(pollSync, 400);
+  else refreshSoon();
+}
+async function syncNow() {
+  try { S.sync = await api('sync', {}); } catch (e) { toast(e.message, { err: true }); return; }
+  paintSync();
+  pollSync();
+}
+
 function bindMain() {
   $('#menu').onclick = () => { S.side = !S.side; render(); };
   $('#settings').onclick = settingsDialog;
-  $('#syncbtn').onclick = () => { api('sync', {}).then(() => toast('Checking for mail...')); };
+  $('#syncbtn').onclick = syncNow;
+  paintSync();
   const rs = $('#retrysync'); if (rs) rs.onclick = () => api('sync', {});
   $$('[data-retry]').forEach(b => b.onclick = async () => { await api('outbox/retry', { id: b.dataset.retry }); refreshSoon(); });
   const q = $('#q'); q.onkeydown = e => { if (e.key === 'Enter') search(q.value); if (e.key === 'Escape') { q.blur(); } };
@@ -882,6 +919,7 @@ async function pollEvents() {
 }
 function handleEvent(ev) {
   switch (ev.type) {
+    case 'syncing': case 'syncdone': pollSync(); break;
     case 'synced': case 'accounts': case 'settings': case 'snooze': refreshSoon(); if (ev.type === 'snooze') toast(ev.text); break;
     case 'error': if (ev.subject) toast(ev.text, { err: true }); refreshSoon(); break;
     case 'sent': toast('Message sent.'); refreshSoon(); break;
@@ -898,6 +936,7 @@ document.addEventListener('keydown', onKey);
     await refreshState();
     await loadThreads(false);
     render();
+    pollSync();
     S.drafts = await api('drafts').catch(() => []);
     if (window.H) { await Promise.all([H.loadSearches(), H.loadTemplates(), H.loadIdentities(), H.loadKeys()]); if (H.i18n) H.i18n.set(S.data.settings.language); render(); }
   } catch (e) { $('#app').innerHTML = '<div class="empty"><div><h2>Could not start</h2><p>' + esc(e.message) + '</p></div></div>'; }

@@ -525,3 +525,7 @@
 527|Bản cập nhật cho bản dựng này đến từ trình quản lý gói của bạn (pacman -Syu trên EmberArch, zypper dup trên EmberRTOS Desktop). Halyard không tự thay thế chính nó.
 528|Đã có phiên bản {x}. Trình cài đặt đã được kiểm tra với mã băm của bản phát hành.
 529|Bạn đang dùng phiên bản mới nhất ({x}).
+530|Đồng bộ lần cuối {time}
+531|Chưa đồng bộ
+532|Đang đồng bộ {done} trên {total}
+533|Đang đồng bộ...
