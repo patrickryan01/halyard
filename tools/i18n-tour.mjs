@@ -17,7 +17,10 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 const seen = new Set();
 const SKIP = '.mid,.from,.who,.snip,.editor,.bodyhost,.chip,.ac,.convo h1,.ttl,.att,.invtitle,textarea,pre,script,style,[data-no-i18n],.avatar,.kbd';
 async function grab() {
-  await sleep(350); // the translation pass runs on the next frame
+  // wait for the translation pass to have run (the page says so), not for a fixed time
+  await pg.waitForFunction(() => !(window.H && H.i18n && H.i18n.pending()), null, { timeout: 8000 });
+  await pg.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
+  await pg.waitForFunction(() => !(window.H && H.i18n && H.i18n.pending()), null, { timeout: 8000 });
   const got = await pg.evaluate(skip => {
     const out = [];
     const tw = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT, { acceptNode: n => n.nodeType === 1 ? (n.matches(skip) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_SKIP) : NodeFilter.FILTER_ACCEPT });

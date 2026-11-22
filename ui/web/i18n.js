@@ -78,10 +78,12 @@
       }
     }
   }
-  let obs = null, queued = false;
+  let obs = null, queued = false, passes = 0;
+  // true from the moment the screen changed until the translation pass for that change has run
+  i18n.pending = () => queued;
   function schedule() {
     if (queued) return; queued = true;
-    requestAnimationFrame(() => { queued = false; if (obs) obs.disconnect(); try { walk(document.body); } finally { start(); } });
+    requestAnimationFrame(() => { queued = false; if (obs) obs.disconnect(); try { walk(document.body); } finally { document.documentElement.dataset.i18nPass = String(++passes); start(); } });
   }
   function start() { if (obs && i18n.lang !== 'en') obs.observe(document.body, { childList: true, subtree: true, characterData: true }); }
   obs = new MutationObserver(schedule);

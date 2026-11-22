@@ -23,8 +23,16 @@ up)
     n=${np%%:*}; pw=${np#*:}
     J "{$U,\"methodCalls\":[[\"x:Account/set\",{\"accountId\":\"d333333\",\"create\":{\"u\":{\"@type\":\"User\",\"name\":\"$n\",\"domainId\":\"b\",\"credentials\":{\"0\":{\"@type\":\"Password\",\"secret\":\"$pw\"}}}}},\"c\"]]}" https://127.0.0.1:18443/jmap/ | grep -q created || { echo "could not create $n"; exit 1; }
   done
-  # a test lab sends a lot of mail to the same few people: drop the per sender and per recipient limits
-  ids=$(J "{$U,\"methodCalls\":[[\"x:MtaInboundThrottle/get\",{\"accountId\":\"d333333\",\"ids\":null},\"a\"]]}" https://127.0.0.1:18443/jmap/ | grep -o '"id":"[a-z0-9]*"' | sed 's/"id":"\(.*\)"/"\1"/' | paste -sd, -)
-  if [ -n "$ids" ]; then J "{$U,\"methodCalls\":[[\"x:MtaInboundThrottle/set\",{\"accountId\":\"d333333\",\"destroy\":[$ids]},\"d\"]]}" https://127.0.0.1:18443/jmap/ >/dev/null; fi
+  # Stalwart defers (SMTP 452) a client that passes an inbound throttle, and ships two: five connections a second per
+  # client address, and 25 messages an hour per sender domain and recipient (https://stalw.art/docs/mta/inbound/rate-limit).
+  # A test lab sends far more than that to a handful of people, so every MtaInboundThrottle is destroyed, and the script
+  # fails unless the list is empty afterwards.
+  for try in 1 2 3; do
+    ids=$(J "{$U,\"methodCalls\":[[\"x:MtaInboundThrottle/get\",{\"accountId\":\"d333333\",\"ids\":null},\"a\"]]}" https://127.0.0.1:18443/jmap/ | grep -o '"id":"[a-z0-9]*"' | sed 's/"id":"\(.*\)"/"\1"/' | paste -sd, -)
+    [ -z "$ids" ] && break
+    J "{$U,\"methodCalls\":[[\"x:MtaInboundThrottle/set\",{\"accountId\":\"d333333\",\"destroy\":[$ids]},\"d\"]]}" https://127.0.0.1:18443/jmap/ >/dev/null
+    sleep 1
+  done
+  [ -z "$ids" ] || { echo "could not remove the inbound throttles: $ids"; exit 1; }
   echo "lab ready" ;;
 esac

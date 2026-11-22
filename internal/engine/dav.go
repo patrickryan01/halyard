@@ -180,7 +180,10 @@ func (e *Engine) SaveEvent(ctx context.Context, accountID, calendarURL string, e
 	}
 	tag, err := c.Put(ctx, ref, "text/calendar; charset=utf-8", text, etag)
 	if err != nil && strings.Contains(err.Error(), "no-uid-conflict") && ev.URL == "" {
-		// the server already put this invitation in the calendar (many do when the invitation arrives): nothing to add
+		// The server already holds this invitation: a scheduling server puts an incoming invitation in the attendee's
+		// calendar itself (RFC 6638, 3.2 and 4.1, https://www.rfc-editor.org/rfc/rfc6638), and a second copy with the same
+		// UID is refused with the no-uid-conflict precondition naming the existing one (RFC 4791, 5.3.2.1,
+		// https://www.rfc-editor.org/rfc/rfc4791). That is success: there is nothing to add.
 		if i := strings.Index(err.Error(), "<D:href>"); i >= 0 {
 			if j := strings.Index(err.Error()[i:], "</D:href>"); j > 0 {
 				if u, e2 := url.PathUnescape(err.Error()[i+8 : i+j]); e2 == nil {
