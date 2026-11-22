@@ -179,6 +179,17 @@ func (e *Engine) SaveEvent(ctx context.Context, accountID, calendarURL string, e
 		etag = ""
 	}
 	tag, err := c.Put(ctx, ref, "text/calendar; charset=utf-8", text, etag)
+	if err != nil && strings.Contains(err.Error(), "no-uid-conflict") && ev.URL == "" {
+		// the server already put this invitation in the calendar (many do when the invitation arrives): nothing to add
+		if i := strings.Index(err.Error(), "<D:href>"); i >= 0 {
+			if j := strings.Index(err.Error()[i:], "</D:href>"); j > 0 {
+				if u, e2 := url.PathUnescape(err.Error()[i+8 : i+j]); e2 == nil {
+					ev.URL, ev.AccountID = u, accountID
+					return ev, nil
+				}
+			}
+		}
+	}
 	if err != nil {
 		return ev, err
 	}

@@ -29,8 +29,8 @@ const b = await chromium.launch({ executablePath: process.env.CHROME });
 const pg = await b.newPage({ viewport: { width: 1300, height: 850 } });
 pg.on('pageerror', e => { errors.push('pageerror ' + e.message); console.log('pageerror', e.message); });
 pg.on('console', m => { if (m.type() === 'error') console.log('console error', m.text()); });
-const dialogs = [];
-pg.on('dialog', d => { dialogs.push(d.message()); const t = d.message(); if (d.type() === 'prompt') d.accept(/Name for this search/.test(t) ? 'zebra search' : /address to send from/.test(t) ? 'alias@x.test' : ''); else d.accept(); });
+const dialogs = []; let dismissNext = false;
+pg.on('dialog', d => { dialogs.push(d.message()); if (dismissNext) { dismissNext = false; d.dismiss(); return; } const t = d.message(); if (d.type() === 'prompt') d.accept(/Name for this search/.test(t) ? 'zebra search' : /address to send from/.test(t) ? 'alias@x.test' : ''); else d.accept(); });
 await pg.goto(url); await pg.waitForSelector('.nav');
 
 // command palette: open, filter, run a command, go to a folder
@@ -121,7 +121,7 @@ must((await pg.locator('.ac').count()) === 1 && (await pg.locator('.ac').innerTe
 await pg.keyboard.press('Escape'); await pg.fill('.composer [data-f=to] input', 'big@y.test'); await pg.keyboard.press('Enter');
 await pg.fill('.composer [data-subj]', 'big file');
 await pg.setInputFiles('.composer [data-file]', { name: 'big.bin', mimeType: 'application/octet-stream', buffer: Buffer.alloc(26 * 1048576) });
-pg.once('dialog', d => d.dismiss()); await pg.click('.composer [data-send]'); await sleep(500);
+dismissNext = true; await pg.click('.composer [data-send]'); await sleep(500);
 must(dialogs.some(m => m.includes('Most mail servers refuse messages over 25 MB')) && (await J('outbox')).length === 0, 'a message over 25 MB is questioned and not sent');
 await pg.click('.composer [data-x]'); await sleep(300); await pg.keyboard.press('Escape');
 
