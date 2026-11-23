@@ -137,6 +137,8 @@ function folderCount(key, acct) {
   }
   return n;
 }
+// what the search box held when a render began, put back once the new box is bound
+let QKEEP = null;
 function render() {
   const d = S.data;
   const app = $('#app');
@@ -166,6 +168,8 @@ function render() {
   else if (errAcct) banner = '<div class="banner err">' + esc(errAcct.email) + ': ' + esc(errAcct.lastError) + ' <button id="retrysync" class="btn">Retry</button></div>';
   const queued = (d.outbox || []).filter(o => o.state === 'failed');
   if (queued.length) banner += '<div class="banner err">' + queued.length + ' message(s) did not send: ' + esc(queued[0].error) + ' <button class="btn" data-retry="' + esc(queued[0].id) + '">Retry</button></div>';
+  // the search box is a field the person may be typing into: a refresh keeps its text, caret and focus
+  QKEEP = (() => { const q0 = $('#q'); return q0 && document.activeElement === q0 ? { v: q0.value, a: q0.selectionStart, b: q0.selectionEnd } : null; })();
   app.innerHTML =
     '<div class="top"><button class="icon" id="menu" aria-label="Menu">' + IC.menu + '</button><div class="brand"><i></i><span>' + esc(BRAND) + '</span></div>' +
     '<div class="search">' + IC.search + '<input id="q" placeholder="Search mail (from: to: subject: is:unread has:attachment before: larger:)" value="' + esc(S.q) + '" aria-label="Search mail"></div>' +
@@ -439,6 +443,7 @@ function bindMain() {
   const rs = $('#retrysync'); if (rs) rs.onclick = () => api('sync', {});
   $$('[data-retry]').forEach(b => b.onclick = async () => { await api('outbox/retry', { id: b.dataset.retry }); refreshSoon(); });
   const q = $('#q'); q.onkeydown = e => { if (e.key === 'Enter') search(q.value); if (e.key === 'Escape') { q.blur(); } };
+  if (QKEEP) { q.value = QKEEP.v; q.focus(); try { q.setSelectionRange(QKEEP.a, QKEEP.b); } catch (e) { /* a field that takes no selection */ } QKEEP = null; }
   $('#compose').onclick = () => openComposer({ mode: 'new' });
   $('#fab').onclick = () => openComposer({ mode: 'new' });
   $$('[data-nav]').forEach(b => b.onclick = () => go(b.dataset.nav, b.dataset.acct));
