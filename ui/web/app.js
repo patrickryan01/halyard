@@ -119,12 +119,14 @@ let refreshTimer = null;
 function refreshSoon() {
   if (refreshTimer) clearTimeout(refreshTimer); else window.__busy = (window.__busy || 0) + 1;
   refreshTimer = setTimeout(async () => {
+    // the pending timer is spent and its count passes to this run; a refresh asked for while this runs is a new pending one
+    refreshTimer = null;
     try {
       await refreshState();
       if (!S.open) await loadThreads(false); else await reloadOpen();
       render();
     } catch (e) { /* the next event retries */ }
-    refreshTimer = null; window.__busy--;
+    window.__busy--;
   }, 250);
 }
 
