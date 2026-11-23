@@ -324,7 +324,8 @@ async function openThread(id) {
   const convo = $('.convo'); if (convo) convo.scrollTop = 0;
   if (msgs.some(m => !m.read)) { await doAct('read', [id], { quiet: true }); }
 }
-async function reloadOpen() { if (S.open) { const m = await api('thread?id=' + encodeURIComponent(S.open.id)); if (m.length) S.open.msgs = m; else S.open = null; } }
+// the open thread can be closed or replaced while the answer is on its way: the late answer then belongs to nothing
+async function reloadOpen() { const cur = S.open; if (!cur) return; const m = await api('thread?id=' + encodeURIComponent(cur.id)); if (S.open !== cur) return; if (m.length) cur.msgs = m; else S.open = null; }
 const INVERSE = { archive: 'untrash', trash: 'untrash', spam: 'untrash', read: 'unread', unread: 'read', star: 'unstar', unstar: 'star' };
 const LABEL = { archive: 'Conversation archived.', trash: 'Conversation deleted.', spam: 'Reported as spam.', read: 'Marked as read.', unread: 'Marked as unread.', star: 'Starred.', unstar: 'Unstarred.', untrash: 'Moved to inbox.', move: 'Moved.', label: 'Label applied.' };
 async function doAct(kind, ids, o) {
