@@ -15,7 +15,8 @@ node ui/test/features.mjs "$OUT/halyardd" > "$OUT/ui.log" 2>&1
 printf %s "$PW" | HALYARD_NO_BROWSER=1 node ui/test/live_add.mjs "$OUT/halyardd" > "$OUT/live.log" 2>&1
 node ui/test/welcome_keep.mjs "$OUT/halyardd" > "$OUT/welcome.log" 2>&1
 node ui/test/multi_sync.mjs "$OUT/halyardd" > "$OUT/multi-sync.log" 2>&1
+node ui/test/open_race.mjs "$OUT/halyardd-demo" > "$OUT/open-race.log" 2>&1
 node tools/i18n-check.mjs "$OUT/halyardd-demo" > "$OUT/i18n.log" 2>&1
 lab/stalwart.sh down >/dev/null 2>&1
 python3 tools/completeness.py --doc "${COMPLETENESS_DOC:?path of the completeness list}" --go "$OUT/go.log" --lab "$OUT/lab.log" --ui "$OUT/ui.log" --live "$OUT/live.log" --smoke "$OUT/smoke.log" --i18n "$OUT/i18n.log" ${PKG:+--pkgdir "$PKG"} | tee "$OUT/completeness.txt"
-for f in welcome:"welcome keep ok" multi-sync:"multi sync ok"; do n=${f%%:*}; m=${f#*:}; grep -q "$m" "$OUT/$n.log" && echo "$n: ok" || { echo "$n: NOT OK (see $OUT/$n.log)"; echo NOT COMPLETE; exit 1; }; done | tee -a "$OUT/completeness.txt"
+for f in welcome:"welcome keep ok" multi-sync:"multi sync ok" open-race:"open race ok"; do n=${f%%:*}; m=${f#*:}; grep -q "$m" "$OUT/$n.log" && echo "$n: ok" || { echo "$n: NOT OK (see $OUT/$n.log)"; echo NOT COMPLETE; exit 1; }; done | tee -a "$OUT/completeness.txt"
