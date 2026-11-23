@@ -1,7 +1,7 @@
 # Halyard for EmberRTOS Desktop (openSUSE Tumbleweed). Source0 is written by packaging/make-source.sh.
 %global debug_package %{nil}
 Name:           halyard
-Version:        %{?hver}%{!?hver:1.0.0}
+Version:        %{?hver}%{!?hver:1.0.1}
 Release:        0
 Summary:        Modular mail client for Google, Microsoft 365 and self-hosted mail
 License:        SUSE-NonFree

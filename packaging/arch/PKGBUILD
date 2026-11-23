@@ -1,7 +1,7 @@
 # Maintainer: Fireball Industries <patrick@fireballz.ai>
 # Builds from the source tarball that packaging/make-source.sh writes next to this file.
 pkgname=halyard
-pkgver=${HALYARD_VERSION:-1.0.0}
+pkgver=${HALYARD_VERSION:-1.0.1}
 pkgrel=1
 pkgdesc='Halyard: a modular mail client for Google, Microsoft 365 and self-hosted mail, with a built in MCP server'
 arch=(x86_64)

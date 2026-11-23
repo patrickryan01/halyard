@@ -1,7 +1,7 @@
-; Halyard installer for Windows (NSIS). Build: makensis -DVERSION=1.0.0 -DBINDIR=... halyard.nsi
+; Halyard installer for Windows (NSIS). Build: makensis -DVERSION=1.0.1 -DBINDIR=... halyard.nsi
 Unicode true
 !ifndef VERSION
-  !define VERSION "1.0.0"
+  !define VERSION "1.0.1"
 !endif
 !ifndef BINDIR
   !define BINDIR "."
