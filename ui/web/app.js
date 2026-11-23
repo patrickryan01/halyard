@@ -828,7 +828,9 @@ function openComposer(init) {
   c.root = root;
   S.composers.push(c);
   if (window.H && H.composer) H.composer(root, c, { ed, save: () => save(), send: () => send() });
-  setTimeout(() => (c.to.length ? ed : $('[data-f=to] input', root)).focus(), 30);
+  // the first field takes focus once the composer is on screen, unless the person has already put the cursor somewhere in it:
+  // on a slow machine this timer used to fire after they had started typing and pull the cursor away
+  setTimeout(() => { if (root.contains(document.activeElement)) return; (c.to.length ? ed : $('[data-f=to] input', root)).focus(); }, 30);
   if (c.mode !== 'new' && c.to.length) { const r = document.createRange(); r.setStart(ed, 0); r.collapse(true); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); }
 
   let dirty = false, savedOnce = false;
