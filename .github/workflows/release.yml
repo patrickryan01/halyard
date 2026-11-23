@@ -72,6 +72,7 @@ jobs:
         run: |
           V="${GITHUB_REF_NAME#v}"
           useradd -m builder
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
           mkdir -p /home/builder/b && git archive --format=tar.gz --prefix="halyard-$V/" -o "/home/builder/b/halyard-$V.tar.gz" HEAD
           cp packaging/arch/PKGBUILD /home/builder/b/ && chown -R builder /home/builder/b
           su builder -c "cd /home/builder/b && HALYARD_VERSION=$V makepkg --noconfirm --nocheck -f"
